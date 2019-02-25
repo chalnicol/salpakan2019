@@ -1477,7 +1477,7 @@ window.onload = function () {
 
                 var max = this.maxPrepTime;
                 
-                this.plyrInd ['self'].setTimer ( max, 'Preparation' );
+                this.plyrInd ['self'].setTimer ( max, '· Preparation' );
                     
                 clearInterval ( this.timer );
 
@@ -1499,7 +1499,7 @@ window.onload = function () {
 
             }else {
 
-                this.plyrInd ['self'].timerOff ('Preparation')
+                this.plyrInd ['self'].timerOff ('· Preparation')
 
             }
 
@@ -1576,7 +1576,7 @@ window.onload = function () {
 
                 var _this = this;
 
-                this.plyrInd[this.turn].setTimer ( this.maxBlitzTime, 'Your Turn');
+                this.plyrInd[this.turn].setTimer ( this.maxBlitzTime, '· Your Turn');
                 this.plyrInd[opp].clearTimer();
                 
                 clearInterval (this.timer);
@@ -1608,7 +1608,7 @@ window.onload = function () {
 
             }else {
 
-                this.plyrInd[this.turn].timerOff ('Your Turn');
+                this.plyrInd[this.turn].timerOff ('· Your Turn');
                 this.plyrInd[opp].clearTimer();
 
             }
@@ -2667,7 +2667,7 @@ window.onload = function () {
             this.shape.strokeRoundedRect ( -width/2, -height/2, width, height, height * 0.1);
 
             var txtConfig = { 
-                fontFamily: 'Arial', 
+                fontFamily: 'Trebuchet MS', 
                 //fontStyle : 'bold',
                 fontSize: Math.floor(height * 0.21), 
                 color: type == 0 ? '#000' : '#fff' 
@@ -2682,7 +2682,7 @@ window.onload = function () {
 
             var frame = this.isOpen ? rnk -1 : indx;
                 
-            var txtValue = this.isOpen ? rnkName : '***';
+            var txtValue = this.isOpen ? rnkName : '···';
 
             this.image = scene.add.image ( 0, top + height * 0.4, 'thumbs', frame ).setScale ( imgSize/50 )
 
@@ -2971,8 +2971,8 @@ window.onload = function () {
 
             this.shape = scene.add.graphics ( { fillStyle: { color: 0xf5f5f5,  alpha: 1 }, lineStyle : { color: 0xa4a4a4, width:1 } });
 
-            this.shape.fillRoundedRect ( -width/2, -height/2, width, height, height/4);
-            this.shape.strokeRoundedRect ( -width/2, -height/2, width, height, height/4);
+            this.shape.fillRoundedRect ( -width/2, -height/2, width, height, height * 0.15);
+            this.shape.strokeRoundedRect ( -width/2, -height/2, width, height, height * 0.15);
         
 
             //players name...
@@ -2987,41 +2987,42 @@ window.onload = function () {
             };
 
             var tX = left + (width * 0.13),
-                tY = top + (height * 0.12); 
+                tY = top + (height * 0.11); 
 
             this.text = scene.add.text ( tX, tY, name, txtConfig ).setOrigin(0);
 
             var bW = width * 0.025,
                 bS = bW * 0.2,
                 sX = left + (width * 0.13),
-                sY = top + (height * 0.52); 
+                sY = top + (height * 0.53); 
                 
 
             var winTxtConfig = { color : '#ff6600', fontSize : height * 0.28, fontFamily : 'Trebuchet MS' };
 
             this.winTxt = scene.add.text ( sX, sY, '✪ Wins: 0', winTxtConfig );
-
+            
+            //timer
             var timertxtConfig = {
                 fontSize : height * 0.38,
                 fontFamily : 'Trebuchet MS',
                 fontStyle : 'bold',
                 color : '#6c6c6c'
             };
+            this.timertxt = scene.add.text (left + width *0.93, top + height * 0.82, '', timertxtConfig ).setOrigin(1);
 
-            this.timertxt = scene.add.text (left + width *0.93, top + height * 0.58, '', timertxtConfig ).setOrigin(1);
-
+            //caption
             var captionConfig = {
                 fontSize : height * 0.25,
                 fontFamily : 'Trebuchet MS',
+                fontStyle : "bold",
                 color : '#6c6c6c'
             };
+            this.caption = scene.add.text (left + width *0.93, top + height * 0.41, '', captionConfig ).setOrigin(1);
 
+            //avatar
             var imgSize = height * 0.75;
-
             this.image = scene.add.image ( left + width * 0.07, 0, 'thumbs', 18 ).setScale ( imgSize/50 ).setVisible(true);
 
-
-            this.caption = scene.add.text (left + width *0.93, top + height * 0.82, '', captionConfig ).setOrigin(1);
 
             this.bar = scene.add.graphics();
 
@@ -3057,8 +3058,13 @@ window.onload = function () {
             
         },
         timerOff :  function ( caption ) {
-            this.timertxt.setText ('---');
+            
+            this.timertxt.setVisible ( false );
+
+            this.caption.setPosition ( this.width * 0.46, -this.height * 0.08 );
+
             this.caption.setText ( caption );
+
         },
         setTimer : function ( maxTime, caption ) {
 
