@@ -32,6 +32,7 @@ Player = function (id, username){
 		username:username,
 		roomid : '',
 		strikeCount : 0,
+		type : 0,
 		winCount : 0,
 		isReady:false,
 		isInsideRoom : false,
@@ -185,6 +186,8 @@ io.on('connection', function(socket){
 				
 			newRoom.playerIDs.push ( socket.id )
 
+			newRoom.isClosed = true;
+
 			roomList [ socket.id ] = newRoom;
 
 			var player = playerList [ socket.id ];
@@ -194,22 +197,27 @@ io.on('connection', function(socket){
 			var returnData = {
 			
 				'isSinglePlayer' : true,
+				'isTimed' : newRoom.isTimed,
 				'players' : {
-					'self' : player.username,
+					'self' : {
+						'name' : player.username,
+						'type' : 0,
+					}
 				}
-	
 			};
 
-			socket.emit ('initGame', returnData );
+			socket.emit ('initGame', returnData ); 
+
+			console.log ( '\n --> Room Created :', newRoom.id );
 
 
 		}else {
 	
-			var availableRoom = getAvailableRoom();
+			var availableRoom = getAvailableRoom( data.isTimed );
 
-			console.log ('\n --> avail room',  availableRoom );
+			console.log ('\n --> avail room :',  availableRoom );
 
-			if ( availableRoom == null ) {
+			if ( availableRoom == 'none' ) {
 
 				var newRoom = GameRoom ( socket.id, data.isTimed );
 				
@@ -223,7 +231,7 @@ io.on('connection', function(socket){
 
 				player.roomid = socket.id;
 
-				socket.emit ('waitingGame', null );
+				//socket.emit ('waitingGame', null );
 
 				console.log ( '\n --> Room Created :', newRoom.id );
 
@@ -242,7 +250,7 @@ io.on('connection', function(socket){
 				gameRoom.initGame ();
 
 				//initialize game..
-				initGame ( gameRoom.playerIDs );
+				initGame ( gameRoom.id );
 		
 			}
 
@@ -316,13 +324,13 @@ io.on('connection', function(socket){
 	socket.on("disconnect",function () {
 			
 		if ( playerList.hasOwnProperty(socket.id) ) {
-			
+
 			var plyr = playerList[socket.id];
-			
-			if ( plyr.roomid != '' ) leaveRoom ( socket.id, plyr.roomid );
-			
+
 			console.log ( '\n <-- ' + plyr.username  + ' has been disconnected.' );
 
+			if ( plyr.roomid != '' ) leaveRoom ( socket.id, plyr.roomid );
+		
 			delete playerList [socket.id];
 
 		}
@@ -337,12 +345,12 @@ io.on('connection', function(socket){
 });
 
 
-function getAvailableRoom () {
+function getAvailableRoom ( isTimed ) {
 
 	for ( var i in roomList ) {
-		if ( !roomList[i].isClosed ) return roomList[i].id;
+		if ( !roomList[i].isClosed && roomList[i].isTimed == isTimed ) return roomList[i].id;
 	}
-	return null;
+	return 'none';
 
 }
 function verifyClickSent ( socketid ) {
@@ -355,27 +363,38 @@ function verifyClickSent ( socketid ) {
 
 	return true;
 }
-function initGame ( playerIDs ) {
+function initGame ( roomid ) {
 
-	for ( var i = 0; i < playerIDs.length; i++ ) {
+	var room = roomList [roomid ];
 
-		var counter = i == 0 ? 1 : 0;
+	for ( var i = 0; i < room.playerCount; i++ ) {
 
-		var self = playerList [ playerIDs[i] ];
+		var self = playerList [ room.playerIDs[i] ];
 
-		var oppo =  playerList [playerIDs[counter]];
+		var oppo =  playerList [ room.playerIDs[ i == 0 ? 1 : 0 ] ];
 
+		self.type = i;
+
+		oppo.type = i == 0 ? 1 : 0;
+		
 		var data = {
 			
 			'isSinglePlayer' : false,
+			'isTimed' : room.isTimed,
 			'players' : {
-				'self' : self.username,
-				'oppo' : oppo.username
+				'self' : {
+					'name' : self.username,
+					'type' : self.type,
+				},
+				'oppo' : {
+					'name' : oppo.username,
+					'type' : oppo.type
+				}
 			}
 
 		};
 
-		var socket = socketList [ playerIDs[i] ];
+		var socket = socketList [ self.id ];
 
 		socket.emit ('initGame', data );
 

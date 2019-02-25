@@ -49,6 +49,10 @@ window.onload = function () {
         };
 
         game = new Phaser.Game(config);
+
+        socket = io();
+
+        socket.emit ('initUser', username.value );
     
     }
 
@@ -101,27 +105,92 @@ window.onload = function () {
         },
         create : function () {
 
-    
             this.loadtxt.destroy();
+
+            this.initSound ();
+
+            this.initGraphicAndTitles ();
+
+            this.initSelect ();
+
+            this.initSocketIOListeners();
+
+            setTimeout ( function () {
+                socket.emit ('getPlayersOnline', null );
+            }, 1000 );
+
+            
+        },
+        initSocketIOListeners () {
+
+            console.log ('listeners loaded');
+
+            var _this = this;
+
+            socket.on ('initGame', function ( data ) {
+                
+                _this.initGame (data);
+
+            });
+            socket.on ('playersOnline', function ( data ) {
+                
+                _this.music.play ('message');
+
+                _this.playersOnlineTxt.text = 'Players Online : ' + data;
+
+            });
+
+        },
+        initSound : function () {
+            
 
             this.bgsound = this.sound.add ('introbg').setVolume(0.2).setLoop(true);
             this.bgsound.play();
 
             this.music = this.sound.addAudioSprite('sfx');
 
+        },
+        initGraphicAndTitles () {
 
             var graphics = this.add.graphics();
             graphics.fillStyle( 0x9a9a9a, 1);
             graphics.fillRect ( 0, config.height * 0.7 , config.width, config.height * 0.5 );
 
 
-            var textName = this.add.text ( config.width * 0.03, config.height * 0.03, 'Hi, ' + username.value + '!', { color:'#cc5200', fontSize:15, fontFamily:'Arial', fontStyle: 'bold'  } );
+            var ptx = config.width * 0.03, 
+                pty = config.height * 0.03;
 
-            var configtxt = { color : '#000', fontSize : config.height *0.1, fontFamily:'Arial', fontStyle: 'bold' } ;
+            var textNameConfig = { 
+                color:'#663300', 
+                fontSize: config.height * 0.025, 
+                fontFamily:'Trebuchet MS', 
+                fontStyle: 'bold'  
+            };
 
+            var textName = this.add.text ( ptx, pty, 'Hi, ' + username.value + '!', textNameConfig );
+
+            var polConfig = { 
+                color : '#3c3c3c', 
+                fontSize : config.height * 0.02, 
+                fontStyle:'bold',
+                fontFamily : 'Trebuchet MS'
+
+            };
+
+            var ptyb = config.height *0.065;
+
+            this.playersOnlineTxt = this.add.text ( ptx, ptyb, 'Players Online : -', polConfig );
+
+            var configtxt = { 
+                color : '#000', 
+                fontSize : config.height *0.1, 
+                fontFamily:'Arial', 
+                fontStyle: 'bold' 
+            };
+            
             var text = this.add.text ( config.width/2, config.height * 0.18, 'Salpakan 2.0', configtxt ).setOrigin(0.5);
-            text.setStroke('#f4f4f4', 5);
-            text.setShadow( 1, 1, '#666', true, true );
+            
+            text.setStroke('#f4f4f4', 5).setShadow( 1, 1, '#666', true, true );
 
             var m = 5,
                 r = config.width * 0.022,
@@ -132,8 +201,6 @@ window.onload = function () {
                 yp = config.height * 0.3;
 
             for ( var i=0; i<m; i++) {
-
-                //var circ = this.add.circle ( xp + i*( r + s ), yp, r, 0x333333 );
 
                 var star = this.add.star ( xp + i*( r + s ), yp, 5, r/2, r, 0x333333).setScale(3).setRotation(90);
 
@@ -159,27 +226,62 @@ window.onload = function () {
 
             }
 
-            var configtxt2 = { color : '#6a6a6a', fontSize : config.height *0.03, fontFamily:'Arial', } ;
-            var text2 = this.add.text ( config.width/2, config.height * 0.38, '- Select Game -', configtxt2 ).setOrigin(0.5);
+        },
+        initSelect : function () {
 
+            this.selectGame = 0;
+            this.selectGameType = 0;
 
+            this.rects = [];
+            this.rectsb = [];
+
+            this.selects = {};
+            
+
+            var configtxt2 = { 
+                color : '#6a6a6a', 
+                fontSize : config.height *0.025, 
+                fontFamily:'Trebuchet MS' 
+            };
+
+            var xt1 = config.width * 0.29,
+                xt2 = xt1 + config.width * 0.3;
+
+            var text2 = this.add.text ( xt1, config.height * 0.38, 'Select Game', configtxt2 )
+
+            var text3 = this.add.text ( xt2, config.height * 0.38, 'Select Type', configtxt2 )
+
+            var text_arr = [
+                { name: 'Blitz', desc : '30 seconds preparation, 15 seconds per turn' },
+                { name: 'Classic', desc : 'Untimed game' }
+            ];
+
+            var text_arr2 = [
+                { name: 'vs Computer', desc : '' },
+                { name: 'vs Online Players', desc : '' }
+            ];
+
+            var xo = config.width *0.54, yo = config.height * .45;
+
+            var line = this.add.line (xo, yo, 0, 0, 0, config.height * 0.13, 0x9c9c9c, 1 ).setLineWidth (1);
             //
             var size = config.width * 0.023,
                 sp = size * 0.5;
 
-            var xp1 = config.width * 0.45,
+            var xp1 = config.width * 0.3,
                 xp2 = xp1 + size,
+                xp3 = xp1 + config.width* 0.3,
+                xp4 = xp3 + size,
                 ypa = config.height * 0.45;
-
-
-            var text_arr = [{name: 'Blitz', desc : '30 seconds preparation, 15 seconds per turn' },
-                            {name: 'Classic', desc : '- Untimed game -' }];
 
             var _this = this;
 
-            this.selectGame = 0;
+            var selectTxtConfig = { 
+                fontSize: size, 
+                color : '#6a6a6a', 
+                fontFamily:'Trebuchet MS' 
+            };
 
-            this.rects = [];
 
             for ( var i=0; i < 2; i++) {
 
@@ -187,67 +289,116 @@ window.onload = function () {
 
                 this.rects.push ( circ );
 
-                var configtxt = { fontSize: size, color : '#6a6a6a', fontFamily:'Arial' };
+                var circb = this.add.circle ( xp3, ypa +( i * ( size + sp ) ), size/2, 0x3a3a3a  );
 
-                var txt = this.add.text ( xp2, ypa + i * ( size + sp ), text_arr[i].name, configtxt ).setOrigin(0, 0.5);
+                this.rectsb.push ( circb );
 
-                var rcW = config.width * 0.15,
+                var txt = this.add.text ( xp2, ypa + i * ( size + sp ), text_arr2[i].name, selectTxtConfig ).setOrigin(0, 0.5);
+
+                var txtb = this.add.text ( xp4, ypa + i * ( size + sp ), text_arr[i].name, selectTxtConfig ).setOrigin(0, 0.5);
+
+                var rcW = config.width * 0.22,
+                    rcWb = config.width * 0.12,
                     rcH = size * 1.1,
                     rcX = xp1 + (rcW/2) - (size/2),
+                    rcXb = xp3 + (rcWb/2) - (size/2),
                     rcY = ypa;
 
-                var recttop = this.add.rectangle (rcX, rcY + i * ( size + sp ), rcW, rcH  ).setInteractive().setData( 'game', i );
+                var recttop = this.add.rectangle ( rcX, rcY + i * ( size + sp ), rcW, rcH ).setInteractive().setData( 'game', i );
 
                 recttop.on('pointerdown', function () {
 
-                    var game_data = this.getData('game');
+                    var gamedata = this.getData('game');
 
-                    if ( game_data != _this.selectGame ) {
+                    if ( _this.selectGame != gamedata ) {
 
-                        _this.selectGame = game_data;
+                        _this.selectGame = gamedata;
 
-                        _this.srect.setPosition ( _this.rects[game_data].x, _this.rects[game_data].y );
+                        _this.srect.setPosition ( _this.rects[gamedata].x, _this.rects[gamedata].y );
 
-                        _this.txtDesc.setText ( text_arr[ game_data ].desc );
+                        _this.music.play ('clickc');
 
                     }
 
-                    _this.music.play ('clickc');
+                });
+
+                this.selects ['game' + i ] = recttop;
+
+
+                var recttopb = this.add.rectangle ( rcXb, rcY + i * ( size + sp ), rcWb, rcH ).setInteractive().setData( 'type', i );
+
+                recttopb.on('pointerdown', function () {
+
+                    var type = this.getData('type');
+
+                    if ( _this.selectGameType != type ) {
+
+                        _this.selectGameType = type;
+
+                        _this.srectb.setPosition ( _this.rectsb [type].x, _this.rectsb[type].y );
+
+                        _this.txtDesc.setText ( '✱ ' + text_arr[ type ].desc );
+
+                        _this.music.play ('clickc');
+                    }
 
                 });
 
+                this.selects ['type' + i ] = recttopb;
 
             }
 
             this.srect = this.add.circle ( this.rects[0].x,  this.rects[0].y, size/2*0.6, 0xff0000 );
 
-            this.txtDesc = this.add.text ( config.width/2, config.height * 0.58, text_arr[0].desc, { fontSize: size * 0.75, color : '#ff3333', fontFamily:'Arial' }).setOrigin(0.5)
+            this.srectb = this.add.circle ( this.rectsb[0].x,  this.rectsb[0].y, size/2*0.6, 0xff0000 );
+
+            var txtDescConfig = { 
+                fontSize: size * 0.7, 
+                color : '#3a3a3a', 
+                fontFamily:'Trebuchet MS' 
+            };
+
+            this.txtDesc = this.add.text ( config.width/2, config.height * 0.61, '✱ ' + text_arr[0].desc, txtDescConfig ).setOrigin(0.5)
+
 
             //button...
-
             var bw = config.width*0.4,
                 bh = config.height * 0.1,
                 bx = ( config.width - bw )/2,
                 by = config.height * 0.65;
 
             this.graphics2 = this.add.graphics();
-
             this.graphics2.fillStyle( 0x3a3a3a, 1);
             this.graphics2.fillRoundedRect ( bx, by, bw, bh, bh*0.1);
-
 
             var btnTxt = this.add.text ( bx + bw/2, by + bh/2, 'Play Game', { fontSize: bh * 0.5, color : '#ffffff', fontFamily:'Arial', fontStyle: 'bold'}).setOrigin(0.5);
 
             var playBtn = this.add.rectangle ( bx + bw/2, by + bh/2, bw, bh ).setInteractive();
 
-            playBtn.once('pointerdown', function () {
-
-                
-                _this.bgsound.stop();
+            playBtn.on('pointerdown', function () {
 
                 _this.music.play ('clicka');
 
-                _this.scene.start('sceneA', { 'game' : _this.selectGame, 'username' : username.value });
+                var toSendData = {
+                    'isSinglePlayer' :  _this.selectGame == 0 ? true : false,
+                    'isTimed' : _this.selectGameType == 0 ? true : false
+                }
+
+                if ( _this.selectGame == 1) {
+
+                    socket.emit ('enterGame', toSendData );
+
+                    _this.showWaitScreen ();
+
+                }else {
+
+                    _this.disableButtons();
+
+                    socket.emit ('enterGame', toSendData );
+                    
+                }
+                
+                
             });
 
             playBtn.on('pointerover', function () {
@@ -262,10 +413,141 @@ window.onload = function () {
                 _this.graphics2.fillRoundedRect ( bx, by, bw, bh, bh*0.1);
             });
 
+            this.selects ['playBtn'] = playBtn;
 
+        },
+        disableButtons : function ( disabled = true ) {
+
+            if ( disabled ) {
+
+                for ( var i in this.selects ) {
+                    this.selects[i].removeInteractive();
+                }
+
+            }else {
+
+                for ( var i in this.selects ) {
+                    this.selects[i].setInteractive();
+                }
+            }
+            
             
         },
+        showWaitScreen : function () {
 
+            var _this = this;
+
+            this.disableButtons ();
+
+            this.waitScreenBg = this.add.graphics();
+            this.waitScreenBg.fillStyle ( 0x0a0a0a, 0.7 );
+            this.waitScreenBg.fillRect ( 0, 0, config.width, config.height );
+
+            var bW = config.width *0.4,
+                bH = config.height  *0.2,
+                bX = (config.width - bW )/2,
+                bY =  (config.height - bH)/2;
+
+            this.waitScreenBg.fillStyle ( 0xdedede , 0.9 );
+            this.waitScreenBg.fillRoundedRect ( bX, bY, bW, bH, bH * 0.03 );
+
+
+            //
+            this.screenElements = [];
+
+            var txtConfig = {
+                color : '#3c3c3c',
+                fontSize : bH *0.16,
+                fontFamily : 'Trebuchet MS',
+                fontStyle : 'bold'
+            };
+
+            var tx = bX + bW/2,
+                ty = bY + bH *0.43;
+
+            var txt = this.add.text ( tx, ty, 'Waiting for players..' , txtConfig ).setOrigin(0.5);
+
+            this.screenElements.push ( txt );
+
+            var max = 5;
+
+            var bSize = config.width * 0.01,
+                bSpace = config.width * 0.02,
+                bTotal = max * ( bSize + bSpace ) - bSpace;
+                cX = (config.width - bTotal) /2,
+                cY = bY + (bH *0.62) + (bSize/2);
+                
+            var duration = 500, delay = duration/max;
+
+            for ( var i=0; i<max; i++) {
+
+                var rect = this.add.circle ( cX + i*( bSize+ bSpace), cY, bSize/2, 0x6c6c6c, 1 );
+        
+                this.tweens.add ({
+                    targets : rect,
+                    scaleX : 1.5,
+                    scaleY : 1.5,
+                    duration : duration,
+                    ease : 'Power2',
+                    repeat : -1,
+                    yoyo : true,
+                    delay : i * delay,
+                });
+
+                this.screenElements.push (rect);
+
+            }
+
+            var btx = bX + bW *0.02,
+                bty = bY + bH * 0.04;
+
+            var back = this.add.text ( btx, bty, '☒ Cancel', { color : '#3c3c3c', fontSize : bH * 0.11, fontFamily : 'Trebuchet MS'});
+
+            this.screenElements.push (back);
+
+            var rW = bW * 0.2, rH = bH * 0.15;
+
+            var hitArea = this.add.rectangle ( btx + rW/2, bty + rH/2, rW, rH ).setInteractive();
+
+            hitArea.on ('pointerover', function () {
+                back.setColor ( '#ff3300');
+            });
+            hitArea.on ('pointerout', function () {
+                back.setColor ('#3c3c3c' );
+            });
+            hitArea.on ('pointerdown', function () {
+
+                socket.emit ('leaveGame');
+
+                _this.music.play('clicka');
+
+                _this.removeWaitScreen();
+
+            });
+
+            this.screenElements.push (hitArea);
+
+        },
+        removeWaitScreen : function () {
+
+            this.waitScreenBg.destroy ();
+
+            for ( var i in this.screenElements) {
+                this.screenElements[i].destroy();
+            }
+
+            this.disableButtons (false);
+
+        },
+        initGame : function ( data ) {
+
+            socket.removeAllListeners();
+
+            this.bgsound.stop();
+
+            this.scene.start('sceneA', data );
+
+        }
 
     });
 
@@ -282,7 +564,7 @@ window.onload = function () {
 
         init: function (data) {
 
-            console.log ( data );
+            //console.log ( data );
 
             this.grid = [];
             this.blinker = [];
@@ -302,9 +584,11 @@ window.onload = function () {
             this.turn = '';
             this.isWinning = '';
 
-            this.isSinglePlayer = true;
-            this.isTimed = data.game == 0 ? true : false;
-            this.playerName = data.username;
+            this.isSinglePlayer = data.isSinglePlayer;
+            this.isTimed = data.isTimed;
+            //this.playerName = data.username;
+            this.playersData = data.players;
+
             this.elimScreenShown = false;
             this.isPrompted = false;
             this.isEmoji = false;
@@ -336,8 +620,6 @@ window.onload = function () {
 
             this.gameWidth = config.width * 0.98;
 
-            this.initializeGameSounds();
-
             this.createPanels();
 
             this.createGrid ();
@@ -348,6 +630,9 @@ window.onload = function () {
 
             this.createGamePieces('self');
 
+            this.initializeGameSounds();
+
+            this.initSocketIOListeners();
 
             setTimeout ( function () {
                 
@@ -358,6 +643,121 @@ window.onload = function () {
                 _this.startPreparations ();
         
             }, 800);
+
+        },
+        initSocketIOListeners : function () {
+
+            var _this = this;
+
+            socket.on ('onePlayerReady', function ( data ) {
+
+                if ( data.self ) _this.plyrIndicator ['self'].ready();
+
+                if ( data.oppo ) _this.plyrIndicator ['oppo'].ready();
+
+            });
+            socket.on ('opponentLeft', function ( data ) {
+
+                if ( _this.isPrompted ) _this.removePrompt();
+
+                if ( _this.isEndScreen ) _this.removeEndScreen();
+
+                _this.removeButtons ();
+
+                _this.activateGrid (false);
+
+                setTimeout(() => {
+                    _this.showPrompt ('Opponent has left the game.', true );
+                }, 200);
+                
+            });
+            socket.on("resetGame", function () {
+			
+                if ( _this.isPrompted ) _this.removePrompt ();
+
+                setTimeout (function () {
+                    _this.resetGame();
+                }, 200 )
+                
+            });
+            socket.on ('gridClickResult', function (data) {
+
+                //update data..
+                for ( var i=0; i<100; i++) {
+                    _this.gameData ['self'].grid [i].isTrashed = data.self.grid[i].isTrashed;
+                    _this.gameData ['self'].grid [i].isResided = data.self.grid[i].isResided;
+
+                    _this.gameData ['oppo'].grid [i].isTrashed = data.oppo.grid[i].isTrashed;
+                    _this.gameData ['oppo'].grid [i].isResided = data.oppo.grid[i].isResided;
+                }
+
+                for ( var i=0; i<6; i++) {
+                    _this.gameData ['self'].fleet[i].remains = data.self.fleet[i].remains;
+                    _this.gameData ['oppo'].fleet[i].remains = data.oppo.fleet[i].remains;
+                }
+
+                _this.showHit ( _this.turn, data.post, data.shipIndex, data.isHit );
+
+                _this.activateGrid (false);
+
+                if ( data.isHit ) {
+
+                    _this.music.play ('explosionb');
+
+                    var opp = _this.turn == 'self' ? 'oppo' : 'self';
+
+                    if ( data.shipSunk != null ) {
+    
+                        setTimeout ( function () {
+
+                            if ( _this.turn =='self' && _this.view == 'self' ) {
+                                _this.showShip ( data.shipSunk );
+                            }
+                            _this.music.play ('warp');
+                            
+                        }, 400);
+                            
+                    }
+
+                    if ( data.isWinner ) {
+
+                        _this.gameOn = false;
+                        
+                        setTimeout ( function () {
+                            _this.endGame();
+                        }, 800);
+
+                    }else {
+
+                        if ( _this.turn == 'self' && _this.view == 'self') {
+                            setTimeout ( function () {
+                                _this.activateGrid(); 
+                            }, 800);
+                        }
+                        
+
+                    }
+
+                }else {
+
+                    _this.music.play ('explosiona');
+
+                    setTimeout ( function () {
+                        _this.switchTurn ();
+                    }, 1000);
+                    
+                }
+
+            });
+            socket.on ('startGame', function ( data ) {
+                
+                if ( _this.isPrompted ) _this.removePrompt();
+
+                _this.turn = data;
+
+                _this.startGame();
+
+            });
 
         },
         initializeGameSounds: function () {
@@ -372,29 +772,50 @@ window.onload = function () {
             this.music = this.sound.addAudioSprite ('sfx');
 
         },
-        createPlayers : function () {
+        createPlayers : function () 
+        {
 
-            var names = ['Marlon', 'Ayesha', 'Rod', 'Muhammad', 'Ibrahim', 'Carlos Rodrigo' ];
+            var oppNames = [ 'Rodrigo', 'Corazon', 'Emilio', 'Ramon', 'Fidel', 'Marlon', 'Ayesha', 'Albert', 'Muhammad', 'Ibrahim', 'Carlos' ];
 
-            var selfType = Math.floor(Math.random() * 2),
-                oppoType = selfType == 0 ? 1 : 0;
+            var self_name = '', oppo_name = '', self_type = 0, oppo_type = 0; 
 
-            var oppName = Math.floor(Math.random() * names.length );
+            if ( this.isSinglePlayer ) {
 
+                var rand = Math.floor ( Math.random() * oppNames.length );
+
+                self_name = this.playersData.self.name;
+
+                self_type = Math.floor ( Math.random() * 2 );
+                
+                oppo_name = oppNames [ rand ];
+
+                oppo_type = self_type == 0 ? 1 : 0;
+
+            }else {
+
+                self_name = this.playersData.self.name;
+
+                self_type = this.playersData.self.type;
+
+                oppo_name = this.playersData.oppo.name;
+
+                oppo_type = this.playersData.oppo.type;
+            }
+        
             this.player [ 'self' ] = { 
                 id : 'self', 
-                name : this.playerName,
+                name : self_name,
                 wins: 0, 
-                type : selfType, 
+                type : self_type, 
                 isAI : false 
             };
 
             this.player [ 'oppo' ] = { 
                 id : 'oppo', 
-                name : names[oppName],  
+                name : oppo_name,  
                 wins: 0, 
-                type : oppoType,
-                isAI : true 
+                type : oppo_type,
+                isAI : this.isSinglePlayer 
             };
             
         },
@@ -581,17 +1002,17 @@ window.onload = function () {
             if ( !proper ) {
 
                 buts = [
-                    { id : 'preset', value : '✽ Preset' },
-                    { id : 'random', value : '❂ Random' },
+                    { id : 'preset', value : '☗ Preset' },
+                    { id : 'random', value : '☋ Random' },
                     { id : 'ready', value : '✔ Ready' }
                 ];
 
             }else {
                 
                 buts = [
-                    { id : 'proposedraw', value : '❂ Propose Draw' },
-                    { id : 'resign', value : '✽ Resign' },
-                    { id : 'showpieces', value : '✔ Reveal Pieces' }
+                    { id : 'proposedraw', value : '⚖ Propose Draw' },
+                    { id : 'resign', value : '⚑ Resign' },
+                    { id : 'showpieces', value : '❖ Reveal Pieces' }
                 ];
 
                 //if ( this.isSinglePlayer ) buts.pop();
@@ -2615,6 +3036,10 @@ window.onload = function () {
             clearInterval ( this.timer );
             clearTimeout ( this.timeDissolve );
             clearTimeout ( this.timeDissolveWarning );
+
+            socket.emit ('leaveGame');
+
+            socket.removeAllListeners();
 
             this.bgmusic.stop();
 
