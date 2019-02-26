@@ -588,6 +588,7 @@ window.onload = function () {
             this.activePiece = '';
             this.turn = '';
             this.isWinning = '';
+            this.endWinner = '';
 
             this.isSinglePlayer = data.isSinglePlayer;
             this.isTimed = data.isTimed;
@@ -663,16 +664,17 @@ window.onload = function () {
             });
             socket.on ('opponentLeft', function ( data ) {
 
-                if ( _this.isPrompted ) _this.removePrompt();
+                if ( _this.isPrompted ) _this.clearPrompt();
 
-                if ( _this.isEndScreen ) _this.removeEndScreen();
+                clearInterval (_this.timer);
 
                 _this.removeButtons ();
-
-                _this.activateGrid (false);
+                _this.enabledPieces ('self', false );
+                _this.enabledPieces ('oppo', false );
+                _this.gamePhase = 'end';
 
                 setTimeout(() => {
-                    _this.showPrompt ('Opponent has left the game.', true );
+                    _this.showPrompt ('Opponent has left the game.', '', false, 0.05 );
                 }, 200);
                 
             });
@@ -1039,7 +1041,7 @@ window.onload = function () {
                 but.setScale (0.5);
 
                 but.on('pointerover', function () {
-                    this.change (0x9c9c9c);
+                    this.change ();
                 });
                 but.on('pointerout',  function () {
                     this.reset();
@@ -1049,7 +1051,8 @@ window.onload = function () {
                 });
                 
                 but.on('pointerdown', function () {
-                    this.change (0x9999ff);
+
+                    this.change ( 0x00ffff );
                     
                     _this.playSound('clicka');
 
@@ -1080,7 +1083,9 @@ window.onload = function () {
                         break;
                         case 'resign' :
                             //..
-                            
+
+                            this.disableInteractive();
+
                             if ( _this.isPrompted ) _this.clearPrompt();
 
                             setTimeout ( function () {                        
@@ -1090,9 +1095,11 @@ window.onload = function () {
                         break;
                         case 'proposedraw' :
                             //..
+
+                            this.disableInteractive();
+
                             if ( _this.isPrompted ) _this.clearPrompt();
 
-                            
                             setTimeout ( function () {     
 
                                 if ( _this.turn == 'self' ) {
@@ -1106,6 +1113,9 @@ window.onload = function () {
                         break;
                         case 'showpieces' :
                             //..
+
+                            this.disableInteractive();
+
                             if ( _this.isPrompted ) _this.clearPrompt();
 
                             setTimeout ( function () {                        
@@ -1163,14 +1173,21 @@ window.onload = function () {
                     this.reset();
                 });
                 cntrols.on ('pointerdown', function () {
+
                     this.change (0x9999ff);
+
+                    _this.playSound('clicka');
 
                     switch (this.id) {
                         case 'cont0' :
-                            //..
-                            //if ( _this.gamePhase == 'prep' ) return;
+
+                            if ( _this.isEmoji ) {
+                                _this.toggleEmojis();
+                                _this.controls[3].toggle();
+                            }
+
                             _this.toggleElimPiecesScreen();
-                            
+
                             this.toggle();
                             
                         break;
@@ -1193,31 +1210,48 @@ window.onload = function () {
                         break;
                         case 'cont3' :
 
-                            _this.isEmoji = !_this.isEmoji;
-
-                            if ( _this.isEmoji ) {
-                                _this.createEmojis();
-                            }else {
-                                _this.removeEmojis();
+                            if ( _this.elimScreenShown ) {
+                                _this.toggleElimPiecesScreen();
+                                _this.controls[0].toggle();
                             }
+
+                            _this.toggleEmojis ();
+
                             this.toggle();
                            
                         break;
 
                         case 'cont4' :
 
-                            if ( _this.isPrompted ) _this.clearPrompt();
+                            if ( _this.gamePhase != 'end' ) {
 
-                            setTimeout ( function () {                        
-                                _this.showLeaveScreen();
-                            }, 100);
+                                this.disableInteractive();
+
+                                if ( _this.isEmoji ) {
+                                    _this.toggleEmojis();
+                                    _this.controls[3].toggle();
+                                }
+
+                                if ( _this.elimScreenShown ) {
+                                    _this.toggleElimPiecesScreen();
+                                    _this.controls[0].toggle();
+                                }
+
+                                if ( _this.isPrompted ) _this.clearPrompt();
+
+                                setTimeout ( function () {                        
+                                    _this.showLeaveScreen();
+                                }, 100);
+
+                            }else{
+
+                                _this.leaveGame ();
+                            }
                             
-
                         break;
-                        default :
+                        
                     }
 
-                    _this.playSound('clicka');
 
                 });
 
@@ -1227,7 +1261,7 @@ window.onload = function () {
             var txtConfig = {
                 color : '#300',
                 fontSize : config.height * 0.02,
-                fontFamily : 'Arial',
+                fontFamily : 'Trebuchet MS',
                 fontStyle : 'bold'
             };
 
@@ -1378,89 +1412,243 @@ window.onload = function () {
             }
 
         },
-        createEmojis: function () {
+        toggleEmojis : function () {
 
-            var esize = config.width * 0.075;
+            this.isEmoji = !this.isEmoji;
 
-            var emojiCount = 9, c = 3, r = Math.ceil ( emojiCount/c );
+            if ( this.isEmoji ) {
 
-            var w = esize * c,
-                h = esize * r,
-                x = config.width - w,
-                y = config.height * 0.924 - h;
+                var esize = config.width * 0.075;
 
-            //this.rectBg = this.add.rectangle ( x + w/2, y + h/2, w, h, 0x0a0a0a, 0.5 ).setDepth(999);
+                var emojiCount = 9, c = 3, r = Math.ceil ( emojiCount/c );
 
-            var _this = this;
+                var w = esize * c,
+                    h = esize * r,
+                    x = config.width - w,
+                    y = config.height * 0.924 - h;
 
-            this.myEmojis = [];
+                //this.rectBg = this.add.rectangle ( x + w/2, y + h/2, w, h, 0x0a0a0a, 0.5 ).setDepth(999);
 
-            this.clickables = [];
+                var _this = this;
 
-            for ( var i = 0; i< emojiCount; i++ ) {
+                this.myEmojis = [];
 
-                var xp = Math.floor ( i/3 ), yp = i%3;
+                this.clickables = [];
 
-                var xpos = x + ( yp * esize ) + esize/2,
-                    ypos = y + ( xp * esize ) + esize/2;
+                for ( var i = 0; i< emojiCount; i++ ) {
 
-                var clicks = this.add.rectangle ( xpos, ypos, esize, esize, 0x0a0a0a, 0.8 ).setInteractive().setDepth (998).setData('count', i);
+                    var xp = Math.floor ( i/3 ), yp = i%3;
 
-                clicks.on('pointerover', function () {
-                    this.setFillStyle ( 0x9999ff, 1 );
+                    var xpos = x + ( yp * esize ) + esize/2,
+                        ypos = y + ( xp * esize ) + esize/2;
 
-                });
-                clicks.on('pointerout', function () {
-                   this.setFillStyle ( 0x0a0a0a, 0.8 );
-                });
-                clicks.on('pointerdown', function () {
+                    var clicks = this.add.rectangle ( xpos, ypos, esize, esize, 0x0a0a0a, 0.8 ).setInteractive().setDepth (998).setData('count', i);
+
+                    clicks.on('pointerover', function () {
+                        this.setFillStyle ( 0x9999ff, 1 );
+
+                    });
+                    clicks.on('pointerout', function () {
+                        this.setFillStyle ( 0x0a0a0a, 0.8 );
+                    });
+                    clicks.on('pointerdown', function () {
+                        
+                        if (_this.isMessages ) _this.removeEmojis();
+
+                        _this.showSentEmojis ( this.getData('count') );
+
+                        _this.playSound('message');
+
+                        _this.toggleEmojis();
+
+                        _this.controls[3].toggle();
+
+                        if ( _this.isSinglePlayer ) _this.autoRespond();
+
+                    });
                     
-                    _this.sendEmoji ( this.getData('count') );
+                    this.clickables.push ( clicks );
 
-                    _this.playSound('message');
+                    var imgsize = esize * 0.9;
 
-                    _this.isEmoji = false;
+                    var emoji = this.add.image ( xpos , ypos, 'thumbs', 30 + i ).setScale(imgsize/50).setDepth (998);
 
-                    _this.removeEmojis();
+                    this.myEmojis.push ( emoji );
 
-                    _this.controls[3].toggle();
+                    
 
-                    if ( _this.isSinglePlayer ) _this.autoRespond();
+                }
 
+            }else {
+
+                for ( var i = 0; i< this.myEmojis.length ; i++ ) {
+
+                    this.myEmojis[i].destroy();
+    
+                    this.clickables[i].destroy();
+                }
+    
+                this.myEmojis = [];
+    
+                this.clickables = [];
+
+            }
+
+        },
+        toggleElimPiecesScreen : function () {
+
+            this.elimScreenShown = !this.elimScreenShown;
+            
+            if ( this.elimScreenShown ) {
+                
+                var cW = config.width,
+                    cH = config.height * 0.824,
+                    cX = config.width/2,
+                    cY = config.height * 0.512;
+
+                this.elimScreen = this.add.rectangle( cX - cW * 0.6, cY, cW, cH, 0x0a0a0a, 0.9 );
+                this.elimScreen.setInteractive().setDepth (1000);
+
+                this.tweens.add ({
+                    targets : this.elimScreen,
+                    x : cX,
+                    duration : 300,
+                    ease : 'Power2'
+                });
+
+
+                this.circs = [];
+
+                var size = config.width * 0.008,
+                    spacing = config.height * 0.03;
+
+                for ( var j=0; j<5; j++) {
+
+                    var circ = this.add.ellipse( config.width/2 - (cW * 0.8), (config.height * 0.25) + j * ( size + spacing ), size, size, 0xc9c9c9 );
+                    
+                    circ.setDepth ( 1000 );
+
+                    this.tweens.add ({
+                        targets : circ,
+                        x : config.width/2,
+                        duration : 300,
+                        ease : 'Power2'
+                    });
+
+                    this.circs.push ( circ );
+                }
+
+                
+                var configtxt = {
+                    color : '#fff',
+                    fontSize : config.height * 0.03,
+                    fontFamily : 'Arial',
+                    fontStyle : 'bold'
+                };
+
+                this.texta = this.add.text( config.width/2 - (cW*0.8), config.height * 0.15, '❂ Eliminated Pieces', configtxt).setOrigin(0.5).setDepth(1000);
+
+                this.tweens.add ({
+                    targets : this.texta,
+                    x : config.width/2,
+                    duration : 300,
+                    ease : 'Power2'
                 });
                 
-                this.clickables.push ( clicks );
 
-                var imgsize = esize * 0.9;
+                var selfX = config.width * 0.09,
+                    selfY = config.height * 0.25,
+                    oppoX = config.width * 0.59,
+                    oppoY = selfY;
 
-                var emoji = this.add.image ( xpos , ypos, 'thumbs', 30 + i ).setScale(imgsize/50).setDepth (998);
+                var counter = 0, counterb = 0;
 
-                this.myEmojis.push ( emoji );
+                for ( var i in this.gamePiece ) {
+                    
+                    var gp = this.gamePiece[i];
+
+                    if ( gp.plyr == 'self' && gp.isDestroyed ) {
+
+                        var xp = counter % 4, 
+                            yp = Math.floor ( counter/4 );
+
+                        gp.x =  selfX + xp * ( gp.width + (gp.width * 0.1) ) - (cW*0.8);
+                        gp.y =  selfY + yp * ( gp.height + (gp.height * 0.15) );
+
+                        gp.setDepth ( 1000 );
+                        gp.reset();
+                        gp.setVisible ( true );
+                        
+                        if ( !gp.isOpen ) gp.flip();
+                        
+                        this.tweens.add ({
+                            targets : gp,
+                            x : selfX + xp * ( gp.width + (gp.width * 0.1) ),
+                            duration : 300,
+                            ease : 'Power2'
+                        });
+
+                        
+                        counter ++;
+                        
+                    }
+
+                    if ( gp.plyr == 'oppo' && gp.isDestroyed ) {
+
+
+                        var xpa = counterb % 4, 
+                            ypa = Math.floor ( counterb/4 );
+
+                        gp.x =  oppoX + xpa * ( gp.width + (gp.width * 0.1) ) - (cW* 0.8),
+                        gp.y =  oppoY + ypa * ( gp.height + (gp.height * 0.15) );
+
+                        gp.setDepth ( 1000 );
+                        gp.reset();
+                        gp.setVisible ( true );
+
+                        this.tweens.add ({
+                            targets : gp,
+                            x : oppoX + xpa * ( gp.width + (gp.width * 0.1) ),
+                            duration : 300,
+                            ease : 'Power2'
+                        });
+                        
+                        
+                        //if ( !gp.isOpen ) gp.flip();
+                        
+                        counterb ++;
+                        
+                    }
+                    
+                } 
+
+            }else {
+
+                //this.elimScreen.clear();
+                this.elimScreen.destroy();
+                this.texta.destroy();
+
+                for ( var i in this.gamePiece ) {
+                    if ( this.gamePiece[i].isDestroyed ) {
+                        this.gamePiece[i].setVisible (false);
+                    }
+                }
+
+                for ( var j=0; j<this.circs.length; j++ ) {
+                
+                        this.circs[j].destroy();
+                    
+                }
 
                 
-
+                //todo..
             }
+            
 
         },
-        removeEmojis : function () {
+        showSentEmojis : function ( frame, plyr = 'self' ) {
 
-            //this.rectBg.destroy();
-
-            for ( var i = 0; i< this.myEmojis.length ; i++ ) {
-
-                this.myEmojis[i].destroy();
-
-                this.clickables[i].destroy();
-            }
-
-            this.myEmojis = [];
-
-            this.clickables = [];
-
-        },
-        sendEmoji: function ( frame, plyr = 'self' ) {
-
-            if ( this.isMessages ) this.removeSentEmojis();
+            this.isMessages = true;
 
             var max = 4;
 
@@ -1509,35 +1697,37 @@ window.onload = function () {
 
             }
 
-            this.isMessages = true;
-
             var _this = this;
 
             clearTimeout ( this.timeDissolve );
             this.timeDissolve = setTimeout ( function () {
-                console.log ('..')
-                if ( _this.isMessages) 
-                    _this.removeSentEmojis();
+                 _this.removeEmojis();
             }, 3000 );
 
         },
-        removeSentEmojis : function () {
+        removeEmojis : function () {
             
+            this.isMessages = false; 
+
             clearTimeout ( this.timeDissolve );
 
             for ( var i in this.msgelements ) {
                 this.msgelements[i].destroy();
             }
             this.msgelements = [];
-            this.isMessages = false;
 
         },
         autoRespond: function () {
 
             var _this = this;
             setTimeout ( function () {
-                _this.sendEmoji ( Math.floor ( Math.random() * 9 ), 'oppo' );
+
+                if ( _this.isMessages ) _this.removeEmojis();
+                
                 _this.playSound ('message');
+                
+                _this.showSentEmojis ( Math.floor ( Math.random() * 9 ), 'oppo' );
+                
             }, 1000 );
 
         },
@@ -1948,8 +2138,10 @@ window.onload = function () {
 
             this.turn = this.player['self'].type == 0 ? 'self' : 'oppo';
 
+            //if ( this.isPrompted ) this.clearPrompt();
+
             setTimeout ( function () {
-                
+    
                 _this.createGamePieces ( 'oppo', false );
                 _this.showCommenceScreen();
 
@@ -2003,6 +2195,7 @@ window.onload = function () {
                 var _this = this;
 
                 this.plyrInd[this.turn].setTimer ( this.maxBlitzTime, '· Your Turn');
+
                 this.plyrInd[opp].clearTimer();
                 
                 clearInterval (this.timer);
@@ -2208,6 +2401,8 @@ window.onload = function () {
             
             this.gamePhase = 'end';
 
+            this.endWinner = winner;
+
             var _this = this;
             
             if ( this.isPrompted ) this.clearPrompt();
@@ -2218,25 +2413,24 @@ window.onload = function () {
 
                 _this.revealPieces();
 
-                _this.showEndScreen( winner=='self' ? 'Congrats! You win.' : 'Sorry! You lose.' );
+                _this.showEndScreen();
 
             }, 500 );
 
         },
         showCommenceScreen :  function () {
             
-            var cW = config.width * 0.25,
+            this.commenceElements = [];
+
+            var cW = config.width * 0.2,
                 cH = config.height * 0.15,
                 cX = ( config.width - cW )/2,
                 cY = this.fieldY + ( ( this.fieldHeight - cH )/2 );
 
-            this.commenceGraphics = this.add.graphics();
+            var graphics = this.add.graphics();
 
-            this.commenceGraphics.fillStyle (0x000000, 0.5);
-            this.commenceGraphics.lineStyle (2, 0x9a9a9a);
-
-            this.commenceGraphics.fillRoundedRect ( cX, cY, cW, cH, cH * 0.05 );
-            this.commenceGraphics.strokeRoundedRect ( cX, cY, cW, cH, cH * 0.05 );
+            graphics.fillStyle (0x000000, 0.6);
+            graphics.fillRoundedRect ( cX, cY, cW, cH, cH * 0.05 );
 
             var tX = cX + cW/2,
                 tY = cY + cH/2;
@@ -2245,10 +2439,10 @@ window.onload = function () {
 
             var _this = this;
 
-            this.miniCirc = this.add.star ( tX, tY, 8, (cH*0.5)/2, cH*0.5,  0xccff99, 0.5 );
+            var starAnim = this.add.star ( tX, tY, 8, (cH*0.5)/2, cH*0.5,  0xccff99, 0.5 );
 
             this.tweens.add ({
-                targets : this.miniCirc,
+                targets : starAnim,
                 scaleX : 0.2,
                 scaleY : 0.2,
                 rotation : 90,
@@ -2256,6 +2450,9 @@ window.onload = function () {
                 duration : 500,
                 repeat : 2
             });
+            
+            this.commenceElements.push ( graphics );
+            this.commenceElements.push ( starAnim );
 
             var txtConfig = {
                 color : '#f5f5f5',
@@ -2264,9 +2461,10 @@ window.onload = function () {
                 fontStyle : 'bold'
             };
 
-            this.commenceText = this.add.text ( tX, tY, max, txtConfig).setOrigin(0.5);
-            this.commenceText.setStroke('#3a3a3a', 5);
+            _this.commenceText = this.add.text ( tX, tY, max, txtConfig).setOrigin(0.5);
+            _this.commenceText.setStroke('#3a3a3a', 5);
 
+            
             this.playSound ('beep');
 
             clearInterval (this.timer);
@@ -2275,84 +2473,106 @@ window.onload = function () {
 
                 counter++;
                 
-                //_this.commenceText.setText ( 'Game Commencing in.. '+ ( max - counter) );
-
                 _this.commenceText.setText ( max - counter );
             
                 if ( counter >= max ) {
                 
                     clearInterval (_this.timer);
 
+                    for ( var i in _this.commenceElements ) {
+                        _this.commenceElements [i].destroy();
+                    }
                     _this.commenceText.destroy();
-                    _this.commenceGraphics.destroy();
-                    _this.miniCirc.destroy();
 
                     _this.createButtons (true);
                     _this.makeTurn ();
-                            
                     _this.playSound ('bell');
 
                 }else {
 
                     _this.playSound ('beep');
+
                 }
 
             }, 1000 );
 
         },
-        showEndScreen : function ( txt='Sample text', caption='' ) {
+        showPrompt : function ( text, caption = '', withButtons = false, promptTxtSize = 0.08 ) {
 
             this.isPrompted = true;
-            
-            this.playSound ('alternate');
 
-            this.endGraphic = this.add.graphics();
+            this.promptElements = [];
+
+            var pGraphics = this.add.graphics({ lineStyle : {width : 1, color : 0xf5f5f5 }}).setDepth ( 999 );
 
             var gW = config.width * 0.6,
-                gH = config.height * 0.3,
+                gH = withButtons ? config.height * 0.3 : config.height * 0.12,
                 gX = ( config.width - gW )/2,
                 gY = this.fieldY + ( ( this.fieldHeight - gH )/2 );
 
-            this.endGraphic.fillStyle (0x3a3a3a, 0.8 );
-            this.endGraphic.lineStyle (2, 0xf5f5f5 );
+            //pGraphics.fillStyle (0x0a0a0a, 0.5 );
+            //pGraphics.fillRect ( 0, 0, config.width, config.height );
 
-            this.endGraphic.fillRoundedRect ( gX, gY, gW, gH, gH * 0.05 );
-            //graphics.strokeRoundedRect ( gX, gY, gW, gH, gH * 0.05 );
+            pGraphics.fillStyle (0x3a3a3a, 0.9 );
+            pGraphics.fillRoundedRect ( gX, gY, gW, gH, gH * 0.05 );
 
+            this.promptElements.push ( pGraphics );
+            
             var txtConfig = {
                 color : '#fff',
-                fontSize : gW * 0.08,
-                fontFamily : "Verdana",
+                fontSize : gW * promptTxtSize,
+                fontFamily : "Trebuchet MS",
                 fontStyle : 'bold'
             };
             
-            this.endtext = this.add.text ( gX + gW/2, gY + gH * 0.35, txt, txtConfig).setOrigin(0.5)
+            var tx = gX + gW/2,
+                ty = withButtons ? gY + gH * 0.35 : gY + gH/2;
 
-            var txtConfig2 = {
-                color : '#ff0',
-                fontSize : gW * 0.025,
-                fontFamily : "Verdana",
-                fontStyle : 'bold'
+            var promptTxt = this.add.text ( tx, ty, text, txtConfig).setOrigin(0.5).setDepth ( 999 );
+
+            this.promptElements.push ( promptTxt );
+
+            var captionTxtConfig = {
+                color : '#ffff00',
+                fontSize : gW * 0.03,
+                fontFamily : "Trebuchet MS",
+                //fontStyle : 'bold'
             };
 
-            //this.endCaption = this.add.text ( gX + gW/2, gY + gH * 0.51, caption, txtConfig2).setOrigin(0.5)
+            var cx = tx,
+                cy = withButtons ? gY + gH * 0.5 : gY + gH * 0.6;
 
-            var buts = ['Rematch'];
+            var captionTxt = this.add.text ( cx, cy, caption, captionTxtConfig).setOrigin(0.5).setDepth ( 999 );
 
-            var bW = gW * 0.35,
-                bH = gH * 0.2,
+            this.promptElements.push ( captionTxt );
+
+        },
+        showEndScreen : function () {
+
+            this.playSound ('alternate');
+
+            var txt = this.endWinner == 'self' ? 'Congrats! You win.' : 'Sorry, You lose.';
+
+            this.showPrompt ( txt, '', true );
+
+            var buts = ['Rematch', 'Quit'];
+
+            var bW = config.width * 0.2
+                bH = config.height * 0.065,
                 bS = bW * 0.05,
-                bT = (buts.length * bW) + ( ( buts.length - 1) * bS ),
-                bX =  ( gW - bT )/2 + gX + bW/2,
-                bY = gY + gH * 0.75;
+                bT = buts.length * ( bW + bS ) - bS
+                bX =  ( config.width - bT )/2 + (bW/2),
+                bY =  config.height * 0.51 + (bH/2);
 
             var _this = this;
 
             for ( var i = 0; i< buts.length; i++) {
-                var btn = new MyButton ( this, 'but' + i, bX + i*(bW + bS), bY, bW, bH, buts[i], 0xdedede );
+                
+                var btn = new MyButton ( this, 'but' + i, bX + i*(bW + bS), bY, bW, bH, buts[i], 0xdedede ).setDepth (999);
 
                 btn.on ('pointerdown', function() {
-                    this.change (0x9999ff);
+
+                    this.change (0x00ffff);
 
                     _this.playSound('clicka');
 
@@ -2369,7 +2589,7 @@ window.onload = function () {
                     
                 });
                 btn.on ('pointerover', function() {
-                    this.change (0x9a9a9a);
+                    this.change ();
                 });
                 btn.on ('pointerup', function() {
                     this.reset();
@@ -2384,46 +2604,25 @@ window.onload = function () {
         },
         showResignScreen : function () {
 
-            if ( this.isPrompted ) this.clearPrompt();
-
-            this.isPrompted = true;
-
-            this.endGraphic = this.add.graphics();
-
-            var gW = config.width * 0.6,
-                gH = config.height * 0.3,
-                gX = ( config.width - gW )/2,
-                gY = this.fieldY + ( ( this.fieldHeight - gH )/2 );
-
-            this.endGraphic.fillStyle (0x3a3a3a, 0.8 );
-            this.endGraphic.lineStyle (2, 0xf5f5f5 );
-            this.endGraphic.fillRoundedRect ( gX, gY, gW, gH, gH * 0.05 );
-            
-
-            var txtConfig = {
-                color : '#fff',
-                fontSize : gW * 0.04,
-                fontFamily : "Verdana",
-                fontStyle : 'bold'
-            };        
-            this.endtext = this.add.text ( gX + gW/2, gY + gH * 0.35, 'Are you sure you want to resign?', txtConfig).setOrigin(0.5);
+            this.showPrompt ( 'Are you sure you want to resign?', '', true, 0.05 );
 
             var buts = [ 'Confirm', 'Cancel'];
 
-            var bW = gW * 0.3,
-                bH = gH * 0.2,
+            var bW = config.width * 0.2
+                bH = config.height * 0.065,
                 bS = bW * 0.05,
-                bT = (buts.length * bW) + ( ( buts.length - 1) * bS ),
-                bX =  ( gW - bT )/2 + gX + bW/2,
-                bY = gY + gH * 0.75;
+                bT = buts.length * ( bW + bS ) - bS
+                bX =  ( config.width - bT )/2 + (bW/2),
+                bY =  config.height * 0.51 + (bH/2);
 
             var _this = this;
 
             for ( var i = 0; i< buts.length; i++) {
-                var btn = new MyButton ( this, 'but' + i, bX + i*(bW + bS), bY, bW, bH, buts[i], 0xdedede );
+                var btn = new MyButton ( this, 'but' + i, bX + i*(bW + bS), bY, bW, bH, buts[i], 0xdedede ).setDepth(999);
 
                 btn.on ('pointerdown', function() {
-                    this.change (0x9999ff);
+
+                    this.change (0x00ffff);
 
                     _this.playSound('clicka');
                     
@@ -2441,7 +2640,7 @@ window.onload = function () {
                     
                 });
                 btn.on ('pointerover', function() {
-                    this.change (0x9a9a9a);
+                    this.change ();
                 });
                 btn.on ('pointerup', function() {
                     this.reset();
@@ -2456,45 +2655,25 @@ window.onload = function () {
         },
         showRevealScreen : function () {
 
-            if ( this.isPrompted ) this.clearPrompt();
+            this.showPrompt ( 'Are you sure you want to reveal your pieces?', '', true, 0.04 );
 
-            this.isPrompted = true;
+            var buts = [ 'Confirm', 'Cancel' ];
 
-            this.endGraphic = this.add.graphics();
-
-            var gW = config.width * 0.6,
-                gH = config.height * 0.3,
-                gX = ( config.width - gW )/2,
-                gY = this.fieldY + ( ( this.fieldHeight - gH )/2 );
-
-            this.endGraphic.fillStyle (0x3a3a3a, 0.8 );
-            this.endGraphic.lineStyle (2, 0xf5f5f5 );
-            this.endGraphic.fillRoundedRect ( gX, gY, gW, gH, gH * 0.05 );
-            
-            var txtConfig = {
-                color : '#fff',
-                fontSize : gW * 0.04,
-                fontFamily : "Verdana",
-                fontStyle : 'bold'
-            };        
-            this.endtext = this.add.text ( gX + gW/2, gY + gH * 0.35, 'Reveal your pieces to the opponent?', txtConfig).setOrigin(0.5);
-
-            var buts = ['Confirm', 'Cancel'];
-
-            var bW = gW * 0.3,
-                bH = gH * 0.2,
+            var bW = config.width * 0.2
+                bH = config.height * 0.065,
                 bS = bW * 0.05,
-                bT = (buts.length * bW) + ( ( buts.length - 1) * bS ),
-                bX =  ( gW - bT )/2 + gX + bW/2,
-                bY = gY + gH * 0.75;
+                bT = buts.length * ( bW + bS ) - bS
+                bX =  ( config.width - bT )/2 + (bW/2),
+                bY =  config.height * 0.51 + (bH/2);
 
             var _this = this;
 
             for ( var i = 0; i< buts.length; i++) {
-                var btn = new MyButton ( this, 'but' + i, bX + i*(bW + bS), bY, bW, bH, buts[i], 0xdedede );
+                var btn = new MyButton ( this, 'but' + i, bX + i*(bW + bS), bY, bW, bH, buts[i], 0xdedede ).setDepth(999);
 
                 btn.on ('pointerdown', function() {
-                    this.change (0x9999ff);
+
+                    this.change (0x00ffff);
 
                     _this.playSound('clicka');
 
@@ -2514,13 +2693,14 @@ window.onload = function () {
                         break;
                         case 'but1' : 
                             _this.clearPrompt();
+                                
                         break;
                         default:
                     }
                     
                 });
                 btn.on ('pointerover', function() {
-                    this.change (0x9a9a9a);
+                    this.change ();
                 });
                 btn.on ('pointerup', function() {
                     this.reset();
@@ -2535,55 +2715,31 @@ window.onload = function () {
         },
         showDrawScreen : function () {
 
-            if ( this.isPrompted ) this.clearPrompt();
+            this.showPrompt ( 'Are you sure you want to propose a draw?', '', true, 0.04 );
 
-            this.isPrompted = true;
+            var buts = [ 'Confirm', 'Cancel' ];
 
-            this.endGraphic = this.add.graphics();
-
-            var gW = config.width * 0.6,
-                gH = config.height * 0.3,
-                gX = ( config.width - gW )/2,
-                gY = config.height * 0.32;
-
-            this.endGraphic.fillStyle (0x3a3a3a, 0.8 );
-            this.endGraphic.lineStyle (2, 0xf5f5f5 );
-            this.endGraphic.fillRoundedRect ( gX, gY, gW, gH, gH * 0.05 );
-            
-            var txtConfig = {
-                color : '#fff',
-                fontSize : gW * 0.04,
-                fontFamily : "Verdana",
-                fontStyle : 'bold'
-            };        
-            this.endtext = this.add.text ( gX + gW/2, gY + gH * 0.35, 'Do you propose a draw?', txtConfig).setOrigin(0.5);
-
-            var buts = ['Confirm', 'Cancel'];
-
-            var bW = gW * 0.3,
-                bH = gH * 0.2,
+            var bW = config.width * 0.2
+                bH = config.height * 0.065,
                 bS = bW * 0.05,
-                bT = (buts.length * bW) + ( ( buts.length - 1) * bS ),
-                bX =  ( gW - bT )/2 + gX + bW/2,
-                bY = gY + gH * 0.75;
-
+                bT = buts.length * ( bW + bS ) - bS
+                bX =  ( config.width - bT )/2 + (bW/2),
+                bY =  config.height * 0.51 + (bH/2);
+                
             var _this = this;
 
             for ( var i = 0; i< buts.length; i++) {
-                var btn = new MyButton ( this, 'but' + i, bX + i*(bW + bS), bY, bW, bH, buts[i], 0xdedede );
+                var btn = new MyButton ( this, 'but' + i, bX + i*(bW + bS), bY, bW, bH, buts[i], 0xdedede ).setDepth (999);
 
                 btn.on ('pointerdown', function() {
-                    this.change (0x9999ff);
+                    this.change (0x0ffff);
 
                     _this.playSound('clicka');
 
                     switch ( this.id ) {
                         case 'but0' : 
-
                             _this.clearPrompt();
-
                             _this.showWaitResponse();
-                            
                         break;
                         case 'but1' : 
                             _this.clearPrompt();
@@ -2593,7 +2749,7 @@ window.onload = function () {
                     
                 });
                 btn.on ('pointerover', function() {
-                    this.change (0x9a9a9a);
+                    this.change ();
                 });
                 btn.on ('pointerup', function() {
                     this.reset();
@@ -2608,110 +2764,43 @@ window.onload = function () {
         },
         showDrawWarning : function () {
 
-            this.isPrompted = true;
+            this.showPrompt ( 'You can only propose draw on your turn', '', false, 0.04 );
 
-            var gW = config.width * 0.6,
-                gH = config.height * 0.12,
-                gX = ( config.width - gW )/2,
-                gY = this.fieldY + ( ( this.fieldHeight - gH )/2 );
+            clearTimeout ( this.timeDissolve );
 
-            this.endGraphic = this.add.graphics();
-
-            this.endGraphic.fillStyle (0x3a3a3a, 0.8 );
-            this.endGraphic.lineStyle (1, 0xf5f5f5 );
-            this.endGraphic.fillRoundedRect ( gX, gY, gW, gH, gH * 0.05 );
-                
-            var txtConfig = {
-                color : '#fff',
-                fontSize : gW * 0.035,
-                fontFamily : "Verdana",
-                fontStyle : 'bold'
-            };       
-
-            this.endtext = this.add.text ( gX + gW/2, gY + gH/2, 'You can only propose a draw on your turn', txtConfig).setOrigin(0.5);
-
-            clearTimeout ( this.timeDissolveWarning );
             var _this = this;
-            this.timeDissolveWarning = setTimeout ( function () {
+
+            this.timeDissolve = setTimeout ( function () {
+
                 _this.clearPrompt();
+
             }, 1000 );
 
         },
         showWaitResponse : function () {
 
-            clearInterval(this.timer);
-
-            this.isPrompted = true;
-
-            var gW = config.width * 0.6,
-                gH = config.height * 0.12,
-                gX = ( config.width - gW )/2,
-                gY = this.fieldY + ( ( this.fieldHeight - gH )/2 );
-
-            this.endGraphic = this.add.graphics();
-
-            this.endGraphic.fillStyle (0x3a3a3a, 0.8 );
-            this.endGraphic.lineStyle (1, 0xf5f5f5 );
-            this.endGraphic.fillRoundedRect ( gX, gY, gW, gH, gH * 0.05 );
-                
-            var txtConfig = {
-                color : '#fff',
-                fontSize : gW * 0.035,
-                fontFamily : "Verdana",
-                fontStyle : 'bold'
-            };       
-
-            this.endtext = this.add.text ( gX + gW/2, gY + gH/2, 'Waiting for response...', txtConfig).setOrigin(0.5);
-
-            clearTimeout ( this.timeDissolveWarning );
-            var _this = this;
-            this.timeDissolveWarning = setTimeout ( function () {
-                _this.clearPrompt();
-
-            }, 5000 );
-
+            this.showPrompt ('Waiting for response..', '', false, 0.04 );
         },
         showLeaveScreen : function () {
 
-            if ( this.isPrompted ) this.clearPrompt();
+            this.showPrompt ( 'Are you sure you want to leave the game?', '', true, 0.04 );
 
-            this.isPrompted = true;
+            var buts = [ 'Confirm', 'Cancel' ];
 
-            this.endGraphic = this.add.graphics();
-
-            var gW = config.width * 0.6,
-                gH = config.height * 0.3,
-                gX = ( config.width - gW )/2,
-                gY = this.fieldY + ( ( this.fieldHeight - gH )/2 );
-
-            this.endGraphic.fillStyle (0x3a3a3a, 0.8 );
-            this.endGraphic.lineStyle (2, 0xf5f5f5 );
-            this.endGraphic.fillRoundedRect ( gX, gY, gW, gH, gH * 0.05 );
-            
-            var txtConfig = {
-                color : '#fff',
-                fontSize : gW * 0.04,
-                fontFamily : "Verdana",
-                fontStyle : 'bold'
-            };        
-            this.endtext = this.add.text ( gX + gW/2, gY + gH * 0.35, 'Are you sure you want to leave?', txtConfig).setOrigin(0.5);
-
-            var buts = ['Confirm', 'Cancel'];
-
-            var bW = gW * 0.3,
-                bH = gH * 0.2,
+            var bW = config.width * 0.2
+                bH = config.height * 0.065,
                 bS = bW * 0.05,
-                bT = (buts.length * bW) + ( ( buts.length - 1) * bS ),
-                bX =  ( gW - bT )/2 + gX + bW/2,
-                bY = gY + gH * 0.75;
+                bT = buts.length * ( bW + bS ) - bS
+                bX =  ( config.width - bT )/2 + (bW/2),
+                bY =  config.height * 0.51 + (bH/2);
 
             var _this = this;
 
             for ( var i = 0; i< buts.length; i++) {
-                var btn = new MyButton ( this, 'but' + i, bX + i*(bW + bS), bY, bW, bH, buts[i], 0xdedede );
+                var btn = new MyButton ( this, 'but' + i, bX + i*(bW + bS), bY, bW, bH, buts[i], 0xdedede ).setDepth (999);
 
                 btn.on ('pointerdown', function() {
-                    this.change (0x9999ff);
+                    this.change (0x00ffff);
 
                     _this.playSound('clicka');
 
@@ -2724,13 +2813,14 @@ window.onload = function () {
                         break;
                         case 'but1' : 
                             _this.clearPrompt();
+                            _this.controls [4].setInteractive();
                         break;
                         default:
                     }
                     
                 });
                 btn.on ('pointerover', function() {
-                    this.change (0x9a9a9a);
+                    this.change ();
                 });
                 btn.on ('pointerup', function() {
                     this.reset();
@@ -2778,14 +2868,24 @@ window.onload = function () {
         },
         clearPrompt: function () {
 
-            this.endGraphic.destroy();
-            this.endtext.destroy();
-
             this.isPrompted = false;
 
+            for ( var i in this.promptElements ) {
+                this.promptElements[i].destroy();
+            }
             for ( var i in this.buttonPanel ) {
                 this.buttonPanel[i].destroy();
             }
+            clearTimeout ( this.timeDissolve );
+
+           
+            for ( var i in this.button ) {
+                if ( !this.button[i].isDisabled ) {
+                    this.button[i].setInteractive();
+                }
+            }
+
+            this.controls [4].setInteractive();
 
         },
         removeGamePieces : function () {
@@ -2801,165 +2901,6 @@ window.onload = function () {
                     this.gamePiece[i].flip();
                 }
             }
-        },
-        toggleElimPiecesScreen : function () {
-
-
-            /* if ( this.isEmoji ) {
-               
-                this.removeEmojis();
-
-                this.isEmoji = false;
-            } */
-
-            this.elimScreenShown = !this.elimScreenShown;
-            
-            if ( this.elimScreenShown ) {
-                
-                var cW = config.width,
-                    cH = config.height * 0.824,
-                    cX = config.width/2,
-                    cY = config.height * 0.512;
-
-                this.elimScreen = this.add.rectangle( cX - cW * 0.6, cY, cW, cH, 0x0a0a0a, 0.9 );
-                this.elimScreen.setInteractive().setDepth (999);
-
-                this.tweens.add ({
-                    targets : this.elimScreen,
-                    x : cX,
-                    duration : 300,
-                    ease : 'Power2'
-                });
-
-
-                this.circs = [];
-
-                var size = config.width * 0.008,
-                    spacing = config.height * 0.03;
-
-                for ( var j=0; j<5; j++) {
-
-                    var circ = this.add.ellipse( config.width/2 - (cW * 0.8), (config.height * 0.25) + j * ( size + spacing ), size, size, 0xc9c9c9 );
-                    
-                    circ.setDepth ( 1000 );
-
-                    this.tweens.add ({
-                        targets : circ,
-                        x : config.width/2,
-                        duration : 300,
-                        ease : 'Power2'
-                    });
-
-                    this.circs.push ( circ );
-                }
-
-                
-                var configtxt = {
-                    color : '#fff',
-                    fontSize : config.height * 0.03,
-                    fontFamily : 'Arial',
-                    fontStyle : 'bold'
-                };
-
-                this.texta = this.add.text( config.width/2 - (cW*0.8), config.height * 0.15, '❂ Eliminated Pieces', configtxt).setOrigin(0.5).setDepth(1000);
-
-                this.tweens.add ({
-                    targets : this.texta,
-                    x : config.width/2,
-                    duration : 300,
-                    ease : 'Power2'
-                });
-                
-
-                var selfX = config.width * 0.09,
-                    selfY = config.height * 0.25,
-                    oppoX = config.width * 0.59,
-                    oppoY = selfY;
-
-                var counter = 0, counterb = 0;
-
-                for ( var i in this.gamePiece ) {
-                    
-                    var gp = this.gamePiece[i];
-
-                    if ( gp.plyr == 'self' && gp.isDestroyed ) {
-
-                        var xp = counter % 4, 
-                            yp = Math.floor ( counter/4 );
-
-                        gp.x =  selfX + xp * ( gp.width + (gp.width * 0.1) ) - (cW*0.8);
-                        gp.y =  selfY + yp * ( gp.height + (gp.height * 0.15) );
-
-                        gp.setDepth ( 1000 );
-                        gp.reset();
-                        gp.setVisible ( true );
-                        
-                        if ( !gp.isOpen ) gp.flip();
-                        
-                        this.tweens.add ({
-                            targets : gp,
-                            x : selfX + xp * ( gp.width + (gp.width * 0.1) ),
-                            duration : 300,
-                            ease : 'Power2'
-                        });
-
-                        
-                        counter ++;
-                        
-                    }
-
-                    if ( gp.plyr == 'oppo' && gp.isDestroyed ) {
-
-
-                        var xpa = counterb % 4, 
-                            ypa = Math.floor ( counterb/4 );
-
-                        gp.x =  oppoX + xpa * ( gp.width + (gp.width * 0.1) ) - (cW* 0.8),
-                        gp.y =  oppoY + ypa * ( gp.height + (gp.height * 0.15) );
-
-                        gp.setDepth ( 1000 );
-                        gp.reset();
-                        gp.setVisible ( true );
-
-                        this.tweens.add ({
-                            targets : gp,
-                            x : oppoX + xpa * ( gp.width + (gp.width * 0.1) ),
-                            duration : 300,
-                            ease : 'Power2'
-                        });
-                        
-                        
-                        //if ( !gp.isOpen ) gp.flip();
-                        
-                        counterb ++;
-                        
-                    }
-                    
-                } 
-
-            }else {
-
-                //this.elimScreen.clear();
-                this.elimScreen.destroy();
-                this.texta.destroy();
-
-                for ( var i in this.gamePiece ) {
-                    if ( this.gamePiece[i].isDestroyed ) {
-                        this.gamePiece[i].setVisible (false);
-                    }
-                }
-
-                for ( var j=0; j<this.circs.length; j++ ) {
-                
-                        this.circs[j].destroy();
-                    
-                }
-
-                
-                //todo..
-            }
-            
-
         },
         autoPick : function () {
 
@@ -3040,7 +2981,6 @@ window.onload = function () {
             
             clearInterval ( this.timer );
             clearTimeout ( this.timeDissolve );
-            clearTimeout ( this.timeDissolveWarning );
 
             socket.emit ('leaveGame');
 
@@ -3237,9 +3177,10 @@ window.onload = function () {
             this.y = y;
             this.width = width;
             this.height = height;
-            this.isActive = false;
             this.isClicked = false;
             this.bgColor = bgColor;
+            this.txtClr = '#0a0a0a';
+            this.isDisabled = false;
             
             this.roundCorners = this.height *0.2;
 
@@ -3248,9 +3189,9 @@ window.onload = function () {
             this.shape.strokeRoundedRect ( -width/2, -height/2, width, height, this.roundCorners);
 
             var txtConfig = { 
-                fontFamily: 'Tahoma', 
+                fontFamily: 'Trebuchet MS', 
                 fontStyle : 'bold',
-                fontSize: Math.floor(height * 0.35), 
+                fontSize: Math.floor(height * 0.38 ), 
                 color: '#000' 
             };
 
@@ -3259,22 +3200,24 @@ window.onload = function () {
             //add to container...
             this.add ([this.shape, this.text]);
 
-
             scene.children.add ( this );
+
         },
 
-        change : function ( clr ) {
+        change : function ( clr = 0xb3d9ff, txtClr = '#0a0a0a' ) {
 
             this.shape.clear();
             this.shape.fillStyle( clr, 1);
             this.shape.fillRoundedRect ( -this.width/2, -this.height/2, this.width, this.height, this.roundCorners);
             this.shape.strokeRoundedRect ( -this.width/2, -this.height/2, this.width, this.height, this.roundCorners);
 
-            this.text.setColor ('#fff');
+            this.text.setColor ( txtClr );
             
         },
         disabled : function () {
             
+            this.isDisabled = true;
+
             this.shape.clear();
             this.shape.fillStyle( 0xdedede, 1);
             this.shape.lineStyle ( 1, 0x9a9a9a );
@@ -3282,8 +3225,6 @@ window.onload = function () {
             this.shape.strokeRoundedRect ( -this.width/2, -this.height/2, this.width, this.height, this.roundCorners);
 
             this.text.setColor ('#6a6a6a');
-        
-
         },
 
         reset : function () {
@@ -3293,10 +3234,8 @@ window.onload = function () {
             this.shape.fillRoundedRect ( -this.width/2, -this.height/2, this.width, this.height, this.roundCorners);
             this.shape.strokeRoundedRect ( -this.width/2, -this.height/2, this.width, this.height, this.roundCorners);
 
-            this.text.setColor ('#000');
-            
-            //console.log ( this.id, this.active )
-            
+            this.text.setColor ( this.txtClr );
+
         },
         
     
