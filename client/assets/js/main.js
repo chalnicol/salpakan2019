@@ -1,8 +1,6 @@
 
 /*  Author : Charlou E. Nicolas */
 
-
-
 window.onload = function () {
 
 
@@ -437,33 +435,44 @@ window.onload = function () {
 
             var _this = this;
 
+            this.screenElements = [];
+
             this.disableButtons ();
 
-            this.waitScreenBg = this.add.graphics();
-            this.waitScreenBg.fillStyle ( 0x0a0a0a, 0.7 );
-            this.waitScreenBg.fillRect ( 0, 0, config.width, config.height );
+            var graphics = this.add.graphics();
+            graphics.fillStyle ( 0x0a0a0a, 0.8 );
+            graphics.fillRect ( 0, 0, config.width, config.height );
 
             var bW = config.width *0.4,
-                bH = config.height  *0.2,
+                bH = config.height  *0.25,
                 bX = (config.width - bW )/2,
                 bY =  (config.height - bH)/2;
 
-            this.waitScreenBg.fillStyle ( 0xdedede , 0.9 );
-            this.waitScreenBg.fillRoundedRect ( bX, bY, bW, bH, bH * 0.03 );
+            graphics.fillStyle ( 0xdedede , 0.9 );
+            graphics.fillRoundedRect ( bX, bY, bW, bH, bH * 0.03 );
 
 
+            var rW = bW * 0.5,
+                rH = bH * 0.2,
+                rX = bX + (bW - rW)/2,
+                rY = bY + (bH * 0.57) + (rH/2);
+
+            graphics.fillStyle ( 0x3c3c3c , 1 );
+            graphics.fillRoundedRect ( rX, rY, rW, rH, rH * 0.1 );
+
+            this.screenElements.push ( graphics );
             //
-            this.screenElements = [];
+           
 
             var txtConfig = {
                 color : '#3c3c3c',
-                fontSize : bH *0.16,
+                fontSize : bH *0.12,
                 fontFamily : 'Trebuchet MS',
                 fontStyle : 'bold'
             };
 
             var tx = bX + bW/2,
-                ty = bY + bH *0.43;
+                ty = bY + bH *0.25;
 
             var txt = this.add.text ( tx, ty, 'Waiting for players..' , txtConfig ).setOrigin(0.5);
 
@@ -475,7 +484,7 @@ window.onload = function () {
                 bSpace = config.width * 0.02,
                 bTotal = max * ( bSize + bSpace ) - bSpace;
                 cX = (config.width - bTotal) /2,
-                cY = bY + (bH *0.62) + (bSize/2);
+                cY = bY + (bH *0.45) + (bSize/2);
                 
             var duration = 500, delay = duration/max;
 
@@ -498,22 +507,20 @@ window.onload = function () {
 
             }
 
-            var btx = bX + bW *0.02,
-                bty = bY + bH * 0.04;
+            var btx = rX + (rW/2),
+                bty = rY + (rH/2) ;
 
-            var back = this.add.text ( btx, bty, '☒ Cancel', { color : '#3c3c3c', fontSize : bH * 0.11, fontFamily : 'Trebuchet MS'});
+            var back = this.add.text ( btx, bty, 'Cancel', { color : '#f3f3f3', fontSize : bH * 0.11, fontFamily : 'Trebuchet MS'}).setOrigin ( 0.5 );
 
             this.screenElements.push (back);
 
-            var rW = bW * 0.2, rH = bH * 0.15;
-
-            var hitArea = this.add.rectangle ( btx + rW/2, bty + rH/2, rW, rH ).setInteractive();
+            var hitArea = this.add.rectangle ( btx,bty, rW, rH, 0x343434, 0.1 ).setInteractive();
 
             hitArea.on ('pointerover', function () {
                 back.setColor ( '#ff3300');
             });
             hitArea.on ('pointerout', function () {
-                back.setColor ('#3c3c3c' );
+                back.setColor ('#f3f3f3' );
             });
             hitArea.on ('pointerdown', function () {
 
@@ -529,8 +536,6 @@ window.onload = function () {
 
         },
         removeWaitScreen : function () {
-
-            this.waitScreenBg.destroy ();
 
             for ( var i in this.screenElements) {
                 this.screenElements[i].destroy();
