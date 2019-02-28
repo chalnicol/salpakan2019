@@ -605,8 +605,8 @@ window.onload = function () {
             this.playerResign = false;
 
             this.presetIndex = 0;
-            this.maxPrepTime = 30;
-            this.maxBlitzTime = 15;
+            this.maxPrepTime = 10;
+            this.maxBlitzTime = 10;
             this.soundOff = false;
 
             this.music;
@@ -617,8 +617,7 @@ window.onload = function () {
             this.timerCount = 0;
             
         },
-        preload: function ()
-        {
+        preload: function (){
         },
         create: function () 
         {
@@ -668,6 +667,15 @@ window.onload = function () {
             var _this = this;
 
 
+            socket.on ('showEmoji', function ( data ) {
+
+                if (_this.isMessages ) _this.removeEmojis();
+
+                _this.playSound('message');
+
+                _this.showSentEmojis ( data.frame, data.plyr );
+
+            });
             socket.on ('opponentReveal', function ( data ) {
 
                 for ( var i in data ) {
@@ -682,8 +690,6 @@ window.onload = function () {
                 
                 _this.music.play ('bleep');
                 _this.plyrInd ['oppo'].updateStatus ();
-
-
 
             });
             socket.on ('opponentResign', function ( data ) {
@@ -748,6 +754,8 @@ window.onload = function () {
             });
             socket.on ('opponentLeft', function ( data ) {
 
+                console.log ('this is received..');
+
                 if ( _this.isPrompted ) _this.clearPrompt();
 
                 clearInterval (_this.timer);
@@ -764,81 +772,12 @@ window.onload = function () {
             });
             socket.on("resetGame", function () {
 			
-                if ( _this.isPrompted ) _this.removePrompt ();
+                if ( _this.isPrompted ) _this.clearPrompt ();
 
                 setTimeout (function () {
                     _this.resetGame();
                 }, 200 )
                 
-            });
-            socket.on ('gridClickResult', function (data) {
-
-                //update data..
-                for ( var i=0; i<100; i++) {
-                    _this.gameData ['self'].grid [i].isTrashed = data.self.grid[i].isTrashed;
-                    _this.gameData ['self'].grid [i].isResided = data.self.grid[i].isResided;
-
-                    _this.gameData ['oppo'].grid [i].isTrashed = data.oppo.grid[i].isTrashed;
-                    _this.gameData ['oppo'].grid [i].isResided = data.oppo.grid[i].isResided;
-                }
-
-                for ( var i=0; i<6; i++) {
-                    _this.gameData ['self'].fleet[i].remains = data.self.fleet[i].remains;
-                    _this.gameData ['oppo'].fleet[i].remains = data.oppo.fleet[i].remains;
-                }
-
-                _this.showHit ( _this.turn, data.post, data.shipIndex, data.isHit );
-
-                _this.activateGrid (false);
-
-                if ( data.isHit ) {
-
-                    _this.music.play ('explosionb');
-
-                    var opp = _this.turn == 'self' ? 'oppo' : 'self';
-
-                    if ( data.shipSunk != null ) {
-    
-                        setTimeout ( function () {
-
-                            if ( _this.turn =='self' && _this.view == 'self' ) {
-                                _this.showShip ( data.shipSunk );
-                            }
-                            _this.music.play ('warp');
-                            
-                        }, 400);
-                            
-                    }
-
-                    if ( data.isWinner ) {
-
-                        _this.gameOn = false;
-                        
-                        setTimeout ( function () {
-                            _this.endGame();
-                        }, 800);
-
-                    }else {
-
-                        if ( _this.turn == 'self' && _this.view == 'self') {
-                            setTimeout ( function () {
-                                _this.activateGrid(); 
-                            }, 800);
-                        }
-                        
-
-                    }
-
-                }else {
-
-                    _this.music.play ('explosiona');
-
-                    setTimeout ( function () {
-                        _this.switchTurn ();
-                    }, 1000);
-                    
-                }
-
             });
             socket.on ('startGame', function ( data ) {
                 
@@ -1404,9 +1343,6 @@ window.onload = function () {
 
             var piecesData = this.gameData [plyr].pieces;
 
-            
-                
-
             for ( var i = 0; i < piecesData.length; i++ ) {
 
                 var myPost = piecesData[i].post;
@@ -1416,10 +1352,12 @@ window.onload = function () {
                 var gW = myGrid.width * 0.9,
                     gH = myGrid.height * 0.85;
             
-                var initX = plyr == 'self' ? -gW/2 : config.width + gW/2;
+                //var initX = plyr == 'self' ? -gW/2 : config.width + gW/2;
 
-                var gp = new GamePiece ( this, plyr +'_'+ i, initX, myGrid.y, gW, gH, piecesData[i].rank, type, myPost, plyr, i, active );
-            
+                var gp = new GamePiece ( this, plyr +'_'+ i, myGrid.x, myGrid.y, gW, gH, piecesData[i].rank, type, myPost, plyr, i, active );
+                
+                gp.alpha = 0;
+
                 gp.on ('pointerdown', function () {
                     
                     if ( _this.isPrompted ) return;
@@ -1449,16 +1387,16 @@ window.onload = function () {
                 this.tweens.add ({
 
                     targets : gp,
-                    x : myGrid.x,
+                    alpha : 1,
                     duration : 300,
-                    ease : 'Elastic',
-                    easeParams : [ 0.5, 1.2 ],
-                    delay : i * 10
+                    ease : 'Power2',
+                    //easeParams : [ 0.5, 1.2 ],
+                    //delay : i * 10
                 });
                 
-                //if ( plyr == 'self' ) gp.flip();
+                if ( plyr == 'self' ) gp.flip();
 
-                gp.flip();
+                //gp.flip();
 
                 myGrid.residentPlayer = plyr;
                 myGrid.resident = gp.id;
@@ -1577,15 +1515,23 @@ window.onload = function () {
                         
                         if (_this.isMessages ) _this.removeEmojis();
 
-                        _this.showSentEmojis ( this.getData('count') );
+                        if ( _this.isSinglePlayer ) {
 
+                            _this.showSentEmojis ( this.getData('count') );
+
+                            _this.autoRespond();
+
+                        }else {
+
+                            socket.emit ( 'playerSendEmoji', this.getData('count') );
+
+                        }
+    
                         _this.playSound('message');
 
                         _this.toggleEmojis();
 
                         _this.controls[3].toggle();
-
-                        if ( _this.isSinglePlayer ) _this.autoRespond();
 
                     });
                     
@@ -1596,8 +1542,6 @@ window.onload = function () {
                     var emoji = this.add.image ( xpos , ypos, 'thumbs', 30 + i ).setScale(imgsize/50).setDepth (998);
 
                     this.myEmojis.push ( emoji );
-
-                    
 
                 }
 
@@ -1782,7 +1726,7 @@ window.onload = function () {
 
             this.isMessages = true;
 
-            var max = 4;
+            var max = 3;
 
             if ( this.messages.length >= max ) {
                 this.messages.splice ( 0, 1 );
@@ -1810,7 +1754,12 @@ window.onload = function () {
 
                 var tmpPlyr = this.messages[i].plyr;
 
-                var txtConfig = { color : tmpPlyr == 'self' ? '#0f0' : '#f99', fontSize : h * 0.3, fontFamily : 'Arial', fontStyle:'bold' };
+                var txtConfig = { 
+                    color : tmpPlyr == 'self' ? '#0f0' : '#f99', 
+                    fontSize : h * 0.3, 
+                    fontFamily : 'Trebuchet MS', 
+                    fontStyle:'bold' 
+                };
 
                 var text = this.add.text ( tx, yp, this.player[tmpPlyr].name + " :", txtConfig ).setDepth(998).setOrigin(0,0.5);
 
@@ -2386,6 +2335,7 @@ window.onload = function () {
                     _this.plyrInd ['self'].tick ( max - timeCount );
                     
                     if ( timeCount >= max) {
+
                         clearInterval( _this.timer );
                         
                         _this.playerReady();
@@ -2402,6 +2352,7 @@ window.onload = function () {
             }
         
         },
+
         playerReady: function () {
 
             clearInterval (this.timer);
@@ -2431,6 +2382,7 @@ window.onload = function () {
             }else {
 
                 this.showPrompt ('Waiting for other player..', '', false, 0.05 );
+
                 var toSend = this.getGamePieceData ('self');
 
                 socket.emit ( 'playerReady', toSend );
@@ -2731,7 +2683,7 @@ window.onload = function () {
                 _this.commenceText.setText ( max - counter );
             
                 if ( counter >= max ) {
-                
+                    
                     clearInterval (_this.timer);
 
                     for ( var i in _this.commenceElements ) {
@@ -2842,7 +2794,23 @@ window.onload = function () {
 
                     switch ( this.id ) {
                         case 'but0' : 
-                            _this.resetGame();
+
+                            if ( _this.isSinglePlayer ) {
+
+                                _this.resetGame();
+
+                            }else {
+                                
+                                socket.emit ('rematchRequest');
+
+                                if ( _this.isPrompted ) _this.clearPrompt();
+
+                                setTimeout ( function () {
+                                    _this.showPrompt ('Waiting for other player..', '', false, 0.05 );
+                                }, 200 );
+                            
+                            }
+                            
                         break;
                         case 'but1' : 
                             //..
@@ -2958,7 +2926,7 @@ window.onload = function () {
                                 _this.plyrInd['self'].updateStatus();
                             }, 300); 
 
-                            if ( !this.isSinglePlayer ) socket.emit ('piecesReveal');
+                            if ( !_this.isSinglePlayer ) socket.emit ('piecesReveal');
 
                         break;
                         case 'but1' : 
@@ -3264,7 +3232,6 @@ window.onload = function () {
             clearTimeout ( this.timeDissolve );
 
             socket.emit ('leaveGame');
-
             socket.removeAllListeners();
 
             this.bgmusic.stop();

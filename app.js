@@ -41,8 +41,13 @@ Player = function (id, username){
 	}
 
 	plyr.score = function () {
+
 		plyr.winCount += 1;
+
+		console.log ( '\n --> Game Winner : ', plyr.username, plyr.winCount );
+		
 	}
+
 	plyr.gameResetData = function () {
 
 		plyr.isReady = false;
@@ -50,7 +55,7 @@ Player = function (id, username){
 		plyr.piecesShown = false;
 		plyr.pieces = {};
 	}
-
+	
 	plyr.gameReset = function () {
 
 		plyr.gameResetData();
@@ -66,6 +71,7 @@ Player = function (id, username){
 		plyr.index = 0;
 		plyr.type = 0;
 		plyr.winCount = 0;
+		plyr.roomid = '';
 
 	}
 
@@ -79,22 +85,35 @@ GameRoom = function ( id, isTimed=false ) {
 	var rm = {
 
 		id : id,
-		prepTime : 15,
+		prepTime : 10,
 		blitzTime : 10,
 		turn : 0,
+		initialTurn : 0,
 		counter : 0,
 		isWinner : '',
 		isWinning : '',
 		playerCount : 0,
-		clickedPost : -1,
 		isClosed : false,
-		isHit : false,
 		isTimed : isTimed,
+		isTicking : false,
 		isGameOn : false,
 		timer : null,
+		phase : '',
 		playerIDs : [],
 		gridData : []
 
+	}
+
+	rm.getPlayersPieceData = function () {
+		//..
+	}
+	rm.getWinner = function () {
+		
+		var opp = rm.turn == 0 ? 1 : 0;
+
+		var plyr = playerList [ rm.playerIDs [opp] ];
+
+		plyr.score();
 	}
 
 	rm.stopTimer = function () {
@@ -102,25 +121,49 @@ GameRoom = function ( id, isTimed=false ) {
 		clearInterval( rm.timer );
 
 		rm.counter = 0;
+
+		rm.isTicking = false;
 	}
 	
 	rm.startTimer = function ( max ) {
 		//..
+
 		clearInterval ( rm.timer );
+		
+		rm.isTicking = true;
+
 		rm.timer = setInterval ( function () {
+
 			rm.counter += 1;
-			//console.log ( rm.counter );
+			
+			console.log ( rm.counter );
+			
 			if ( rm.counter >= max) {
-				rm.stopTimer();
+				
+				rm.stopTimer ();
+
+				if ( rm.phase == 'prep' ) {
+
+					rm.getPlayersPieceData ();
+				}
+				else if ( rm.phase == 'commence' ) {
+
+					rm.startGame ();
+				}
+				else if ( rm.phase == 'proper' ) {
+
+					rm.endGame ();
+
+					rm.getWinner ();
+				}
+				
 			}
 
 		}, 1000 );
 		
 	}
 
-	rm.initGame  = function () {
-		//..
-		rm.isClosed = true;
+	rm.createGrid = function () {
 
 		rm.gridData = [];
 
@@ -137,35 +180,86 @@ GameRoom = function ( id, isTimed=false ) {
 
 		}
 
+	}
+
+	rm.initGame  = function () {
+
+		console.log ('\n --> Game is initialized', rm.id );
+
+		rm.phase = 'prep';
+		
+		rm.isGameOn = true;
+
+		rm.isClosed = true;
+
+		rm.createGrid ();
+
+		rm.turn = rm.initialTurn;
+		
 		if ( rm.isTimed ) rm.startTimer( rm.prepTime );
+
+	}
+
+	rm.commence = function () {
+
+		console.log ('\n --> Game is commencing', rm.id );
+
+		rm.phase = 'commence';
+		
+		rm.counter = 0;
+
+		rm.startTimer( 3 );
+
 	}
 
 	rm.startGame  = function () {
 		//..
-		rm.isGameOn = true;
 
-		if ( rm.isTimed ) rm.startTimer( rm.blitzTime);
+		console.log ('\n --> Game has started', rm.id );
+
+		rm.phase = 'proper';
+
+		rm.counter = 0;
+
+		if ( rm.isTimed ) rm.startTimer( rm.blitzTime );
+
 	}
 
 	rm.endGame = function () {
-		
+
+		console.log ('\n --> Game has ended', rm.id );
+
 		rm.isGameOn = false;
 
-		rm.stopTimer ();
+		if (rm.isTicking) rm.stopTimer ();
 
 	}
 
 	rm.resetGame = function () {
-		//..
-		rm.turn = rm.turn == 0 ? 1 : 0;
-		rm.clickedPost = -1;
-		rm.isHit = false;
+
+		console.log ('\n --> Game has restarted', rm.id );
+
+		rm.initialTurn = rm.initialTurn == 0 ? 1 : 0;
+
+		rm.turn = rm.initialTurn;
+
+		rm.phase = 'prep';
+		
+		rm.isGameOn = true;
+
 		rm.counter = 0;
+		
 		rm.isWinning = '';
+
+		rm.createGrid ();
+
+		if ( rm.isTimed ) rm.startTimer( rm.prepTime );
 
 	}
 
 	rm.switchTurn = function () {
+
+		console.log ('\n --> Game is switching turn', rm.id );
 
 		rm.turn = rm.turn == 0 ? 1 : 0;
 
@@ -179,19 +273,13 @@ GameRoom = function ( id, isTimed=false ) {
 
 			playerList [ playerid ].score();
 
-		}else {
-			
-			rm.resetTurn ();
+		} else {
+
+			if (rm.isTicking) rm.stopTimer ();
+
+			if ( rm.isTimed ) rm.startTimer ( rm.blitzTime );
 		}
 
-	}
-
-	rm.resetTurn = function () {
-		
-		if ( rm.isTimed ) {
-			rm.stopTimer();
-			rm.startTimer ( rm.blitzTime );
-		}
 	}
 
 	return rm;
@@ -262,8 +350,6 @@ io.on('connection', function(socket){
 	
 			var availableRoom = getAvailableRoom( data.isTimed );
 
-			console.log ('\n --> avail room :',  availableRoom );
-
 			if ( availableRoom == 'none' ) {
 
 				var newRoomID = player.username + '_' + Date.now();
@@ -278,11 +364,10 @@ io.on('connection', function(socket){
 
 				player.roomid = newRoomID;
 
-				console.log ( '\n --> Room Created :', newRoom.id );
+				console.log ( '\n --> '+ player.username +' created a room :', newRoom.id );
 
 			}else  {
 				
-				var player = playerList [ socket.id ];
 
 				player.roomid = availableRoom;
 
@@ -296,8 +381,8 @@ io.on('connection', function(socket){
 
 				gameRoom.playerCount += 1;
 
-				gameRoom.initGame ();
-
+				console.log ( '\n --> '+ player.username +' join the room :', gameRoom.id );
+				
 				//initialize game..
 				initGame ( gameRoom.id );
 		
@@ -311,6 +396,8 @@ io.on('connection', function(socket){
 	socket.on("playerResign", function () {
 		
 		var plyr = playerList [ socket.id ];
+
+		console.log ('\n --> ' + plyr.username + ' has resigned.');
 
 		var room = roomList [ plyr.roomid ];
 
@@ -330,6 +417,8 @@ io.on('connection', function(socket){
 
 		var player = playerList [ socket.id ];
 
+		console.log ('\n --> ' + player.username + ' has revealed his/her game pieces.');
+
 		var pieces = [];
 
 		for ( var i in player.pieces ) {
@@ -338,8 +427,6 @@ io.on('connection', function(socket){
 				'rank' : player.pieces[i].rank
 			});
 		}
-
-		console.log ('\n --> ' + player.username + ' has revealed his/her game pieces.');
 
 		var oppSocket = socketList [ getOpponentsId( socket.id) ];
 
@@ -357,7 +444,7 @@ io.on('connection', function(socket){
 
 		if ( checker ) {
 			
-			startGame ( player.roomid );
+			commenceGame ( player.roomid );
 
 		}else {
 
@@ -396,7 +483,23 @@ io.on('connection', function(socket){
 
 	});
 
-	socket.on("rematchRequest", function (data) {
+	socket.on("playerSendEmoji", function ( data ) {
+
+		var player = playerList [ socket.id ];
+
+		var room = roomList [ player.roomid ];
+
+		for ( var i = 0; i < room.playerCount; i++ ) {
+
+			var plyr =  ( room.playerIDs [i] == player.id ) ? 'self' : 'oppo';
+			
+			socketList [ room.playerIDs[i] ].emit ( 'showEmoji',  { 'plyr' : plyr, 'frame' : data });
+
+		}
+
+	});
+
+	socket.on("rematchRequest", function () {
 		
 		var plyr = playerList [ socket.id ]
 		
@@ -413,7 +516,7 @@ io.on('connection', function(socket){
 		
 		var plyr = playerList[socket.id];
 		
-		console.log ( '\n <-- ' + plyr.username +' has left the game', plyr.roomid == '' ? 'singlePlayer' : plyr.roomid );
+		console.log ( '\n <-- ' + plyr.username +' has left the game' );
 
 		leaveRoom ( socket.id );
 
@@ -494,6 +597,8 @@ function initGame ( roomid ) {
 
 	}
 
+	room.initGame();
+
 }
 function checkPlayersAreReady ( roomID ) {
 
@@ -556,9 +661,7 @@ function sendPlayersOnline () {
 
 	}
 }
-function startGame ( roomID ) {
-
-	console.log ( '\n Game has started...', roomID );
+function commenceGame ( roomID ) {
 
 	var gameRoom = roomList[roomID];	
 
@@ -594,49 +697,47 @@ function startGame ( roomID ) {
 
 	}
 
-	gameRoom.startGame();
+	gameRoom.commence();
 
 } 
 function resetGame ( roomID ) {
 
-	console.log ( '\n Game has been restarted...', roomID );
-
 	var gameRoom = roomList[roomID];
-
-	gameRoom.resetGame();
 
 	for ( var i=0; i<gameRoom.playerCount; i++) {
 
 		var player = playerList [ gameRoom.playerIDs[i] ];
 
-		player.resetData ();
+		player.gameReset ();
 		
 		var socket = socketList [ gameRoom.playerIDs[i] ];
 
-		socket.emit ('resetGame', null );
+		socket.emit ('resetGame');
 	}
+
+	gameRoom.resetGame();
 
 } 
 function leaveRoom ( playerid ) {
 	
 	var player = playerList [playerid];
 
-	player.resetAll ();
-
 	var gameRoom = roomList [ player.roomid ];
 		
+	var oppoID = getOpponentsId ( playerid );
+
 	if ( gameRoom.playerCount >= 2 ) {
 
 		if ( gameRoom.isGameOn ) gameRoom.endGame ();
 
+		gameRoom.playerIDs.splice ( player.index, 1 );
+
 		gameRoom.playerCount = 1;
 
-		var socket = socketList [ getOpponentsId ( playerid ) ];
+		var oppSocket = socketList [ oppoID ];
 		
-		socket.emit ('opponentLeft');
+		oppSocket.emit ('opponentLeft', [] );
 		
-		console.log ( '\n <-- Opponent Left :', gameRoom.id  );
-
 	} else {
 		//...
 		delete roomList [ player.roomid ];
@@ -644,7 +745,9 @@ function leaveRoom ( playerid ) {
 		console.log ( '\n <-- Room deleted :', gameRoom.id  );
 
 	}
+	
 
+	player.resetAll ();
 	
 }
 function initPlayerPieces ( playerid, piecesData ) {
@@ -781,7 +884,7 @@ function analyzeSentMove ( playerid, data ) {
 
 					plyr.score();
 
-					console.log ( '\n --> Winner :', plyr.username );
+					//console.log ( '\n --> Winner :', plyr.username );
 
 				}
 
@@ -798,7 +901,7 @@ function analyzeSentMove ( playerid, data ) {
 
 					oppo.score();
 
-					console.log ( '\n --> Winner :', oppo.username );
+					//console.log ( '\n --> Winner :', oppo.username );
 				}
 
 			break;
@@ -832,7 +935,7 @@ function analyzeSentMove ( playerid, data ) {
 
 				win = true;
 
-				console.log ( '\n --> Hit Base :', plyr.username );
+				//console.log ( '\n --> Hit Base :', plyr.username );
 
 			}
 
