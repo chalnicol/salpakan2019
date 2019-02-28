@@ -31,27 +31,42 @@ Player = function (id, username){
 		id:id,
 		username:username,
 		roomid : '',
-		strikeCount : 0,
+		index : 0,
 		type : 0,
 		winCount : 0,
 		isReady:false,
-		isInsideRoom : false,
 		isReadyForRematch : false,
-		grid : [],
-		fleet  : []
-	
+		piecesShown : false,
+		pieces : {}
 	}
 
 	plyr.score = function () {
-		plyr.gamePoints += 1;
+		plyr.winCount += 1;
 	}
-
-	plyr.resetData = function () {
+	plyr.gameResetData = function () {
 
 		plyr.isReady = false;
 		plyr.isReadyForRematch = false;
-		plyr.grid = [];
-		plyr.fleet = [];
+		plyr.piecesShown = false;
+		plyr.pieces = {};
+	}
+
+	plyr.gameReset = function () {
+
+		plyr.gameResetData();
+		
+		plyr.type = plyr.type == 0 ? 1 : 0;
+
+	}
+ 	
+	plyr.resetAll = function () {
+		
+		plyr.gameResetData();
+		
+		plyr.index = 0;
+		plyr.type = 0;
+		plyr.winCount = 0;
+
 	}
 
 	return plyr;
@@ -69,17 +84,18 @@ GameRoom = function ( id, isTimed=false ) {
 		turn : 0,
 		counter : 0,
 		isWinner : '',
-		playerIDs : [],
+		isWinning : '',
 		playerCount : 0,
 		clickedPost : -1,
 		isClosed : false,
 		isHit : false,
 		isTimed : isTimed,
 		isGameOn : false,
-		timer : null
+		timer : null,
+		playerIDs : [],
+		gridData : []
 
 	}
-
 
 	rm.stopTimer = function () {
 		
@@ -106,6 +122,21 @@ GameRoom = function ( id, isTimed=false ) {
 		//..
 		rm.isClosed = true;
 
+		rm.gridData = [];
+
+		for ( var i = 0; i< 72; i++ ) {
+
+			var r = Math.floor ( i/9 ), c = i % 9;
+
+			rm.gridData.push ({
+				'row' : r,
+				'col' : c,
+				'resident' : '',
+                'residentPlayer' : ''
+			});
+
+		}
+
 		if ( rm.isTimed ) rm.startTimer( rm.prepTime );
 	}
 
@@ -130,14 +161,28 @@ GameRoom = function ( id, isTimed=false ) {
 		rm.clickedPost = -1;
 		rm.isHit = false;
 		rm.counter = 0;
+		rm.isWinning = '';
 
 	}
 
 	rm.switchTurn = function () {
 
 		rm.turn = rm.turn == 0 ? 1 : 0;
-		
-		rm.resetTurn ();
+
+		var playerid = rm.playerIDs [rm.turn];
+
+		if ( rm.isWinning != '' &&  rm.isWinning == playerid ) {
+
+			console.log ( '\n --> Winner', playerList [ playerid ].username );
+
+			rm.endGame ();
+
+			playerList [ playerid ].score();
+
+		}else {
+			
+			rm.resetTurn ();
+		}
 
 	}
 
@@ -148,6 +193,7 @@ GameRoom = function ( id, isTimed=false ) {
 			rm.startTimer ( rm.blitzTime );
 		}
 	}
+
 	return rm;
 	
 }
@@ -178,21 +224,22 @@ io.on('connection', function(socket){
 	
 	socket.on("enterGame", function (data) {
 	
-		//console.log ( data );
+		var player = playerList [ socket.id ];
+
 
 		if ( data.isSinglePlayer ) {
 
-			var newRoom = GameRoom ( socket.id, data.isTimed );
+			var newRoomID = player.username + '_' + Date.now();
+
+			var newRoom = GameRoom ( newRoomID, data.isTimed );
 				
 			newRoom.playerIDs.push ( socket.id )
 
 			newRoom.isClosed = true;
 
-			roomList [ socket.id ] = newRoom;
+			roomList [ newRoomID ] = newRoom;
 
-			var player = playerList [ socket.id ];
-
-			player.roomid = socket.id;
+			player.roomid = newRoomID;
 
 			var returnData = {
 			
@@ -219,19 +266,17 @@ io.on('connection', function(socket){
 
 			if ( availableRoom == 'none' ) {
 
-				var newRoom = GameRoom ( socket.id, data.isTimed );
+				var newRoomID = player.username + '_' + Date.now();
+				
+				var newRoom = GameRoom ( newRoomID, data.isTimed );
 				
 				newRoom.playerIDs.push ( socket.id );
 
 				newRoom.playerCount += 1;
 
-				roomList [ socket.id ] = newRoom;
+				roomList [ newRoomID ] = newRoom;
 
-				var player = playerList [ socket.id ];
-
-				player.roomid = socket.id;
-
-				//socket.emit ('waitingGame', null );
+				player.roomid = newRoomID;
 
 				console.log ( '\n --> Room Created :', newRoom.id );
 
@@ -240,6 +285,10 @@ io.on('connection', function(socket){
 				var player = playerList [ socket.id ];
 
 				player.roomid = availableRoom;
+
+				player.index = 1;
+
+				player.type = 1;
 
 				var gameRoom = roomList [ availableRoom ];
 
@@ -259,14 +308,51 @@ io.on('connection', function(socket){
 			
 	});
 
+	socket.on("playerResign", function () {
+		
+		var plyr = playerList [ socket.id ];
+
+		var room = roomList [ plyr.roomid ];
+
+		room.endGame ();
+
+		var opponent = playerList [ getOpponentsId (socket.id ) ];
+
+		opponent.score();
+
+		var oppoSocket = socketList [ opponent.id ];
+
+		oppoSocket.emit ('opponentResign');
+
+	});
+
+	socket.on("piecesReveal", function () {
+
+		var player = playerList [ socket.id ];
+
+		var pieces = [];
+
+		for ( var i in player.pieces ) {
+			pieces.push ({
+				'cnt' : player.pieces[i].cnt,
+				'rank' : player.pieces[i].rank
+			});
+		}
+
+		console.log ('\n --> ' + player.username + ' has revealed his/her game pieces.');
+
+		var oppSocket = socketList [ getOpponentsId( socket.id) ];
+
+		oppSocket.emit ('opponentReveal', pieces );
+
+	});
+
 	socket.on("playerReady", function (data) {
 		
 		var player = playerList [socket.id];
 		
-		initGridData ( socket.id, data );
+		initPlayerPieces ( socket.id, data );
 
-		//console.log ( '\n ...  data sent by ' + player.username );
-		
 		var checker = checkPlayersAreReady ( player.roomid );
 
 		if ( checker ) {
@@ -279,22 +365,34 @@ io.on('connection', function(socket){
 		}
 		
 	});
+
+	socket.on("pieceClick", function ( data ) {
+
+		if ( verifyClickSent (socket.id) ) {
+
+			//console.log ('\n --> Piece click received from ' + playerList[socket.id].username + ':', data );
+			var oppoSocket = socketList [ getOpponentsId ( socket.id ) ];
+
+			oppoSocket.emit ( 'oppoPieceClick', data );
+
+		}else {
+			console.log ('\n --> Click received is invalid ');
+		}
+
+	});
 	
-	socket.on("gridClicked", function ( data ) {
+	socket.on("pieceMove", function ( data ) {
+
 		//..
-	
-		if ( verifyClickSent(socket.id ) ) {
+		if ( verifyClickSent (socket.id) ) {
 
-			console.log ('\n --> Click received from ' + playerList[socket.id].username + ':', data );
-
-			analyzeGridClicked ( data, socket.id );
+			//console.log ('\n --> Move received from ' + playerList[socket.id].username + ':', data );
+			analyzeSentMove (  socket.id, data );
 
 		}else {
 
-			console.log ('\n --> Click received is invalid');
-
+			console.log ('\n --> Move received is invalid');
 		}
-		
 
 	});
 
@@ -317,7 +415,7 @@ io.on('connection', function(socket){
 		
 		console.log ( '\n <-- ' + plyr.username +' has left the game', plyr.roomid == '' ? 'singlePlayer' : plyr.roomid );
 
-		leaveRoom ( socket.id, plyr.roomid );
+		leaveRoom ( socket.id );
 
 	});
 	
@@ -329,7 +427,7 @@ io.on('connection', function(socket){
 
 			console.log ( '\n <-- ' + plyr.username  + ' has been disconnected.' );
 
-			if ( plyr.roomid != '' ) leaveRoom ( socket.id, plyr.roomid );
+			if ( plyr.roomid != '' ) leaveRoom ( socket.id );
 		
 			delete playerList [socket.id];
 
@@ -359,7 +457,7 @@ function verifyClickSent ( socketid ) {
 
 	var gameRoom = roomList [ player.roomid ];
 
-	if ( gameRoom.playerIDs.indexOf (socketid) != gameRoom.turn ) return false;
+	if ( player.index != gameRoom.turn ) return false;
 
 	return true;
 }
@@ -373,10 +471,6 @@ function initGame ( roomid ) {
 
 		var oppo =  playerList [ room.playerIDs[ i == 0 ? 1 : 0 ] ];
 
-		self.type = i;
-
-		oppo.type = i == 0 ? 1 : 0;
-		
 		var data = {
 			
 			'isSinglePlayer' : false,
@@ -466,18 +560,41 @@ function startGame ( roomID ) {
 
 	console.log ( '\n Game has started...', roomID );
 
-	var gameRoom = roomList[roomID];
-
-	gameRoom.startGame();
+	var gameRoom = roomList[roomID];	
 
 	for ( var i=0; i<gameRoom.playerCount; i++) {
 
+		var oppo = playerList [ gameRoom.playerIDs[ i == 0 ? 1 : 0 ] ];
+
 		var turn  = ( i == gameRoom.turn ) ? 'self' : 'oppo';
+
+		var oppoData = [];
+
+		for ( var j in oppo.pieces ) {
+
+			var post = oppo.index == 0 ? Math.abs ( oppo.pieces[j].post - 71 ) : oppo.pieces[j].post;
+
+			oppoData.push ( {
+				'post' : post,
+				//'rank' : oppo.pieces[j].rank,
+				'rank' : -1,
+				'cnt' : oppo.pieces[j].cnt
+			});
+
+		}
+
+		var data = {
+			'turn' : turn,
+			'oppoData' : oppoData,
+		}
 
 		var socket = socketList [ gameRoom.playerIDs[i] ];
 
-		socket.emit ('startGame', turn );
+		socket.emit ('startGame',  data );
+
 	}
+
+	gameRoom.startGame();
 
 } 
 function resetGame ( roomID ) {
@@ -500,212 +617,255 @@ function resetGame ( roomID ) {
 	}
 
 } 
-function leaveRoom ( playerid, roomid ) {
+function leaveRoom ( playerid ) {
 	
 	var player = playerList [playerid];
 
-	player.roomid = '';
+	player.resetAll ();
 
-	player.resetData ();
-
-	if ( roomList.hasOwnProperty( roomid ) ) {
+	var gameRoom = roomList [ player.roomid ];
 		
-		var gameRoom = roomList [roomid];
+	if ( gameRoom.playerCount >= 2 ) {
+
+		if ( gameRoom.isGameOn ) gameRoom.endGame ();
+
+		gameRoom.playerCount = 1;
+
+		var socket = socketList [ getOpponentsId ( playerid ) ];
 		
-		var index = gameRoom.playerIDs.indexOf ( playerid );
+		socket.emit ('opponentLeft');
 		
-		gameRoom.playerIDs.splice ( index, 1);
+		console.log ( '\n <-- Opponent Left :', gameRoom.id  );
 
-		gameRoom.playerCount += -1;
+	} else {
+		//...
+		delete roomList [ player.roomid ];
 
-		if ( gameRoom.playerCount > 0 ) {
-			
-			if ( gameRoom.isGameOn ) gameRoom.endGame ();
-
-			var socket = socketList [ gameRoom.playerIDs[0] ];
-			
-			socket.emit ('opponentLeft', {} );
-			
-			console.log ( '\n <-- Opponent Left :', roomid  );
-
-		} else {
-			//...
-			delete roomList [roomid];
-
-			console.log ( '\n <-- Room deleted :', roomid  );
-
-		}
-
-		//console.log ('\n <-- ' + player.username + ' has left the game room.' );
+		console.log ( '\n <-- Room deleted :', gameRoom.id  );
 
 	}
+
 	
 }
-function initGridData ( playerid, fleet ) {
+function initPlayerPieces ( playerid, piecesData ) {
 
 	var player = playerList [ playerid ];
 		
 	player.isReady = true;
 
-	player.fleet = fleet;
+	var room = roomList [ player.roomid ];
 
-	player.grid = [];
+	player.pieces = {};
 
-	//initialize grid data..
+	for ( var i in piecesData ) {
 
-	for ( var z=0; z<100; z++) {
+		var post = ( player.index == 0 )? piecesData[i].post : Math.abs ( piecesData[i].post - 71);
 
-		player.grid.push ( {
-			'isResided' : false,
-			'isTrashed' : false,
-			'index' :  -1
-		});
+		var piece = {
+			'post' : post,
+			'cnt' : piecesData[i].cnt,
+			'rank' : piecesData[i].rank,
+			'origin' : player.index,
+			'isDestroyed' : false
+		};
+
+		var pieceid = 'piece' + piecesData[i].cnt;
+
+		player.pieces [ pieceid ] = piece;
+
+		room.gridData[post].residentPlayer = playerid;
+
+		room.gridData[post].resident = pieceid; 
 
 	}	
 
-	//update grid data base on fleet data sent..
-
-	for ( var i=0; i<fleet.length; i++ ) {
-		
-		var rotation = fleet[i].rotation;
-
-		var len = fleet[i].length;
-
-		var index = fleet[i].index;
-
-		var post = fleet[i].post;
-
-
-		for ( var j=0;j<len;j++) {
-
-			player.grid [post].isResided = true;
-
-			player.grid [post].index = i;
-
-			if ( rotation == 0 ) {
-				post++;
-			}else {
-				post += 10;
-			}
-
-		}
-
-	}
-	
-	//...
-
-	
 }
-function analyzeGridClicked ( post, playerid ) {
+function getWinner ( rankA, rankB ) {
+
+	if ( rankA == 14 && rankB != 14 ) {  // A = Flag, B = Any except flag
+		return 2; 
+	}
+	if ( rankB == 14 && rankA != 14 ) {  // B = Flag, A = Any except flag
+		return 1; 
+	}
+	if ( rankA == 14 && rankB == 14 ) {  // A = Flag attacks B = Flag  -> winner : A
+		return 1; 
+	}
+	if ( rankB == 14 && rankA == 14 ) {  // B = Flag attacks A = Flag  -> winner : B
+		return 2; 
+	}
+	if ( rankA == 15 && rankB == 15 ) { // A = Spy, B = Spy -> no winner
+		return 0;
+	}
+	if ( rankA == 15 && rankB != 13 ) { // A = Spy, B != Private -> winner : A
+		return 1; 
+	}
+	if ( rankB == 15 && rankA != 13 ) { // B = Spy, A != Private -> winner : B
+		return 2; 
+	}
+	if ( rankA == 15 && rankB == 13 ) { // A = Spy, B == Private -> winner : B
+		return 2; 
+	}
+	if ( rankB == 15 && rankA == 13 ) { // B = Spy, A == Private -> winner : A
+		return 1; 
+	}
+	if ( rankA < rankB ) {
+		return 1;
+	}
+	if ( rankB < rankA ) {
+		return 2;
+	}
+	if ( rankB == rankA ) {
+		return 0;
+	}
+
+}
+function analyzeSentMove ( playerid, data ) {
 	
-	var isWinner = false;
-
-	var shipIndex = -1;
-
-	var shipSunk = null;
-
 	var plyr = playerList[playerid];
 
-	var opponent = playerList [ getOpponentsId ( playerid ) ];
+	var plyrPiece = plyr.pieces [ 'piece' + data.piece ];
 
-	var room = roomList[plyr.roomid];
+	var oppo = playerList [ getOpponentsId ( playerid ) ];
 
-	var isHit = ( opponent.grid[post].isResided ) ? true : false;
+	var room = roomList[ plyr.roomid ];
 
-	opponent.grid[post].isTrashed = true;
-
-	room.clickedPost = post;
-
-	room.isHit = isHit;
+	//get real position based on player's index or position..
+	var post = plyr.index == 0 ? data.post : Math.abs ( data.post - 71 );
 	
-	if ( isHit ) {
+	//destination of the moving piece..
+	var destPost = room.gridData [post];
 
-		shipIndex = opponent.grid[post].index;
+	//origin position of the moving piece..
+	var origPost = room.gridData [ plyrPiece.post ];
+	
+	origPost.resident = '';
 
-		opponent.fleet[shipIndex].remains += -1;
+	origPost.residentPlayer = '';
 
-		if ( opponent.fleet[shipIndex].remains == 0 ) {
+	//initialize variables needed for checking..
+	var win = false, clashResult = -1;
 
-			shipSunk = {
-				'post' : opponent.fleet[shipIndex].post,
-				'length' : opponent.fleet[shipIndex].length,
-				'rotation' : opponent.fleet[shipIndex].rotation,
-				'index' : shipIndex
-			};
+	if ( destPost.resident != '' && destPost.residentPlayer != plyr.id ) {
 
-		}
+		var oppoPiece = oppo.pieces [ destPost.resident ];
 
-		isWinner = checkWinner ( opponent.id );
+		clashResult = getWinner ( plyrPiece.rank, oppoPiece.rank );
 
-		if ( isWinner ) {
+		switch ( clashResult ) {
+
+			case 0 :
+
+				plyrPiece.isDestroyed = true;
+				oppoPiece.isDestroyed = true;
+
+				destPost.resident = '';
+				destPost.residentPlayer = '';
 			
-			plyr.winCount +=1;
+			break;
 
-			room.endGame ();
+			case 1 :
 
-		}else {
+				plyrPiece.post = post;
 
-			room.resetTurn ();
+				destPost.resident = 'piece' + data.piece;
+				destPost.residentPlayer = plyr.id;
+
+				oppoPiece.isDestroyed = true;
+
+				if ( oppoPiece.rank == 14 ) {
+					
+					win = true;
+		
+					room.endGame ();
+
+					plyr.score();
+
+					console.log ( '\n --> Winner :', plyr.username );
+
+				}
+
+			break;
+			case 2 :
+
+				plyrPiece.isDestroyed = true;
+
+				if ( plyrPiece.rank == 14 ) {
+					
+					win = true;
+
+					room.endGame ();
+
+					oppo.score();
+
+					console.log ( '\n --> Winner :', oppo.username );
+				}
+
+			break;
+			default : 
+				//..
+			
 		}
 
 	}else {
 
-		room.switchTurn();
+		plyrPiece.post = post;
 
-	}
+		destPost.resident = 'piece' + data.piece;
+		destPost.residentPlayer = plyr.id;
 
-	for ( var i = 0; i < room.playerCount; i++) {
-		
-		//var against = room.playerIDs[i] != playerid ? 'self' : 'oppo';
-
-		var self = playerList [ room.playerIDs[i] ];
-
-		var oppo = playerList [ room.playerIDs[ i == 0 ? 1 : 0 ] ];
-
-		var selfGrid = [], oppoGrid = [];
-
-		for ( var j = 0; j < 100; j++ ) {
+		if (( plyrPiece.rank == 14 && plyrPiece.origin == 0 && destPost.row == 0 ) || ( plyrPiece.rank == 14 && plyrPiece.origin == 1 && destPost.row == 7 ) ) {
 			
-			selfGrid.push ( { 
-				'isTrashed' : self.grid[j].isTrashed, 
-				'isResided' : (self.grid[j].isTrashed) ? self.grid[j].isResided : false,
-			});
+			var sorrounded = oppoNearby ( plyrPiece.post, plyr.id, room.id );
 
-			oppoGrid.push ( { 
-				'isTrashed' : oppo.grid[j].isTrashed, 
-				'isResided' : (oppo.grid[j].isTrashed) ? oppo.grid[j].isResided : false,
-			});
+			if ( sorrounded ) {
+
+				room.isWinning = plyr.id;
+
+				console.log ( '\n --> Is Winning :', plyr.username );
+
+			}else {
+				
+				room.endGame ();
+
+				plyr.score();
+
+				win = true;
+
+				console.log ( '\n --> Hit Base :', plyr.username );
+
+			}
 
 		}
 
-		var selfFleet = [], oppoFleet = [];
 
-		for ( var k = 0; k < 6; k++ ) {
+	}
 
-			selfFleet.push ({ 
-				'remains' : self.fleet[k].remains, 
-			});
-			oppoFleet.push ({ 
-				'remains' : (oppo.fleet[k].remains > 0) ? oppo.fleet[k].length : 0, 
-			});
+	if ( !win ) room.switchTurn ();
+
+
+	for ( var i = 0; i < room.playerCount; i++) {
+		
+		var self = playerList [ room.playerIDs[i] ];
+
+		//var oppo = playerList [ room.playerIDs[ i == 0 ? 1 : 0 ] ];
+
+		var toReturnPost = self.id == playerid ? data.post : Math.abs ( data.post - 71 );
+
+		var isWinning = '';
+
+		if ( room.isWinning != '' ) {
+
+			isWinning = self.id == room.isWinning ? 'self' : 'oppo';
 
 		}
 
 		var returnData = {
-			
-			'isHit' : isHit,
-			'isWinner' : isWinner,
-			'post' : post,
-			'shipIndex' : shipIndex, 
-			'shipSunk' : shipSunk,
-			'self' : {
-				'grid' : selfGrid,
-				'fleet' : selfFleet,
-			},
-			'oppo': {
-				'grid' : oppoGrid,
-				'fleet' : oppoFleet,
-			}
+
+			'win' : win,
+			'isWinning' : isWinning,
+			'post' : toReturnPost,
+			'clashResult' : clashResult
 
 		}
 
@@ -713,8 +873,10 @@ function analyzeGridClicked ( post, playerid ) {
 		
 		var socket = socketList [ self.id ];
 
-		socket.emit ( 'gridClickResult',  returnData );
+		socket.emit ( 'moveResult',  returnData ); 
+		
 	}
+	
 
 	
 }
@@ -724,25 +886,39 @@ function getOpponentsId ( playerid ) {
 	
 	if ( plyr.roomid != '' ) {
 		
-		var index = roomList[ plyr.roomid ].playerIDs.indexOf( playerid );
+		var oppIndex = ( plyr.index == 0 ) ? 1 : 0;
 		
-		var oppIndex = ( index == 0 ) ? 1 : 0;
-		
-		return roomList[ plyr.roomid ].playerIDs[oppIndex];
+		return roomList[ plyr.roomid ].playerIDs[ oppIndex ];
 	}
 
 	return '';
 
 }
-function checkWinner ( playerid ) {
+function oppoNearby ( post, playerid, roomid ) {
 
-	var fleet = playerList[playerid].fleet;
+	var myGrid = roomList [roomid].gridData;
 
-	for ( var i=0; i<fleet.length; i++) {
-		if ( fleet[i].remains > 0 ) return false;
+	var left = post - 1;
+	if ( left >= 0 && myGrid[left].row == myGrid[post].row && myGrid[left].resident != '' && myGrid[left].residentPlayer != playerid ){
+		return true;
 	}
 
-	return true;
+	var right = post + 1;
+	if ( right < 72  && myGrid[right].row == myGrid[post].row && myGrid[right].resident != '' && myGrid[right].residentPlayer != playerid ){
+		return true;
+	}
+
+	var top = post - 9;
+	if ( top >= 0 && myGrid[top].row == myGrid[post].row && myGrid[top].resident != '' && myGrid[top].residentPlayer != playerid ){
+		return true;
+	}
+
+	var bot = post + 9;
+	if ( bot < 72 && myGrid[bot].row == myGrid[post].row && myGrid[bot].resident != '' && myGrid[bot].residentPlayer != playerid ){
+		return true;
+	}
+	return false;
+
 }
 //............
 
