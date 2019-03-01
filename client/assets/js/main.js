@@ -114,7 +114,7 @@ window.onload = function () {
             this.initSocketIOListeners();
 
             setTimeout ( function () {
-                socket.emit ('getPlayersOnline', null );
+                socket.emit ('getPlayersOnline');
             }, 1000 );
 
             
@@ -526,7 +526,7 @@ window.onload = function () {
 
                 socket.emit ('leaveGame');
 
-                _this.music.play('clicka');
+                _this.music.play ('clicka');
 
                 _this.removeWaitScreen();
 
@@ -586,7 +586,7 @@ window.onload = function () {
 
             this.gameData = {};
             
-            this.gamePhase = 'prep';
+            this.gamePhase = '';
             this.activePiece = '';
             this.turn = '';
             this.isWinning = '';
@@ -605,8 +605,13 @@ window.onload = function () {
             this.playerResign = false;
 
             this.presetIndex = 0;
-            this.maxPrepTime = 10;
-            this.maxBlitzTime = 10;
+
+            this.maxPrepTime = data.prepTime;
+            this.maxBlitzTime = data.blitzTime;
+
+            //this.maxPrepTime = 10;
+            //this.maxBlitzTime = 15;
+            
             this.soundOff = false;
 
             this.music;
@@ -657,7 +662,7 @@ window.onload = function () {
 
                 _this.createGameControls();
 
-                _this.startPreparations ();
+                _this.makePreparations ();
         
             }, 800);
 
@@ -666,10 +671,46 @@ window.onload = function () {
 
             var _this = this;
 
+            socket.on ('drawResponse', function (data) {
 
+                console.log ( data );
+
+                _this.clearPrompt();
+
+                setTimeout ( function () {
+
+                    if ( !data.accepted ) {
+                        
+                        if ( !data.plyrWhoResponded ) {
+                            
+                            _this.playSound ('message');
+
+                            _this.showNotification ( 'Opponent declines. Game resumes.' );
+                        }
+                            
+                        if ( _this.isTimed ) _this.startTimer ( _this.maxBlitzTime, _this.turn );
+    
+                    }else {
+    
+                        _this.playSound ('warp');
+    
+                        _this.endGame ();
+                    }
+                    
+                }, 200 )
+
+
+            });
+            socket.on ('getDrawResponse', function () {
+
+                if ( _this.timeIsTicking ) _this.stopTimer ();
+
+                _this.showDrawResponseScreen();
+
+            });
             socket.on ('showEmoji', function ( data ) {
 
-                if (_this.isMessages ) _this.removeEmojis();
+                if ( _this.emojiShown ) _this.removeEmojis();
 
                 _this.playSound('message');
 
@@ -688,7 +729,7 @@ window.onload = function () {
 
                 }
                 
-                _this.music.play ('bleep');
+                _this.playSound ('bleep');
                 _this.plyrInd ['oppo'].updateStatus ();
 
             });
@@ -701,12 +742,33 @@ window.onload = function () {
             });
             socket.on ('moveResult', function ( data ) {
 
+                console.log ( 'len :', data.oppoPieces.length );
+
+                if ( data.oppoPieces.length > 0) {
+
+                    for ( var i in data.oppoPieces ) {
+
+                        var pdata = data.oppoPieces[i];
+
+                        _this.gamePiece [ 'oppo_' + pdata.cnt ].rnk = pdata.rank;
+
+                    }
+
+                }
+
                 _this.isWinning = data.isWinning;
 
+                var winner = '';
+
                 if ( data.clashResult < 0 ) {
+
                     _this.movePiece ( data.post, _this.turn );
+
                 }else {
+
                     _this.clash ( data.post, data.clashResult );
+
+                    winner = ( data.clashResult == 1 ) ? 'self' : 'oppo';
                 }
 
                 _this.removeBlinkers();
@@ -716,7 +778,7 @@ window.onload = function () {
                 if ( !data.win ) {
                     _this.switchTurn();
                 }else {
-                    _this.endGame ( _this.turn );
+                    _this.endGame ( winner );
                 }
                 
             });
@@ -779,7 +841,7 @@ window.onload = function () {
                 }, 200 )
                 
             });
-            socket.on ('startGame', function ( data ) {
+            socket.on ('commenceGame', function ( data ) {
                 
                 _this.turn = data.turn;
 
@@ -787,7 +849,7 @@ window.onload = function () {
 
                 _this.createGamePieces ('oppo');
 
-                _this.startGame();
+                _this.commenceGame ();
 
             });
 
@@ -885,7 +947,7 @@ window.onload = function () {
                     graphics.fillRect ( gX + j*gW, gY + i*gH, gW, gH );
                     graphics.strokeRect ( gX + j*gW, gY + i*gH, gW, gH );
 
-                    var txt = this.add.text ( gX + j*gW, gY + i*gH, counter, txtConfig );
+                    //var txt = this.add.text ( gX + j*gW, gY + i*gH, counter, txtConfig );
                     
                     this.grid. push ({
 
@@ -1049,7 +1111,7 @@ window.onload = function () {
             }else {
                 
                 buts = [
-                    { id : 'proposedraw', value : '⚖ Propose Draw' },
+                    { id : 'proposedraw', value : '⚖ Offer A Draw' },
                     { id : 'resign', value : '⚑ Resign' },
                     { id : 'showpieces', value : '❖ Reveal Pieces' }
                 ];
@@ -1084,79 +1146,143 @@ window.onload = function () {
                 
                 but.on('pointerdown', function () {
 
-                    this.change ( 0x00ffff );
-                    
-                    _this.playSound('clicka');
+                   
+                    if ( _this.isEmoji ) _this.toggleEmojis ();
+
+                    if ( _this.elimScreenShown ) _this.toggleElimPiecesScreen();
 
                     switch (this.id) {
-                        case 'random' :
-                            var rp = _this.randomPost();
-                            _this.movePieces (rp);
 
-                        break;
                         case 'preset' :
-                            
+
+                            if ( _this.isTimed && _this.timerCount >= ( _this.maxPrepTime - 1) ) return;
+
+                            this.change ( 0x00ffff );
+
+                            _this.playSound('clicka');
+
                             _this.presetIndex += 1;
                             if ( _this.presetIndex > 5 ) {
                                 _this.presetIndex = 0;
                             }
-                            
                             var pp = _this.presetPost( _this.presetIndex );
+                            
                             _this.movePieces (pp);
 
-                            //console.log ( _this.presetIndex );
+                        break;
+
+                        case 'random' :
+
+                            if ( _this.isTimed && _this.timerCount >= (_this.maxPrepTime - 1) ) return;
+
+                            this.change ( 0x00ffff );
+
+                            _this.playSound('clicka');
+
+                            var rp = _this.randomPost();
+                            
+                            _this.movePieces (rp);
 
                         break;
+                       
                         case 'ready' :
+                            
+                            if ( _this.isTimed && _this.timerCount >= ( _this.maxPrepTime - 1) ) return;
+
                             //..
+                            this.change ( 0x00ffff );
+
+                            _this.playSound('clicka');
+
                             _this.playerReady();
+
                         break;
                         case 'resign' :
                             //..
+                                
+                            if ( _this.isTimed && _this.timerCount >= ( _this.maxBlitzTime - 1) ) return;
 
-                            this.disableInteractive();
+                            if ( _this.isPrompted ) {
+                                
+                                this.change ( 0xff9999 );
 
-                            if ( _this.isPrompted ) _this.clearPrompt();
+                                _this.playSound ('error');
 
-                            setTimeout ( function () {                        
-                                _this.showResignScreen();
-                            }, 100);
+                            }else {
+
+                                this.change ( 0x00ffff );
+                                
+                                _this.playSound('clicka');
+
+                                setTimeout ( function () {                        
+                                    _this.showResignScreen();
+                                }, 100);
+                            }
+                            
 
                         break;
                         case 'proposedraw' :
                             //..
+                            if ( _this.isTimed && _this.timerCount >= ( _this.maxBlitzTime - 1) ) return;
 
-                            this.disableInteractive();
+                            if ( _this.isPrompted ) {
 
-                            if ( _this.isPrompted ) _this.clearPrompt();
+                                this.change ( 0xff9999 );
 
-                            setTimeout ( function () {     
+                                _this.playSound ('error');
 
-                                if ( _this.turn == 'self' ) {
-                                    _this.showDrawScreen();
-                                } else {
-                                    _this.showDrawWarning();
-                                }                
-                               
-                            }, 100);
+                            }else {
+
+                                this.change ( 0x00ffff );
+                                
+                                _this.playSound('clicka');
+
+                                setTimeout ( function () {     
+
+                                    if ( _this.turn == 'self' ) {
+
+                                        _this.showDrawScreen();
+
+                                    } else {
+
+                                        _this.showNotification ('You can only offer a draw on your turn.');
+                                    }                
+                                
+                                }, 100);
+                            }
                             
                         break;
                         case 'showpieces' :
                             //..
+                            if ( _this.isTimed && _this.timerCount >= ( _this.maxBlitzTime - 1) ) return;
 
-                            this.disableInteractive();
+                            if ( _this.isPrompted ) {
 
-                            if ( _this.isPrompted ) _this.clearPrompt();
+                                this.change ( 0xff9999 );
 
-                            setTimeout ( function () {                        
-                                _this.showRevealScreen();
-                            }, 100);
-                            
+                                _this.playSound ('error');
+
+                           }else {
+
+                                this.change ( 0x00ffff );
+
+                                _this.playSound('clicka');
+
+                                setTimeout ( function () {                        
+                                    _this.showRevealScreen();
+                                }, 100);
+                                
+                                
+                            }
                             
                         break;
                         
                         default :
                     }
+
+                    
+                    
+
                 });
                     
                 this.tweens.add ({
@@ -1204,85 +1330,110 @@ window.onload = function () {
                 });
                 cntrols.on ('pointerdown', function () {
 
-                    this.change (0x9999ff);
-
-                    _this.playSound('clicka');
-
                     switch (this.id) {
+
                         case 'cont0' :
 
-                            if ( _this.isEmoji ) {
-                                _this.toggleEmojis();
-                                _this.controls[3].toggle();
-                            }
 
-                            _this.toggleElimPiecesScreen();
+                            if ( _this.isEmoji ) _this.toggleEmojis ();
 
-                            this.toggle();
+                            _this.playSound('clicka');
                             
+                            _this.toggleElimPiecesScreen();
+                            
+
                         break;
                         case 'cont1' :
+
+                           
 
                             if ( !_this.bgmusic.isPaused ) {
                                 _this.bgmusic.pause();
                             }else {
                                 _this.bgmusic.resume();
                             }
+                            
+                            _this.playSound('clicka');
+
                             this.toggle();
+                            
 
                         break;
                         case 'cont2' :
 
+                            
+
                             _this.soundOff = !_this.soundOff;
 
+                            _this.playSound('clicka');
+
                             this.toggle();
+
+                           
 
                         break;
                         case 'cont3' :
 
-                            if ( _this.elimScreenShown ) {
-                                _this.toggleElimPiecesScreen();
-                                _this.controls[0].toggle();
+                            if ( _this.isPrompted ) {
+
+                                this.change (0xff9999);
+
+                                _this.playSound('error');
+
+                            }else {
+
+                                if ( _this.elimScreenShown )  _this.toggleElimPiecesScreen();
+
+                                _this.playSound('clicka');
+
+                                _this.toggleEmojis ();
                             }
-
-                            _this.toggleEmojis ();
-
-                            this.toggle();
-                           
+                            
                         break;
 
                         case 'cont4' :
 
                             if ( _this.gamePhase != 'end' ) {
 
-                                this.disableInteractive();
+                                if ( _this.isPrompted ) {
 
-                                if ( _this.isEmoji ) {
-                                    _this.toggleEmojis();
-                                    _this.controls[3].toggle();
+                                    this.change (0xff9999);
+
+                                    _this.playSound('error');
+
+                                }else {
+
+                                    if ( _this.elimScreenShown ) _this.toggleElimPiecesScreen();
+
+                                    this.change (0x9999ff);
+
+                                    _this.playSound('clicka');
+
+                                    setTimeout ( function () {                        
+                                        _this.showLeaveScreen();
+                                    }, 100);
+
                                 }
 
-                                if ( _this.elimScreenShown ) {
-                                    _this.toggleElimPiecesScreen();
-                                    _this.controls[0].toggle();
-                                }
-
-                                if ( _this.isPrompted ) _this.clearPrompt();
-
-                                setTimeout ( function () {                        
-                                    _this.showLeaveScreen();
-                                }, 100);
-
+                                
                             }else{
 
+                                this.change (0x9999ff);
+                                
+                                _this.playSound('clicka');
+
                                 _this.leaveGame ();
+
                             }
                             
                         break;
                         
                     }
 
+                   
 
+                    //this.change (0x9999ff);
+                    
                 });
 
                 this.controls.push ( cntrols );
@@ -1343,21 +1494,22 @@ window.onload = function () {
 
             var piecesData = this.gameData [plyr].pieces;
 
+            var org = ( plyr == 'self' ) ? 67 : 4;
+
+            var orgGrid = this.grid [ org ];
+
+            var orgW = orgGrid.width  * 0.9,
+                orgH = orgGrid.height  * 0.85;
+
+
             for ( var i = 0; i < piecesData.length; i++ ) {
 
                 var myPost = piecesData[i].post;
 
                 var myGrid = this.grid [ myPost ];
-            
-                var gW = myGrid.width * 0.9,
-                    gH = myGrid.height * 0.85;
-            
-                //var initX = plyr == 'self' ? -gW/2 : config.width + gW/2;
-
-                var gp = new GamePiece ( this, plyr +'_'+ i, myGrid.x, myGrid.y, gW, gH, piecesData[i].rank, type, myPost, plyr, i, active );
+        
+                var gp = new GamePiece ( this, plyr +'_'+ i, orgGrid.x, orgGrid.y, orgW, orgH, piecesData[i].rank, type, myPost, plyr, i, active );
                 
-                gp.alpha = 0;
-
                 gp.on ('pointerdown', function () {
                     
                     if ( _this.isPrompted ) return;
@@ -1387,11 +1539,12 @@ window.onload = function () {
                 this.tweens.add ({
 
                     targets : gp,
-                    alpha : 1,
-                    duration : 300,
+                    x : myGrid.x,
+                    y : myGrid.y,
+                    duration : 200,
                     ease : 'Power2',
                     //easeParams : [ 0.5, 1.2 ],
-                    //delay : i * 10
+                    delay : i * 5
                 });
                 
                 if ( plyr == 'self' ) gp.flip();
@@ -1426,6 +1579,8 @@ window.onload = function () {
 
                         blink.on('pointerdown', function () {
 
+                            if ( _this.isTimed && _this.timerCount >= ( _this.maxPrepTime - 1) ) return;
+                            
                             if ( _this.grid[this.post].resident != '' ) {
 
                                 _this.switchPieces ( this.post );
@@ -1447,7 +1602,7 @@ window.onload = function () {
             
             }else {
 
-                //console.log ('turn', this.turn );
+                if ( _this.isTimed && _this.timerCount >= ( _this.maxBlitzTime - 1) ) return;
                 
                 var dir = this.getDirection(post, this.turn);
                 
@@ -1475,6 +1630,8 @@ window.onload = function () {
         toggleEmojis : function () {
 
             this.isEmoji = !this.isEmoji;
+
+            this.controls[3].toggle();
 
             if ( this.isEmoji ) {
 
@@ -1513,9 +1670,10 @@ window.onload = function () {
                     });
                     clicks.on('pointerdown', function () {
                         
-                        if (_this.isMessages ) _this.removeEmojis();
-
+                    
                         if ( _this.isSinglePlayer ) {
+
+                            if ( _this.emojiShown ) _this.removeEmojis();
 
                             _this.showSentEmojis ( this.getData('count') );
 
@@ -1530,8 +1688,6 @@ window.onload = function () {
                         _this.playSound('message');
 
                         _this.toggleEmojis();
-
-                        _this.controls[3].toggle();
 
                     });
                     
@@ -1565,13 +1721,17 @@ window.onload = function () {
 
             this.elimScreenShown = !this.elimScreenShown;
             
+            this.controls[0].toggle();
+            
+            if ( this.isPrompted && this.gamePhase == 'end' ) {
+                //this.setPromptVisible ( !this.elimScreenShown );
+            } 
+
             if ( this.elimScreenShown ) {
                 
                 var cW = config.width,
-                    //cH = config.height * 0.824,
                     cH = this.fieldHeight,
                     cX = config.width/2,
-                    //cY = config.height * 0.512;
                     cY = this.fieldY + (cH/2);
 
                 this.elimScreen = this.add.rectangle( cX - cW * 0.6, cY, cW, cH, 0x0a0a0a, 0.9 );
@@ -1594,29 +1754,7 @@ window.onload = function () {
                     ease : 'Power2'
                 });
 
-                /* 
-                this.circs = [];
-
-                var size = config.width * 0.008,
-                    spacing = config.height * 0.03;
-
-                for ( var j=0; j<5; j++) {
-
-                    var circ = this.add.ellipse( config.width/2 - (cW * 0.8), (config.height * 0.25) + j * ( size + spacing ), size, size, 0xf4f4f4);
-                    
-                    circ.setDepth ( 1000 );
-
-                    this.tweens.add ({
-                        targets : circ,
-                        x : config.width/2,
-                        duration : 300,
-                        ease : 'Power2'
-                    });
-
-                    this.circs.push ( circ );
-                } */
-
-                
+               
                 var configtxt = {
                     color : '#f4f4f4',
                     fontSize : config.height * 0.03,
@@ -1702,29 +1840,26 @@ window.onload = function () {
 
             }else {
 
-                //this.elimScreen.clear();
+
+                //destroy elements..
+
                 this.elimScreen.destroy();
                 this.texta.destroy();
                 this.line1.destroy();
+
                 for ( var i in this.gamePiece ) {
                     if ( this.gamePiece[i].isDestroyed ) {
                         this.gamePiece[i].setVisible (false);
                     }
                 }
-                /* 
-                for ( var j=0; j<this.circs.length; j++ ) {
-                    this.circs[j].destroy();
-                } */
-
-                
-                //todo..
+               
             }
             
 
         },
         showSentEmojis : function ( frame, plyr = 'self' ) {
 
-            this.isMessages = true;
+            this.emojiShown = true;
 
             var max = 3;
 
@@ -1779,22 +1914,22 @@ window.onload = function () {
             }
 
             var _this = this;
+            this.removeShownEmojis = setTimeout ( function () {
+                _this.removeEmojis();
+            }, 2000 );
 
-            clearTimeout ( this.timeDissolve );
-            this.timeDissolve = setTimeout ( function () {
-                 _this.removeEmojis();
-            }, 3000 );
 
         },
         removeEmojis : function () {
             
-            this.isMessages = false; 
+            this.emojiShown = false; 
 
-            clearTimeout ( this.timeDissolve );
+            clearTimeout ( this.removeShownEmojis );
 
             for ( var i in this.msgelements ) {
                 this.msgelements[i].destroy();
             }
+
             this.msgelements = [];
 
         },
@@ -1803,7 +1938,7 @@ window.onload = function () {
             var _this = this;
             setTimeout ( function () {
 
-                if ( _this.isMessages ) _this.removeEmojis();
+                if ( _this.emojiShown ) _this.removeEmojis();
                 
                 _this.playSound ('message');
                 
@@ -1824,7 +1959,7 @@ window.onload = function () {
 
                     var clashResult = this.getClashResult ( post );
 
-                    this.clash ( post, clashResult);
+                    this.clash ( post, clashResult );
 
                     this.analyzeClash ();
 
@@ -2160,6 +2295,8 @@ window.onload = function () {
 
             var win = false;
 
+            console.log ( 'id', this.pieceRemoved );
+
             if ( this.pieceRemoved != '' ) {
 
                 var pieceRemoved = this.gamePiece [this.pieceRemoved ];
@@ -2279,7 +2416,9 @@ window.onload = function () {
         removeButtons: function () {
 
             for ( var i in this.button ){
-                //this.button[i].destroy();
+
+                this.button[i].removeInteractive();
+
                 this.tweens.add ({
                     targets : this.button[i],
                     //y : config.height + this.button[i].height,
@@ -2310,52 +2449,92 @@ window.onload = function () {
             }
 
         },
-        startPreparations : function () {
+        initializeTimer : function ( max, plyr = 'self', txt = '' ) {
+
+            this.timerCount = 0;
+
+            this.plyrInd [ plyr ].setTimer ( max, txt );
+
+            this.startTimer ( max, plyr );
+
+        },
+        startTimer : function ( max, plyr ) {
 
             var _this = this;
 
-            if ( !this.isTimed ) {
+            this.timeIsTicking = true;
 
-                this.plyrInd ['self'].offTimer ('· Preparation' );
+            this.timer = setInterval ( function () {
+
+                _this.timerCount += 1;
+
+                _this.plyrInd [ plyr ].tick ( max - _this.timerCount );
+
+                //console.log ('.', plyr );
+
+                if ( _this.timerCount >= max ) {
+
+                    _this.timerCount = 0;
+
+                    _this.stopTimer ();
+
+                    switch ( _this.gamePhase ) {
+
+                        case 'prep':
+        
+                            _this.playSound ('warp');
+        
+                            _this.playerReady();
+        
+                        break;
+                        case 'proper':
+        
+                            var opp = plyr == 'self' ? 'oppo' : 'self';
+        
+                            _this.playSound ('alarm');
+        
+                            _this.removeActive();
+                            _this.removeBlinkers(false);
+                            _this.endGame( opp );
+                            
+                        break;
+                        default : 
+                            //..
+                    }
+
+                   
+                }else {
+
+                    _this.playSound ('tick');
+
+                }    
+
+            }, 1000);
+
+        },
+        stopTimer : function () {
+
+            this.timeIsTicking = false;
+
+            clearInterval ( this.timer );
+        },
+        makePreparations : function () {
+
+            this.gamePhase = 'prep';
+
+            if (this.isTimed ) {
+
+                this.initializeTimer ( this.maxPrepTime, 'self', '· Preparation' );
 
             }else {
 
-                var timeCount = 0;
-
-                var max = this.maxPrepTime;
-                
-                this.plyrInd ['self'].setTimer ( max, '· Preparation' );
-                    
-                clearInterval ( this.timer );
-
-                this.timer = setInterval (function () {
-
-                    timeCount++;
-
-                    _this.plyrInd ['self'].tick ( max - timeCount );
-                    
-                    if ( timeCount >= max) {
-
-                        clearInterval( _this.timer );
-                        
-                        _this.playerReady();
-
-                        _this.playSound ('warp');
-
-                    }else {
-
-                        _this.playSound ('tick');
-                    }
-
-                }, 1000);
-
+                this.plyrInd ['self'].offTimer ('· Preparation' );
             }
-        
+                
         },
-
         playerReady: function () {
 
-            clearInterval (this.timer);
+            if ( this.timeIsTicking ) this.stopTimer ();
 
             this.removeActive();
 
@@ -2377,7 +2556,7 @@ window.onload = function () {
 
                 this.createGamePieces ( 'oppo' );
                 
-                this.startGame ();
+                this.commenceGame ();
 
             }else {
 
@@ -2411,14 +2590,14 @@ window.onload = function () {
             return arr;
 
         },
-        startGame: function () {
+        commenceGame: function () {
 
             if ( this.isPrompted ) this.clearPrompt();
 
             this.plyrInd['self'].clearTimer();
             this.plyrInd['oppo'].clearTimer();
             
-            this.gamePhase = 'proper';
+            this.gamePhase = 'commence';
 
             var _this = this;
 
@@ -2449,27 +2628,35 @@ window.onload = function () {
             
             var _this = this;
 
-            var plyr = this.player[this.turn];
+            var opp = this.turn == 'self' ? 'oppo' : 'self';
 
-            this.startBlitzTimer ();
+            this.plyrInd [opp].clearTimer();
+
+            this.plyrInd [this.turn].change ( 0xffff99);
+
+            if ( !this.isTimed ) {
+
+                this.plyrInd [this.turn].offTimer('· Your Turn');
+
+            }else {
+
+                if ( this.timeIsTicking) this.stopTimer ();
+
+                this.initializeTimer ( this.maxBlitzTime, this.turn, '· Your Turn' );
+            }
 
             if ( this.isSinglePlayer ) {
                 
                 this.enabledPieces ('self', this.turn == 'self' && !this.player['self'].isAI );
 
-                this.enabledPieces ('oppo', this.turn == 'oppo' && !this.player['oppo'].isAI );
+                //this.enabledPieces ('oppo', this.turn == 'oppo' && !this.player['oppo'].isAI );
 
-                if ( this.isTimed) {
-                    
-                }else {
-                    
-                }
-
-                if ( this.player[this.turn].isAI == true ) {
+                if ( this.player[this.turn].isAI ) {
 
                     setTimeout(function () {
                         _this.autoPick();
-                    }, 500);
+                    }, 500 );
+
                 }
 
             }else {
@@ -2479,56 +2666,22 @@ window.onload = function () {
             }
             
         },
-        startBlitzTimer : function () {
+        startGame : function () {
 
-            var _this = this;
+            //remove commence screen..
+            this.commenceText.destroy();
 
-            var opp = this.turn == 'self' ? 'oppo' : 'self';
-
-            this.plyrInd[opp].clearTimer();
-
-            if ( !this.isTimed ) {
-
-                this.plyrInd [this.turn].offTimer('· Your Turn');
-
-                this.plyrInd [this.turn].change ( 0xffff99);
-                
-
-            }else {
-                
-    
-                this.plyrInd[this.turn].setTimer ( this.maxBlitzTime, '· Your Turn' );
-
-                this.plyrInd [this.turn].change ( 0xffff99 );
-                
-                clearInterval (this.timer);
-
-                _this.timerCount = 0;
-
-                this.timer = setInterval (function () {
-                    
-                    _this.timerCount += 1;
-                    
-                    _this.plyrInd[ _this.turn ].tick ( _this.maxBlitzTime - _this.timerCount );
-
-                    if ( _this.timerCount  >=  _this.maxBlitzTime ) {
-
-                        clearInterval ( _this.timer );
-                        _this.removeActive();
-                        _this.removeBlinkers(false);
-                        _this.endGame( opp );
-
-                        _this.playSound ('alarm');
-
-                    }else {
-
-                        _this.playSound ('tick');
-                            
-                    }
-
-                }, 1000);
-
+            for ( var i in this.commenceElements ) {
+                this.commenceElements [i].destroy();
             }
+            this.commenceElements = [];
+
+            //..
+            this.gamePhase = 'proper';
+
+            this.createButtons (true);
+
+            this.makeTurn ();
 
         },
         getClashResult : function ( post ) {
@@ -2579,7 +2732,7 @@ window.onload = function () {
             }
 
         },
-        endGame: function ( winner ) {
+        endGame: function ( winner='' ) {
 
             clearInterval (this.timer);
 
@@ -2588,19 +2741,23 @@ window.onload = function () {
     
             this.removeButtons();
 
-            this.player[winner].wins += 1;
-            
             this.gamePhase = 'end';
 
             this.endWinner = winner;
 
+            if ( winner != '' ) {
+
+                this.player[winner].wins += 1;
+
+                this.plyrInd[winner].updateWins ( this.player[winner].wins );
+
+            }
+            
             var _this = this;
             
             if ( this.isPrompted ) this.clearPrompt();
 
             setTimeout ( function () {
-
-                _this.plyrInd[winner].updateWins (_this.player[winner].wins);
 
                 _this.revealPieces();
 
@@ -2627,10 +2784,8 @@ window.onload = function () {
             graphics.fillRect ( sX, sY, sW, sH);
 
             graphics.fillStyle ( 0x6c6c6c, 0.2 );
-            //graphics.fillRoundedRect ( cX, cY, cW, cH, cH * 0.05 );
             graphics.fillCircle ( cX + cH/2, cY + cH/2, cH/2 );
             graphics.lineStyle ( 1, 0x3a3a3a, 0.9 );
-            //graphics.strokeCircle ( cX + cH/2, cY + cH/2, cH/2 );
 
             var tX = cX + cH/2,
                 tY = cY + cH/2;
@@ -2664,44 +2819,49 @@ window.onload = function () {
             this.commenceText = this.add.text ( tX, tY, '3', txtConfig).setOrigin(0.5);
             this.commenceText.setStroke('#6c6c6c', 5);
 
-            this.playSound ('beep');
-
-
-            //..counter..
-
-            var counter = 0, max = 3;
+            
+            //start commence timer..
 
             var _this = this;
             
+            var max = 3;
 
-            clearInterval (this.timer);
+            this.playSound ('beep');
+            
+            this.counter = 0;
+
+            this.timeIsTicking = true;
 
             this.timer = setInterval( function () {
 
-                counter++;
+                _this.counter += 1;
                 
-                _this.commenceText.setText ( max - counter );
+                _this.commenceText.setText ( max - _this.counter );
             
-                if ( counter >= max ) {
+                if ( _this.counter >= max ) {
                     
-                    clearInterval (_this.timer);
+                    _this.stopTimer ();
 
-                    for ( var i in _this.commenceElements ) {
-                        _this.commenceElements [i].destroy();
-                    }
-                    _this.commenceText.destroy();
-
-                    _this.createButtons (true);
-                    _this.makeTurn ();
                     _this.playSound ('bell');
 
+                    _this.startGame ();
+
                 }else {
-
                     _this.playSound ('beep');
-
                 }
 
             }, 1000 );
+
+        },
+
+        setPromptVisible : function ( show = true ) {
+
+            for ( var i in this.promptElements ) {
+                this.promptElements [i].setVisible ( show );
+            }
+            for ( var j in this.buttonPanel ) {
+                this.buttonPanel [j].setVisible ( show );
+            }
 
         },
         showPrompt : function ( text, caption = '', withButtons = false, promptTxtSize = 0.08 ) {
@@ -2724,7 +2884,7 @@ window.onload = function () {
             pGraphics.fillStyle (0x0a0a0a, 0.5 );
             pGraphics.fillRect ( sX, sY, sW, sH);
 
-            pGraphics.fillStyle (0x3a3a3a, 0.9 );
+            pGraphics.fillStyle (0x3a3a3a, 0.8 );
             pGraphics.fillRoundedRect ( gX, gY, gW, gH, gH * 0.05 );
 
             this.promptElements.push ( pGraphics );
@@ -2762,13 +2922,25 @@ window.onload = function () {
 
             this.playSound ('alternate');
 
-            var txt = this.endWinner == 'self' ? 'Congrats! You win.' : 'Sorry, You lose.';
+            var txt = '', captionTxt = '';
 
-            var captionTxt = '';
-            if ( this.playerResign ) {
-                captionTxt = (this.endWinner == 'self' ) ? 'Opponent resigned.' : 'You resigned.';
+            switch ( this.endWinner ) {
+                case 'self' : 
+                    txt = 'Congrats! You win.';
+
+                    if ( this.playerResign ) captionTxt = 'Opponent resigned.';
+
+                break;
+                case 'oppo' : 
+                    txt = 'Sorry, You lose.';
+
+                    if ( this.playerResign ) captionTxt = 'You resigned.';
+                    
+                break;
+                default : 
+                    txt = 'Game is a draw.';
             }
-
+            
             this.showPrompt ( txt, captionTxt, true );
 
             var buts = ['Rematch', 'Quit'];
@@ -2953,7 +3125,7 @@ window.onload = function () {
         },
         showDrawScreen : function () {
 
-            this.showPrompt ( 'Are you sure you want to propose a draw?', '', true, 0.04 );
+            this.showPrompt ( 'Are you sure you want to offer a draw?', '', true, 0.04 );
 
             var buts = [ 'Confirm', 'Cancel' ];
 
@@ -2970,14 +3142,19 @@ window.onload = function () {
                 var btn = new MyButton ( this, 'but' + i, bX + i*(bW + bS), bY, bW, bH, buts[i], 0xdedede ).setDepth (999);
 
                 btn.on ('pointerdown', function() {
+
                     this.change (0x0ffff);
 
                     _this.playSound('clicka');
 
                     switch ( this.id ) {
                         case 'but0' : 
-                            _this.clearPrompt();
-                            _this.showWaitResponse();
+
+                            _this.button[0].disabled();
+                            _this.button[0].removeInteractive();
+                            _this.proposedDrawAction ();
+
+
                         break;
                         case 'but1' : 
                             _this.clearPrompt();
@@ -3000,24 +3177,123 @@ window.onload = function () {
             }
 
         },
-        showDrawWarning : function () {
+        showDrawResponseScreen :  function () {
 
-            this.showPrompt ( 'You can only propose draw on your turn', '', false, 0.04 );
+            this.showPrompt ( 'Opponent has offered a draw?', '', true, 0.04 );
 
-            clearTimeout ( this.timeDissolve );
+            var buts = [ 'Accept', 'Decline' ];
+
+            var bW = config.width * 0.2
+                bH = config.height * 0.065,
+                bS = bW * 0.05,
+                bT = buts.length * ( bW + bS ) - bS
+                bX =  ( config.width - bT )/2 + (bW/2),
+                bY =  config.height * 0.51 + (bH/2);
+                
+            var _this = this;
+
+            for ( var i = 0; i< buts.length; i++) {
+                var btn = new MyButton ( this, 'but' + i, bX + i*(bW + bS), bY, bW, bH, buts[i], 0xdedede ).setDepth (999);
+
+                btn.on ('pointerdown', function() {
+
+                    this.change (0x0ffff);
+
+                    _this.playSound('clicka');
+
+                    var accepted = this.id == 'but0' ? true : false;
+                    
+                    socket.emit ('playerDrawResponse', accepted );
+
+                });
+                btn.on ('pointerover', function() {
+                    this.change ();
+                });
+                btn.on ('pointerup', function() {
+                    this.reset();
+                });
+                btn.on ('pointerout', function() {
+                    this.reset();
+                });
+
+                this.buttonPanel.push (btn);
+            }
+
+        },
+        showNotification : function ( txt ) {
+
+            this.isNotified = true;
+
+            this.showPrompt ( txt, '', false, 0.04 );
 
             var _this = this;
 
-            this.timeDissolve = setTimeout ( function () {
-
-                _this.clearPrompt();
-
+            this.removeNotificationTimer = setTimeout ( function () {
+                _this.removeNotification ();
             }, 1000 );
 
         },
-        showWaitResponse : function () {
+        removeNotification : function () {
 
-            this.showPrompt ('Waiting for response..', '', false, 0.04 );
+            clearTimeout ( this.removeNotificationTimer );
+
+            this.isNotified = false;
+
+            if ( this.isPrompted ) this.clearPrompt ();
+
+        },
+        proposedDrawAction : function () {
+
+            var _this = this;
+
+            this.clearPrompt();
+
+            if ( this.timeIsTicking ) this.stopTimer ();
+
+            this.showPrompt ('Waiting for opponent\'s response..', '', false, 0.04 );
+
+            if ( this.isSinglePlayer ) {
+
+                setTimeout ( function () {
+                    _this.drawResponse ();
+                }, 2000 )
+                
+            }else {
+
+                socket.emit ( 'playerOfferedADraw' );
+            }
+
+        },
+        drawResponse :  function () {
+
+            var _this = this;
+
+            this.clearPrompt ();
+
+            var decision = Math.floor ( Math.random() * 10 );
+
+            //var decision = 0;
+
+            setTimeout ( function () {
+
+                if ( decision > 2 ) {
+
+                    _this.playSound ('message');
+                    
+                    _this.showNotification ( 'Opponent declines. Game resumes.' );
+
+                    if ( _this.isTimed) _this.startTimer ( _this.maxBlitzTime, _this.turn );
+
+
+                }else {
+
+                    _this.playSound ('warp');
+
+                    _this.endGame ();
+                }
+                
+            }, 200 )
+
         },
         showLeaveScreen : function () {
 
@@ -3044,14 +3320,11 @@ window.onload = function () {
 
                     switch ( this.id ) {
                         case 'but0' : 
-
                             _this.clearPrompt();
                             _this.leaveGame();
-
                         break;
                         case 'but1' : 
                             _this.clearPrompt();
-                            _this.controls [4].setInteractive();
                         break;
                         default:
                     }
@@ -3108,9 +3381,9 @@ window.onload = function () {
 
                 _this.createGamePieces('self');
 
-                _this.startPreparations()
-
                 _this.createButtons();
+
+                _this.makePreparations()
 
             }, 500);
             
@@ -3125,16 +3398,6 @@ window.onload = function () {
             for ( var i in this.buttonPanel ) {
                 this.buttonPanel[i].destroy();
             }
-            clearTimeout ( this.timeDissolve );
-
-           
-            for ( var i in this.button ) {
-                if ( !this.button[i].isDisabled ) {
-                    this.button[i].setInteractive();
-                }
-            }
-
-            this.controls [4].setInteractive();
 
         },
         removeGamePieces : function () {
@@ -3228,8 +3491,13 @@ window.onload = function () {
         },
         leaveGame : function () {
             
-            clearInterval ( this.timer );
-            clearTimeout ( this.timeDissolve );
+            if ( this.timeIsTicking ) this.stopTimer ();
+
+            if ( this.emojiShown ) 
+                clearTimeout ( this.removeShownEmojis );
+
+            if ( this.isNotified ) this.removeNotification ();
+                
 
             socket.emit ('leaveGame');
             socket.removeAllListeners();
@@ -3335,9 +3603,9 @@ window.onload = function () {
                 
                 this.image.setFrame (this.rnk - 1);
 
-                //this.txt.text = ranks[this.rnk - 1];
+                this.txt.text = ranks[this.rnk - 1];
 
-                this.txt.text = this.id;
+                //this.txt.text = this.id;
                 
             }
 
