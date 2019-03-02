@@ -177,14 +177,24 @@ window.onload = function () {
 
             this.playersOnlineTxt = this.add.text ( ptx, ptyb, 'Players Online : -', polConfig );
 
+           
+            
+            var cW = config.width * 0.45,
+                cH = config.height * 0.22,
+                cX = ( config.width - cW )/2,
+                cY = config.height * 0.12;
+
             var configtxt = { 
                 color : '#000', 
-                fontSize : config.height *0.09, 
-                fontFamily:'Arial', 
+                fontSize : cH * 0.4, 
+                fontFamily:'Tahoma', 
                 fontStyle: 'bold' 
             };
-            
-            var text = this.add.text ( config.width/2, config.height * 0.18, 'Salpakan \'17', configtxt ).setOrigin(0.5);
+
+            //graphics.fillStyle ( 0x9c9c9c, 0.5 );
+            //graphics.fillRoundedRect ( cX, cY, cW, cH, cH * 0.08 );
+
+            var text = this.add.text ( config.width/2, cY + cH * 0.3, 'Salpakan 2017', configtxt ).setOrigin(0.5);
             
             text.setStroke('#f4f4f4', 5).setShadow( 1, 1, '#666', true, true );
 
@@ -194,7 +204,7 @@ window.onload = function () {
                 t =  m * ( r + s ) - s;
 
             var xp = ( config.width - t )/2 + r/2,
-                yp = config.height * 0.3;
+                yp = cY + cH*0.75;
 
             for ( var i=0; i<m; i++) {
 
@@ -600,16 +610,13 @@ window.onload = function () {
             this.isPrompted = false;
             this.isEmoji = false;
             this.isMessages = false;
-
+            this.isRead = false;
             this.playerResign = false;
 
             this.presetIndex = 0;
 
             this.maxPrepTime = data.prepTime;
             this.maxBlitzTime = data.blitzTime;
-
-            //this.maxPrepTime = 10;
-            //this.maxBlitzTime = 15;
             
             this.soundOff = false;
 
@@ -1491,6 +1498,7 @@ window.onload = function () {
             var orgW = orgGrid.width  * 0.9,
                 orgH = orgGrid.height  * 0.85;
 
+            this.pieceDimensions = { 'width' : orgW, 'height' : orgH };
 
             for ( var i = 0; i < piecesData.length; i++ ) {
 
@@ -1713,9 +1721,7 @@ window.onload = function () {
             
             this.controls[0].toggle();
             
-            if ( this.isPrompted && this.gamePhase == 'end' ) {
-                //this.setPromptVisible ( !this.elimScreenShown );
-            } 
+            var duration_all = 500;
 
             if ( this.elimScreenShown ) {
                 
@@ -1724,47 +1730,51 @@ window.onload = function () {
                     cX = config.width/2,
                     cY = this.fieldY + (cH/2);
 
-                this.elimScreen = this.add.rectangle( cX - cW * 0.6, cY, cW, cH, 0x0a0a0a, 0.9 );
+                this.elimScreen = this.add.rectangle( -(cW/2), cY, cW, cH, 0x0a0a0a, 0.9 );
                 this.elimScreen.setInteractive().setDepth (1000);
 
                 this.tweens.add ({
                     targets : this.elimScreen,
                     x : cX,
-                    duration : 300,
+                    duration : duration_all,
                     ease : 'Power2'
                 });
 
 
-                this.line1 = this.add.line ( -(config.width/2) * 0.6 , config.height * 0.45, 0, 0, 0, config.height * 0.5, 0x9c9c9c, 1 ).setDepth ( 1000 );
+                this.line1 = this.add.line ( -(cW/2) , config.height * 0.45, 0, 0, 0, config.height * 0.5, 0x6a6a6a, 1 ).setDepth ( 1000 );
 
                 this.tweens.add ({
                     targets : this.line1,
                     x : config.width/2,
-                    duration : 300,
+                    duration : duration_all,
                     ease : 'Power2'
-                });
+                }); 
 
                
                 var configtxt = {
-                    color : '#f4f4f4',
-                    fontSize : config.height * 0.03,
-                    fontFamily : 'Arial',
+                    color : '#f5f5f5',
+                    fontSize : config.height * 0.026,
+                    fontFamily : 'Trebuchet MS',
                     fontStyle : 'bold'
                 };
 
-                this.texta = this.add.text( config.width/2 - (cW*0.8), config.height * 0.15, '✫ Eliminated Pieces ✫', configtxt).setOrigin(0.5).setDepth(1000);
+                this.texta = this.add.text( -(cW/2), config.height * 0.15, 'Eliminated Pieces', configtxt).setOrigin(0.5).setDepth(1000);
 
                 this.tweens.add ({
                     targets : this.texta,
                     x : config.width/2,
-                    duration : 300,
+                    duration : duration_all,
                     ease : 'Power2'
                 });
                 
-
-                var selfX = config.width * 0.09,
-                    oppoX = config.width * 0.59,
-                    startY = config.height * 0.25;
+                var pW = this.pieceDimensions.width,
+                    pH = this.pieceDimensions.height,
+                    pSx = pW * 0.1,
+                    pSy = pH * 0.15,
+                    pT = 4 * ( pW + pSx ) - pSx,
+                    pXa = ( ( config.width/2 ) - pT )/2 + (pW/2),
+                    pXb = config.width/2 + pXa;
+                    pY = config.height * 0.25;
 
                 var countera = 0, counterb = 0;
 
@@ -1777,16 +1787,16 @@ window.onload = function () {
                         var xp = countera % 4, 
                             yp = Math.floor ( countera/4 );
 
-                        gp.x =  selfX + xp * ( gp.width + (gp.width * 0.1) ) - (cW*0.8);
-                        gp.y =  startY + yp * ( gp.height + (gp.height * 0.15) );
+                        gp.x = pXa + xp * ( pW + pSx ) - cW;
+                        gp.y = pY + yp * ( pH + pSy );
 
                         gp.setVisible(true).setDepth (2000);
                         gp.reset();
                         
                         this.tweens.add ({
                             targets : gp,
-                            x : selfX + xp * ( gp.width + (gp.width * 0.1) ),
-                            duration : 300,
+                            x : pXa + xp * ( pW + pSx ),
+                            duration : duration_all,
                             ease : 'Power2'
                         });
 
@@ -1799,16 +1809,16 @@ window.onload = function () {
                         var xpa = counterb % 4, 
                             ypa = Math.floor ( counterb/4 );
 
-                        gp.x =  oppoX + xpa * ( gp.width + (gp.width * 0.1) ) - (cW* 0.8),
-                        gp.y =  startY + ypa * ( gp.height + (gp.height * 0.15) );
+                        gp.x = pXb + xpa * ( pW + pSx ) - cW;
+                        gp.y = pY + ypa * ( pH + pSy );
 
                         gp.setVisible (true).setDepth (2000);
                         gp.reset();
 
                         this.tweens.add ({
                             targets : gp,
-                            x : oppoX + xpa * ( gp.width + (gp.width * 0.1) ),
-                            duration : 300,
+                            x : pXb + xpa * ( pW + pSx ),
+                            duration : duration_all,
                             ease : 'Power2'
                         });
                 
@@ -2511,7 +2521,7 @@ window.onload = function () {
 
             this.enabledPieces ('self');
 
-            this.showInstructions ();
+            if ( !this.isRead ) this.showInstructions ();
 
             if (this.isTimed ) {
 
@@ -2763,6 +2773,8 @@ window.onload = function () {
         },
         showInstructions : function () {
             
+            this.isRead = true;
+
             this.instructionsShown = true;
 
             var instructions = [];
@@ -2799,7 +2811,7 @@ window.onload = function () {
 
             var graphics = this.add.graphics ().setDepth (999);
 
-            graphics.fillStyle ( 0x0a0a0a, 0.8 );
+            graphics.fillStyle ( 0x0a0a0a, 0.9 );
             graphics.fillRoundedRect ( cX , cY, cW, cH, cH * 0.04 );
             
             var _this = this;
@@ -2816,12 +2828,12 @@ window.onload = function () {
 
             var headTxtConfig = { 
                 color : '#fff', 
-                fontSize : cH * 0.1, 
+                fontSize : cH * 0.08, 
                 fontStyle : 'bold',
                 fontFamily : "Trebuchet MS" 
             };
 
-            var headTxt = this.add.text ( htX, htY, 'Instructions', headTxtConfig ).setOrigin (0.5).setDepth (999);
+            var headTxt = this.add.text ( htX, htY, 'Instructions ( Preparations )', headTxtConfig ).setOrigin (0.5).setDepth (999);
 
             this.instructionElements.push ( graphics );
             this.instructionElements.push ( rect );
