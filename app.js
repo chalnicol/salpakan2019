@@ -17,7 +17,7 @@ app.use('/client', express.static(__dirname + '/client'));
 //serv.listen(2000);
 serv.listen(process.env.PORT || 2000);
 
-//console.log("Server started.");
+console.log("Server started.");
 
 var socketList = {};
 var playerList = {};
@@ -411,9 +411,22 @@ io.on('connection', function(socket){
 
 		opponent.score();
 
-		var oppoSocket = socketList [ opponent.id ];
+		for ( var i in room.playerIDs ) {
 
-		oppoSocket.emit ('opponentResign');
+			var self = playerList [ room.playerIDs[i] ];
+			
+			var oppoID = getOpponentsId ( self.id );
+
+			var oppoPieces = getPlayerPieces ( oppoID );
+
+			var winner = self.id != plyr.id ? 'self' : 'oppo';
+
+			var tmpSocket = socketList [ self.id ];
+
+			tmpSocket.emit ('resignResult', { 'winner' : winner, 'oppoPieces' : oppoPieces });
+
+
+		}
 
 	});
 
@@ -492,11 +505,23 @@ io.on('connection', function(socket){
 
 		for ( var i in room.playerIDs ) {
 			
+			var self = playerList [ room.playerIDs[i] ];
+
+			var oppoid = getOpponentsId ( self.id );
+
+			var oppoPieces = getPlayerPieces ( oppoid );
+			
 			var plyrWhoResponded = room.playerIDs[i] == player.id ? true : false;
 
 			var tmpSocket = socketList [ room.playerIDs[i] ];
 
-			tmpSocket.emit ( 'drawResponse', { 'accepted' : data, 'plyrWhoResponded' : plyrWhoResponded } );
+			var toReturn = { 
+				'accepted' : data, 
+				'plyrWhoResponded' : plyrWhoResponded, 
+				'oppoPieces' : oppoPieces 
+			};
+
+			tmpSocket.emit ( 'drawResponse', toReturn );
 
 		}
 

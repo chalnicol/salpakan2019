@@ -676,6 +676,8 @@ window.onload = function () {
 
                 _this.clearPrompt();
 
+                _this.setOppoRanks ( data.oppoPieces );
+
                 setTimeout ( function () {
 
                     if ( !data.accepted ) {
@@ -732,23 +734,21 @@ window.onload = function () {
                 _this.plyrInd ['oppo'].updateStatus ();
 
             });
-            socket.on ('opponentResign', function ( data ) {
+            socket.on ('resignResult', function ( data ) {
+
+                _this.setOppoRanks ( data.oppoPieces );
 
                 _this.playerResign = true;
 
-                _this.endGame ('self');
+                _this.endGame (data.winner);
 
             });
             socket.on ('moveResult', function ( data ) {
 
                 if ( data.oppoPieces.length > 0) {
 
-                    for ( var i in data.oppoPieces ) {
+                    _this.setOppoRanks ( data.oppoPieces );
 
-                        var pdata = data.oppoPieces[i];
-
-                        _this.gamePiece [ 'oppo_' + pdata.cnt ].rnk = pdata.rank;
-                    }
                 }
 
                 if ( data.clashResult == -1 ) {
@@ -2527,6 +2527,8 @@ window.onload = function () {
 
             if ( this.timeIsTicking ) this.stopTimer ();
 
+            if ( this.instructionsShown ) this.removeInstructions ();
+            
             this.removeActive();
 
             this.removeBlinkers();
@@ -3122,12 +3124,16 @@ window.onload = function () {
                     switch ( this.id ) {
                         case 'but0' : 
 
-                            _this.clearPrompt();
-                            _this.playerResign = true;
+
+                        _this.clearPrompt();
+                        _this.playerResign = true;
+
+                        if ( _this.isSinglePlayer ) {
                             _this.endGame ('oppo');
+                        }else {
+                            socket.emit ('playerResign');
+                        }
                             
-                            if ( !_this.isSinglePlayer ) socket.emit ('playerResign');
-                           
                         break;
                         case 'but1' : 
                             _this.clearPrompt();
@@ -3433,6 +3439,11 @@ window.onload = function () {
             }
 
         },
+        setOppoRanks : function ( pieces ) {
+            for ( var i in pieces ) {
+                this.gamePiece [ 'oppo_' + pieces[i].cnt ].rnk = pieces[i].rank;
+            }
+        }, 
         resetGame : function () {
 
             this.clearPrompt();
