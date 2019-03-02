@@ -3,13 +3,11 @@
 
 window.onload = function () {
 
-
     var game, config;
 
     var username = document.getElementById('username');
 
     username.value = 'Player' + Math.floor(Math.random() * 99999 );
-
 
     var btn = document.getElementById ('btnEnter');
 
@@ -181,12 +179,12 @@ window.onload = function () {
 
             var configtxt = { 
                 color : '#000', 
-                fontSize : config.height *0.1, 
+                fontSize : config.height *0.09, 
                 fontFamily:'Arial', 
                 fontStyle: 'bold' 
             };
             
-            var text = this.add.text ( config.width/2, config.height * 0.18, 'Salpakan 2.0', configtxt ).setOrigin(0.5);
+            var text = this.add.text ( config.width/2, config.height * 0.18, 'Salpakan \'17', configtxt ).setOrigin(0.5);
             
             text.setStroke('#f4f4f4', 5).setShadow( 1, 1, '#666', true, true );
 
@@ -579,6 +577,7 @@ window.onload = function () {
 
             this.messages = [];
             this.msgelements = [];
+            this.elimPieces = [];
 
             this.player = {};
             this.plyrInd = {};
@@ -742,8 +741,6 @@ window.onload = function () {
             });
             socket.on ('moveResult', function ( data ) {
 
-                console.log ( 'len :', data.oppoPieces.length );
-
                 if ( data.oppoPieces.length > 0) {
 
                     for ( var i in data.oppoPieces ) {
@@ -751,34 +748,29 @@ window.onload = function () {
                         var pdata = data.oppoPieces[i];
 
                         _this.gamePiece [ 'oppo_' + pdata.cnt ].rnk = pdata.rank;
-
                     }
-
                 }
 
-                _this.isWinning = data.isWinning;
-
-                var winner = '';
-
-                if ( data.clashResult < 0 ) {
+                if ( data.clashResult == -1 ) {
 
                     _this.movePiece ( data.post, _this.turn );
 
                 }else {
 
                     _this.clash ( data.post, data.clashResult );
-
-                    winner = ( data.clashResult == 1 ) ? 'self' : 'oppo';
                 }
 
                 _this.removeBlinkers();
-
                 _this.removeActive ();
 
-                if ( !data.win ) {
-                    _this.switchTurn();
+                if ( data.win ) {
+
+                    if ( data.base ) _this.playSound ('home');
+
+                    _this.endGame ( data.isWinner );
+
                 }else {
-                    _this.endGame ( winner );
+                    _this.switchTurn();
                 }
                 
             });
@@ -815,8 +807,6 @@ window.onload = function () {
 
             });
             socket.on ('opponentLeft', function ( data ) {
-
-                console.log ('this is received..');
 
                 if ( _this.isPrompted ) _this.clearPrompt();
 
@@ -1103,7 +1093,7 @@ window.onload = function () {
             if ( !proper ) {
 
                 buts = [
-                    { id : 'preset', value : '☗ Preset' },
+                    { id : 'preset', value : '⚔ Preset' },
                     { id : 'random', value : '☋ Random' },
                     { id : 'ready', value : '✔ Ready' }
                 ];
@@ -1111,7 +1101,7 @@ window.onload = function () {
             }else {
                 
                 buts = [
-                    { id : 'proposedraw', value : '⚖ Offer A Draw' },
+                    { id : 'proposedraw', value : '⚖ Game Draw' },
                     { id : 'resign', value : '⚑ Resign' },
                     { id : 'showpieces', value : '❖ Reveal Pieces' }
                 ];
@@ -1490,7 +1480,7 @@ window.onload = function () {
 
             var type = this.player[ plyr ].type;
 
-            var active = ( plyr == 'self' ) ? true : false;
+            //var active = ( plyr == 'self' ) ? true : false;
 
             var piecesData = this.gameData [plyr].pieces;
 
@@ -1508,7 +1498,7 @@ window.onload = function () {
 
                 var myGrid = this.grid [ myPost ];
         
-                var gp = new GamePiece ( this, plyr +'_'+ i, orgGrid.x, orgGrid.y, orgW, orgH, piecesData[i].rank, type, myPost, plyr, i, active );
+                var gp = new GamePiece ( this, plyr +'_'+ i, orgGrid.x, orgGrid.y, orgW, orgH, piecesData[i].rank, type, myPost, plyr, i, false );
                 
                 gp.on ('pointerdown', function () {
                     
@@ -1745,7 +1735,7 @@ window.onload = function () {
                 });
 
 
-                this.line1 = this.add.line ( -(config.width/2) * 0.6 , config.height * 0.45, 0, 0, 0, config.height * 0.5, 0xf4f4f4, 1 ).setDepth ( 1000 );
+                this.line1 = this.add.line ( -(config.width/2) * 0.6 , config.height * 0.45, 0, 0, 0, config.height * 0.5, 0x9c9c9c, 1 ).setDepth ( 1000 );
 
                 this.tweens.add ({
                     targets : this.line1,
@@ -1762,7 +1752,7 @@ window.onload = function () {
                     fontStyle : 'bold'
                 };
 
-                this.texta = this.add.text( config.width/2 - (cW*0.8), config.height * 0.15, '☒ Eliminated Pieces', configtxt).setOrigin(0.5).setDepth(1000);
+                this.texta = this.add.text( config.width/2 - (cW*0.8), config.height * 0.15, '✫ Eliminated Pieces ✫', configtxt).setOrigin(0.5).setDepth(1000);
 
                 this.tweens.add ({
                     targets : this.texta,
@@ -1773,28 +1763,25 @@ window.onload = function () {
                 
 
                 var selfX = config.width * 0.09,
-                    selfY = config.height * 0.25,
                     oppoX = config.width * 0.59,
-                    oppoY = selfY;
+                    startY = config.height * 0.25;
 
-                var counter = 0, counterb = 0;
+                var countera = 0, counterb = 0;
 
-                for ( var i in this.gamePiece ) {
+                for ( var i in this.elimPieces ) {
                     
-                    var gp = this.gamePiece[i];
+                    var gp = this.gamePiece [ this.elimPieces[i] ];
 
-                    if ( gp.plyr == 'self' && gp.isDestroyed ) {
+                    if ( gp.plyr == 'self' ) {
 
-                        var xp = counter % 4, 
-                            yp = Math.floor ( counter/4 );
+                        var xp = countera % 4, 
+                            yp = Math.floor ( countera/4 );
 
                         gp.x =  selfX + xp * ( gp.width + (gp.width * 0.1) ) - (cW*0.8);
-                        gp.y =  selfY + yp * ( gp.height + (gp.height * 0.15) );
+                        gp.y =  startY + yp * ( gp.height + (gp.height * 0.15) );
 
                         gp.setVisible(true).setDepth (2000);
                         gp.reset();
-                        
-                        //if ( !gp.isOpen ) gp.flip();
                         
                         this.tweens.add ({
                             targets : gp,
@@ -1803,24 +1790,20 @@ window.onload = function () {
                             ease : 'Power2'
                         });
 
-                        
-                        counter ++;
+                        countera ++;
                         
                     }
 
-                    if ( gp.plyr == 'oppo' && gp.isDestroyed ) {
-
+                    if ( gp.plyr == 'oppo' ) {
 
                         var xpa = counterb % 4, 
                             ypa = Math.floor ( counterb/4 );
 
                         gp.x =  oppoX + xpa * ( gp.width + (gp.width * 0.1) ) - (cW* 0.8),
-                        gp.y =  oppoY + ypa * ( gp.height + (gp.height * 0.15) );
+                        gp.y =  startY + ypa * ( gp.height + (gp.height * 0.15) );
 
                         gp.setVisible (true).setDepth (2000);
                         gp.reset();
-
-                        //if ( !gp.isOpen ) gp.flip();
 
                         this.tweens.add ({
                             targets : gp,
@@ -1828,10 +1811,7 @@ window.onload = function () {
                             duration : 300,
                             ease : 'Power2'
                         });
-                        
-                        
-                        //if ( !gp.isOpen ) gp.flip();
-                        
+                
                         counterb ++;
                         
                     }
@@ -2237,6 +2217,9 @@ window.onload = function () {
                     destPost.resident = '';
                     destPost.residentPlayer = '';
 
+                    this.elimPieces.push ( movingPiece.id );
+                    this.elimPieces.push ( residentPiece.id );
+                    
                     //delete this.gamePiece[ this.activePiece];;
                     //delete this.gamePiece[ destPost.resident ];
 
@@ -2256,6 +2239,8 @@ window.onload = function () {
                     residentPiece.isDestroyed = true;
                     residentPiece.setVisible(false);
 
+                    this.elimPieces.push ( residentPiece.id );
+
                     this.pieceRemoved = residentPiece.id;
 
                     this.createAnim ( destPost.x, destPost.y, residentPiece.type );
@@ -2270,6 +2255,8 @@ window.onload = function () {
                     movingPiece.setVisible(false);
 
                     this.pieceRemoved = movingPiece.id;
+
+                    this.elimPieces.push ( movingPiece.id );
 
                     this.tweens.add ({
                         targets : residentPiece,
@@ -2295,7 +2282,7 @@ window.onload = function () {
 
             var win = false;
 
-            console.log ( 'id', this.pieceRemoved );
+            //console.log ( 'id', this.pieceRemoved );
 
             if ( this.pieceRemoved != '' ) {
 
@@ -2522,6 +2509,10 @@ window.onload = function () {
 
             this.gamePhase = 'prep';
 
+            this.enabledPieces ('self');
+
+            this.showInstructions ();
+
             if (this.isTimed ) {
 
                 this.initializeTimer ( this.maxPrepTime, 'self', '· Preparation' );
@@ -2591,6 +2582,8 @@ window.onload = function () {
 
         },
         commenceGame: function () {
+
+            if ( this.instructionsShown ) this.removeInstructions();
 
             if ( this.isPrompted ) this.clearPrompt();
 
@@ -2766,6 +2759,103 @@ window.onload = function () {
             }, 500 );
 
         },
+        showInstructions : function () {
+            
+            this.instructionsShown = true;
+
+            var instructions = [];
+
+            switch ( this.gamePhase ) {
+                case 'prep' :
+                    instructions = [
+                        'Click a piece and click onto another piece to switch position.',
+                        'Or click a piece and click onto an open space within friendly territory to move.',
+                        'Hit Random button to set pieces to random position.',
+                        'Hit Preset button to set pieces to set position.',
+                        'Hit Ready button once done with the preparations.',
+                        'Click this to remove the instructions.'
+                    ];
+                break;
+                case 'proper' : 
+                    instructions = [
+                        'Hit "Game Draw" button to offer a draw to your opponent. Can only be done once.',
+                        'Hit "Reveal Pieces" button to reveal your pieces to the opponent. Cannot be undone.',
+                        'Hit "Resign" button to concede'
+                    ];
+                break;
+
+            };
+
+            this.instructionElements = [];
+
+            var cW = config.width * 0.8,
+                cH = this.fieldHeight * 0.43,
+                cX = ( config.width - cW )/2,
+                cY = this.fieldY + this.fieldHeight * 0.035;
+
+                //cY = this.fieldY + ( this.fieldHeight - cH )/2;
+
+            var graphics = this.add.graphics ().setDepth (999);
+
+            graphics.fillStyle ( 0x0a0a0a, 0.8 );
+            graphics.fillRoundedRect ( cX , cY, cW, cH, cH * 0.04 );
+            
+            var _this = this;
+
+            var rect = this.add.rectangle ( cX + cW/2, cY + cH/2, cW, cH ).setInteractive ().setDepth (999);
+
+            rect.on ('pointerdown', function () {
+
+                _this.playSound('clicka');
+
+                _this.removeInstructions();
+            });
+            var htX = config.width/2, htY = cY + cH * 0.15;
+
+            var headTxtConfig = { 
+                color : '#fff', 
+                fontSize : cH * 0.1, 
+                fontStyle : 'bold',
+                fontFamily : "Trebuchet MS" 
+            };
+
+            var headTxt = this.add.text ( htX, htY, 'Instructions', headTxtConfig ).setOrigin (0.5).setDepth (999);
+
+            this.instructionElements.push ( graphics );
+            this.instructionElements.push ( rect );
+            this.instructionElements.push ( headTxt );
+
+            var insSize = cH * 0.065, 
+                insSp = insSize * 0.6,
+                insX =  cX + cW * 0.1,
+                insY =  cY + cH * 0.28;
+
+            var instTxtConfig = { 
+                color : '#fff', 
+                fontSize : insSize,
+                fontStyle : 'bold',
+                fontFamily : "Trebuchet MS" 
+            };
+
+            console.log ( instructions.length );
+
+            for ( var i in instructions ) {
+                
+                var txt = this.add.text ( insX, insY + i*( insSize + insSp), '· ' + instructions[i], instTxtConfig ).setDepth (999);
+
+                this.instructionElements.push (txt);
+
+            }
+
+        },
+        removeInstructions : function () {
+
+            for ( var i in this.instructionElements ) {
+                this.instructionElements [i].destroy();
+            }
+            this.instructionsShown = false;
+
+        },
         showCommenceScreen :  function () {
             
             this.commenceElements = [];
@@ -2853,7 +2943,6 @@ window.onload = function () {
             }, 1000 );
 
         },
-
         setPromptVisible : function ( show = true ) {
 
             for ( var i in this.promptElements ) {
@@ -2928,13 +3017,13 @@ window.onload = function () {
                 case 'self' : 
                     txt = 'Congrats! You win.';
 
-                    if ( this.playerResign ) captionTxt = 'Opponent resigned.';
+                    if ( this.playerResign ) captionTxt = 'Opponent has resigned.';
 
                 break;
                 case 'oppo' : 
                     txt = 'Sorry, You lose.';
 
-                    if ( this.playerResign ) captionTxt = 'You resigned.';
+                    if ( this.playerResign ) captionTxt = 'You have resigned.';
                     
                 break;
                 default : 
@@ -2943,7 +3032,7 @@ window.onload = function () {
             
             this.showPrompt ( txt, captionTxt, true );
 
-            var buts = ['Rematch', 'Quit'];
+            var buts = ['⚒ Rematch', '⚑ Quit'];
 
             var bW = config.width * 0.2
                 bH = config.height * 0.065,
@@ -3010,7 +3099,7 @@ window.onload = function () {
 
             this.showPrompt ( 'Are you sure you want to resign?', '', true, 0.04 );
 
-            var buts = [ 'Confirm', 'Cancel'];
+            var buts = [ '✔ Confirm', '✘ Cancel'];
 
             var bW = config.width * 0.2
                 bH = config.height * 0.065,
@@ -3065,7 +3154,7 @@ window.onload = function () {
 
             this.showPrompt ( 'Are you sure you want to reveal your pieces?', '', true, 0.04 );
 
-            var buts = [ 'Confirm', 'Cancel' ];
+            var buts = [ '✔ Confirm', '✘ Cancel'];
 
             var bW = config.width * 0.2
                 bH = config.height * 0.065,
@@ -3127,7 +3216,7 @@ window.onload = function () {
 
             this.showPrompt ( 'Are you sure you want to offer a draw?', '', true, 0.04 );
 
-            var buts = [ 'Confirm', 'Cancel' ];
+            var buts = [ '✔ Confirm', '✘ Cancel'];
 
             var bW = config.width * 0.2
                 bH = config.height * 0.065,
@@ -3180,8 +3269,8 @@ window.onload = function () {
         showDrawResponseScreen :  function () {
 
             this.showPrompt ( 'Opponent has offered a draw?', '', true, 0.04 );
-
-            var buts = [ 'Accept', 'Decline' ];
+            
+            var buts = [ '✔ Accept', '✘ Decline'];
 
             var bW = config.width * 0.2
                 bH = config.height * 0.065,
@@ -3224,13 +3313,13 @@ window.onload = function () {
 
             this.isNotified = true;
 
-            this.showPrompt ( txt, '', false, 0.04 );
+            this.showPrompt ( '⚠ ' + txt, '', false, 0.04 );
 
             var _this = this;
 
             this.removeNotificationTimer = setTimeout ( function () {
                 _this.removeNotification ();
-            }, 1000 );
+            }, 1500 );
 
         },
         removeNotification : function () {
@@ -3368,6 +3457,8 @@ window.onload = function () {
             this.isWinning = '';
             this.activePiece = '';
             this.playerResign = false;
+            
+            this.elimPieces = [];
 
             var _this = this;
 

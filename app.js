@@ -17,7 +17,7 @@ app.use('/client', express.static(__dirname + '/client'));
 //serv.listen(2000);
 serv.listen(process.env.PORT || 2000);
 
-console.log("Server started.");
+//console.log("Server started.");
 
 var socketList = {};
 var playerList = {};
@@ -44,7 +44,7 @@ Player = function (id, username){
 
 		plyr.winCount += 1;
 
-		console.log ( '\n --> Game Winner : ', plyr.username, plyr.winCount );
+		//console.log ( '\n --> Game Winner : ', plyr.username, plyr.winCount );
 		
 	}
 
@@ -133,7 +133,7 @@ GameRoom = function ( id, isTimed=false, prepTime = 30, blitzTime = 15 ) {
 
 			rm.counter += 1;
 			
-			console.log ( max - rm.counter );
+			//console.log ( max - rm.counter );
 			
 			if ( rm.counter >= max) {
 				
@@ -179,7 +179,7 @@ GameRoom = function ( id, isTimed=false, prepTime = 30, blitzTime = 15 ) {
 	}
 	rm.initGame  = function () {
 
-		console.log ('\n --> Game is initialized', rm.id );
+		//console.log ('\n --> Game is initialized', rm.id );
 
 		rm.phase = 'prep';
 		
@@ -198,7 +198,7 @@ GameRoom = function ( id, isTimed=false, prepTime = 30, blitzTime = 15 ) {
 	}
 	rm.commence = function () {
 
-		console.log ('\n --> Game is commencing', rm.id );
+		//console.log ('\n --> Game is commencing', rm.id );
 
 		rm.phase = 'commence';
 		
@@ -212,7 +212,7 @@ GameRoom = function ( id, isTimed=false, prepTime = 30, blitzTime = 15 ) {
 	rm.startGame  = function () {
 		//..
 
-		console.log ('\n --> Game has started', rm.id );
+		//console.log ('\n --> Game has started', rm.id );
 
 		rm.phase = 'proper';
 
@@ -225,7 +225,7 @@ GameRoom = function ( id, isTimed=false, prepTime = 30, blitzTime = 15 ) {
 	}
 	rm.endGame = function () {
 
-		console.log ('\n --> Game has ended', rm.id );
+		//console.log ('\n --> Game has ended', rm.id );
 
 		rm.isGameOn = false;
 
@@ -234,7 +234,7 @@ GameRoom = function ( id, isTimed=false, prepTime = 30, blitzTime = 15 ) {
 	}
 	rm.resetGame = function () {
 
-		console.log ('\n --> Game has restarted', rm.id );
+		//console.log ('\n --> Game has restarted', rm.id );
 
 		rm.initialTurn = rm.initialTurn == 0 ? 1 : 0;
 
@@ -248,6 +248,8 @@ GameRoom = function ( id, isTimed=false, prepTime = 30, blitzTime = 15 ) {
 		
 		rm.isWinning = '';
 
+		rm.isWinner = '';
+
 		rm.createGrid ();
 
 		if ( rm.isTimed ) rm.startTimer( rm.prepTime );
@@ -255,7 +257,7 @@ GameRoom = function ( id, isTimed=false, prepTime = 30, blitzTime = 15 ) {
 	}
 	rm.switchTurn = function () {
 
-		console.log ('\n --> Game is switching turn', rm.id );
+		//console.log ('\n --> Game is switching turn', rm.id );
 
 		rm.turn = rm.turn == 0 ? 1 : 0;
 
@@ -263,10 +265,12 @@ GameRoom = function ( id, isTimed=false, prepTime = 30, blitzTime = 15 ) {
 
 		if ( rm.isWinning != '' &&  rm.isWinning == playerid ) {
 
-			console.log ( '\n --> Winner', playerList [ playerid ].username );
+			//console.log ( '\n --> Winner', playerList [ playerid ].username );
 
 			rm.endGame ();
 
+			rm.isWinner = playerid;
+			
 			playerList [ playerid ].score();
 
 		} else {
@@ -294,7 +298,7 @@ io.on('connection', function(socket){
 
 		playerList [ socket.id ] = newPlayer;
 
-		console.log ( '\n --> ' + newPlayer.username  + ' has entered the game.' );
+		//console.log ( '\n --> ' + newPlayer.username  + ' has entered the game.' );
 
 		sendPlayersOnline ();
 		
@@ -343,7 +347,7 @@ io.on('connection', function(socket){
 
 			socket.emit ('initGame', returnData ); 
 
-			console.log ( '\n --> Room Created :', newRoom.id );
+			//console.log ( '\n --> Room Created :', newRoom.id );
 
 
 		}else {
@@ -364,7 +368,7 @@ io.on('connection', function(socket){
 
 				player.roomid = newRoomID;
 
-				console.log ( '\n --> '+ player.username +' created a room :', newRoom.id );
+				//console.log ( '\n --> '+ player.username +' created a room :', newRoom.id );
 
 			}else  {
 				
@@ -381,7 +385,7 @@ io.on('connection', function(socket){
 
 				gameRoom.playerCount += 1;
 
-				console.log ( '\n --> '+ player.username +' join the room :', gameRoom.id );
+				//console.log ( '\n --> '+ player.username +' join the room :', gameRoom.id );
 				
 				//initialize game..
 				initGame ( gameRoom.id );
@@ -397,7 +401,7 @@ io.on('connection', function(socket){
 		
 		var plyr = playerList [ socket.id ];
 
-		console.log ('\n --> ' + plyr.username + ' has resigned.');
+		//console.log ('\n --> ' + plyr.username + ' has resigned.');
 
 		var room = roomList [ plyr.roomid ];
 
@@ -419,7 +423,7 @@ io.on('connection', function(socket){
 
 		player.piecesRevealed = true;
 
-		console.log ('\n --> ' + player.username + ' has revealed his/her game pieces.');
+		//console.log ('\n --> ' + player.username + ' has revealed his/her game pieces.');
 
 		var gamePieces = getPlayerPieces ( player.id );
 
@@ -452,7 +456,7 @@ io.on('connection', function(socket){
 		
 		var player = playerList [socket.id];
 		
-		console.log ('\n -- > ' + player.username + ' has offered a draw' );
+		//console.log ('\n -- > ' + player.username + ' has offered a draw' );
 
 		var room = roomList [ player.roomid ];
 
@@ -474,13 +478,13 @@ io.on('connection', function(socket){
 
 		if ( !data ) {
 
-			console.log ('\n --> Game resumes..' );
+			//console.log ('\n --> Game resumes..' );
 
 			if ( room.isTimed ) room.startTimer ( room.blitzTime );
 
 		}else {
 
-			console.log ('\n --> Game Winner : none' );
+			//console.log ('\n --> Game Winner : none' );
 
 			room.endGame ();
 
@@ -502,13 +506,13 @@ io.on('connection', function(socket){
 
 		if ( verifyClickSent (socket.id) ) {
 
-			//console.log ('\n --> Piece click received from ' + playerList[socket.id].username + ':', data );
+			////console.log ('\n --> Piece click received from ' + playerList[socket.id].username + ':', data );
 			var oppoSocket = socketList [ getOpponentsId ( socket.id ) ];
 
 			oppoSocket.emit ( 'oppoPieceClick', data );
 
 		}else {
-			console.log ('\n --> Click received is invalid ');
+			//console.log ('\n --> Click received is invalid ');
 		}
 
 	});
@@ -518,12 +522,12 @@ io.on('connection', function(socket){
 		//..
 		if ( verifyClickSent (socket.id) ) {
 
-			//console.log ('\n --> Move received from ' + playerList[socket.id].username + ':', data );
+			////console.log ('\n --> Move received from ' + playerList[socket.id].username + ':', data );
 			analyzeSentMove (  socket.id, data );
 
 		}else {
 
-			console.log ('\n --> Move received is invalid');
+			//console.log ('\n --> Move received is invalid');
 		}
 
 	});
@@ -563,7 +567,7 @@ io.on('connection', function(socket){
 
 			var plyr = playerList[socket.id];
 			
-			console.log ( '\n <-- ' + plyr.username +' has left the game' );
+			//console.log ( '\n <-- ' + plyr.username +' has left the game' );
 
 			leaveRoom ( socket.id );
 
@@ -577,7 +581,7 @@ io.on('connection', function(socket){
 
 			var plyr = playerList[socket.id];
 
-			console.log ( '\n <-- ' + plyr.username  + ' has been disconnected.' );
+			//console.log ( '\n <-- ' + plyr.username  + ' has been disconnected.' );
 
 			if ( plyr.roomid != '' ) leaveRoom ( socket.id );
 		
@@ -610,7 +614,6 @@ function getPlayerPieces ( playerid ) {
 	return pieces;
 
 }
-
 function getAvailableRoom ( isTimed ) {
 
 	for ( var i in roomList ) {
@@ -811,7 +814,7 @@ function leaveRoom ( playerid ) {
 		//...
 		delete roomList [ player.roomid ];
 
-		console.log ( '\n <-- Room deleted :', gameRoom.id  );
+		//console.log ( '\n <-- Room deleted :', gameRoom.id  );
 
 	}
 	
@@ -916,7 +919,10 @@ function analyzeSentMove ( playerid, data ) {
 	origPost.residentPlayer = '';
 
 	//initialize variables needed for checking..
-	var win = false, clashResult = -1;
+	var win = false, 
+		base = false;
+
+	var clashResult = -1;
 
 	if ( destPost.resident != '' && destPost.residentPlayer != plyr.id ) {
 
@@ -951,9 +957,9 @@ function analyzeSentMove ( playerid, data ) {
 		
 					room.endGame ();
 
-					plyr.score();
+					room.isWinner = plyr.id;
 
-					//console.log ( '\n --> Winner :', plyr.username );
+					plyr.score();
 
 				}
 
@@ -968,9 +974,10 @@ function analyzeSentMove ( playerid, data ) {
 
 					room.endGame ();
 
+					room.isWinner = oppo.id;
+
 					oppo.score();
 
-					//console.log ( '\n --> Winner :', oppo.username );
 				}
 
 			break;
@@ -994,17 +1001,17 @@ function analyzeSentMove ( playerid, data ) {
 
 				room.isWinning = plyr.id;
 
-				console.log ( '\n --> Is Winning :', plyr.username );
-
 			}else {
 				
 				room.endGame ();
 
+				room.isWinner = plyr.id;
+
 				plyr.score();
 
-				win = true;
+				base = true;
 
-				//console.log ( '\n --> Hit Base :', plyr.username );
+				win = true;
 
 			}
 
@@ -1025,29 +1032,32 @@ function analyzeSentMove ( playerid, data ) {
 		var toReturnPost = self.id == playerid ? data.post : Math.abs ( data.post - 71 );
 
 		var isWinning = '';
-
 		if ( room.isWinning != '' ) {
 			isWinning = self.id == room.isWinning ? 'self' : 'oppo';
 		}
+		var isWinner = '';
+		if ( room.isWinner != '' ) {
+			isWinner = self.id == room.isWinner ? 'self' : 'oppo';
+		}
 
 		var oppoPieces = [];
-
 		if ( win || room.isWinning != '' ) {
-
 			if ( !oppo.piecesRevealed ) oppoPieces = getPlayerPieces ( oppo.id );
-
 		}
+
+		
 
 		var returnData = {
 			'win' : win,
-			'oppoPieces' : oppoPieces,
+			'base' : base,
+			'isWinner' : isWinner,
 			'isWinning' : isWinning,
+			'oppoPieces' : oppoPieces,
 			'post' : toReturnPost,
 			'clashResult' : clashResult
-
 		}
 
-		//console.log ( ' --> Data sent to ', self.username );
+		////console.log ( ' --> Data sent to ', self.username );
 		
 		var socket = socketList [ self.id ];
 
