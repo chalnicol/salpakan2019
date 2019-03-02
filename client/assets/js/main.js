@@ -71,11 +71,11 @@ window.onload = function () {
                 'client/assets/sfx/sfx.ogg'
             ]);
 
-            this.load.audio('introbg', ['client/assets/sfx/drumsofwar.ogg', 'assets/sfx/drumsofwar.mp3']);
+            this.load.audio('introbg', ['client/assets/sfx/drumsofwar.ogg', 'client/assets/sfx/drumsofwar.mp3']);
 
-            this.load.audio('bgsound', ['client/assets/sfx/siege.ogg', 'assets/sfx/siege.mp3']);
+            this.load.audio('bgsound', ['client/assets/sfx/siege.ogg', 'client/assets/sfx/siege.mp3']);
 
-            this.load.audio('clocktick', ['client/assets/sfx/tick.ogg', 'assets/sfx/tick.mp3']);
+            this.load.audio('clocktick', ['client/assets/sfx/tick.ogg', 'client/assets/sfx/tick.mp3']);
 
             this.load.spritesheet('thumbs', 'client/assets/images/thumbs.png', { frameWidth: 50, frameHeight: 50 });
 
