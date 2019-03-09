@@ -5,57 +5,12 @@ window.onload = function () {
 
     var game, config, socket;
 
-    var gameWidth = document.getElementById ('game_container').clientWidth;
-
-    console.log ( gameWidth );
 
     var username = document.getElementById('username');
 
-    username.value = 'Player' + Math.floor(Math.random() * 99999 );
+    username.value = 'Player' + Math.floor( Math.random() * 99999 );
 
-    var btn = document.getElementById ('btnEnter');
-
-    var form = document.getElementById ('myForm');
-
-    form.onsubmit = function ( e ) {
-
-        e.preventDefault();
-
-        if ( username.value != '' ) {
-
-            document.getElementById('game_login').style.display = 'none';
-            document.getElementById('game_div').style.display = 'block';
-            
-            enterGame ();
-        }
-    }
-
-    function enterGame () {
-
-        var parentDiv = document.getElementById('game_div');
-    
-        config = {
-    
-            type: Phaser.AUTO,
-            width: parentDiv.clientWidth,
-            height: parentDiv.clientHeight,
-            backgroundColor: '#ccc',
-            audio: {
-                disableWebAudio: false
-            },
-            parent:'game_div',
-            scene: [ Intro, SceneA ]
-            
-        };
-
-        game = new Phaser.Game(config);
-
-        socket = io();
-
-        socket.emit ('initUser', username.value );
-    
-    }
-    
+    var btn = document.getElementById ('btnEnter');    
 
     var form = document.getElementById ('myForm');
 
@@ -78,7 +33,8 @@ window.onload = function () {
 
     function readDeviceOrientation () {
 
-        if ( window.orientation == undefined ) return;
+
+        if ( window.orientation == undefined  ) return;
 
         var landscape = Math.abs ( window.orientation) == 0;
 
@@ -104,22 +60,19 @@ window.onload = function () {
         var tmpWidth = contW > maxW ? maxW : contW,
             tmpHeight = Math.ceil(tmpWidth * 3/4);
 
-        console.log ( 'init', tmpHeight, contH )
-
         var gameH = 0, gameW = 0;
 
         if ( tmpHeight >= contH ) {
 
             gameH = contH;
             gameW = Math.ceil(gameH * 4/3);
-
-            console.log ( 'game dimensions adjusted by screen height' )
+            //console.log ( 'game dimensions adjusted by screen height' )
 
         }else {
 
             gameW = tmpWidth;
             gameH = tmpHeight;
-            console.log ( 'game dimensions adjusted by screen width' )
+            //console.log ( 'game dimensions adjusted by screen width' )
         }
 
         var game_div = document.getElementById('game_div');
@@ -694,8 +647,11 @@ window.onload = function () {
                 _this.music.play('clicka');
                 _this.removeOnlinePeepsScreen();
             });
+            this.screenElements.push ( recta );
+
 
             var close = this.add.text ( bX + bW, bY, 'x', { color : '#fff', fontSize : cS * 0.7, fontFamily : 'Arial', fontStyle : 'bold' } ).setOrigin(0.5);
+            this.screenElements.push ( close );
 
             var configTxt = {
                 color : '#3a3a3a',
