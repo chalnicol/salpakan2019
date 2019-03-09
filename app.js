@@ -347,50 +347,60 @@ io.on('connection', function(socket){
 
 			socket.emit ('initGame', returnData ); 
 
-			//console.log ( '\n --> Room Created :', newRoom.id );
+			console.log ( '\n --> Room Created :', newRoom.id );
 
 
 		}else {
 	
-			var availableRoom = getAvailableRoom( data.isTimed );
+			if ( data.isChoosingOpponent ) {
 
-			if ( availableRoom == 'none' ) {
-
-				var newRoomID = player.username + '_' + Date.now();
+				console.log ('hey');
 				
-				var newRoom = GameRoom ( newRoomID, data.isTimed );
-				
-				newRoom.playerIDs.push ( socket.id );
+			}else {
 
-				newRoom.playerCount += 1;
+				var availableRoom = getAvailableRoom( data.isTimed );
 
-				roomList [ newRoomID ] = newRoom;
+				if ( availableRoom == 'none' ) {
 
-				player.roomid = newRoomID;
+					var newRoomID = player.username + '_' + Date.now();
+					
+					var newRoom = GameRoom ( newRoomID, data.isTimed );
+					
+					newRoom.playerIDs.push ( socket.id );
 
-				//console.log ( '\n --> '+ player.username +' created a room :', newRoom.id );
+					newRoom.playerCount += 1;
 
-			}else  {
-				
+					roomList [ newRoomID ] = newRoom;
 
-				player.roomid = availableRoom;
+					player.roomid = newRoomID;
 
-				player.index = 1;
+					//console.log ( '\n --> '+ player.username +' created a room :', newRoom.id );
 
-				player.type = 1;
+				}else  {
+					
 
-				var gameRoom = roomList [ availableRoom ];
+					player.roomid = availableRoom;
 
-				gameRoom.playerIDs.push ( socket.id );
+					player.index = 1;
 
-				gameRoom.playerCount += 1;
+					player.type = 1;
 
-				//console.log ( '\n --> '+ player.username +' join the room :', gameRoom.id );
-				
-				//initialize game..
-				initGame ( gameRoom.id );
-		
+					var gameRoom = roomList [ availableRoom ];
+
+					gameRoom.playerIDs.push ( socket.id );
+
+					gameRoom.playerCount += 1;
+
+					//console.log ( '\n --> '+ player.username +' join the room :', gameRoom.id );
+					
+					//initialize game..
+					initGame ( gameRoom.id );
+			
+				}
+
+
 			}
+			
 
 		}
 
@@ -623,6 +633,22 @@ io.on('connection', function(socket){
 });
 
 
+function getPlayersAvailable ( socketid ) {
+	
+	var playersAvailable = [];
+
+	for ( var i in playerList ) {
+
+		var player = playerList [ i ] ;
+
+		if ( player.roomid == '' ) playersAvailable.push (  player.username );
+	}
+
+	var tmpSocket = socketList [soccketid ];
+
+	tmpSocket.emit ( 'playersAvailable', playersAvailable );
+
+}
 function getPlayerPieces ( playerid ) {
 
 	var player = playerList [ playerid ];
@@ -839,7 +865,7 @@ function leaveRoom ( playerid ) {
 		//...
 		delete roomList [ player.roomid ];
 
-		//console.log ( '\n <-- Room deleted :', gameRoom.id  );
+		console.log ( '\n <-- Room deleted :', gameRoom.id  );
 
 	}
 	

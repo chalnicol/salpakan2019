@@ -36,9 +36,9 @@
 		
 		#game_login {
 
-			width:100%;
+			width:90%;
 			height : auto;
-			max-width: 300px;
+			max-width: 320px;
 			margin:auto;
 			padding : 15px;
 			border : 1px solid #fff;
@@ -47,14 +47,15 @@
 		}
 
 		#game_div {
-			width: 800px;
-			height : 600px;
+
+			max-width: 800px;
+			max-height: 600px;
 			margin:auto;
 			background-color : #ccc;
 		}
 
-		.border-gray {
-			border-color : '#6a6a6a' !important;
+		.form-control {
+			border-color : #9c9c9c !important;
 		}
 
 	</style>
@@ -62,28 +63,28 @@
 </head>
 <body>
 
-
 	<div id="game_container">
 
 		<div id="game_login">
+
 			<form id="myForm">
-				
+
 				<label for=""><strong>Welcome to Salpakan 2017</strong></label>
 				<div class="form-row">
-					<div class="col-7 mb-1">
-						
-						<input type="text" id="username" class="form-control form-control-sm border-gray" placeholder="username here" maxlength="15"/>
+					<div class="col-* col-sm-7">
+						<input type="text" id="username" class="form-control mb-2" placeholder="username here" maxlength="15"/>
 					</div>
-					<div class="col-5">
-						<input type="submit" value="Enter Game" class="btn btn-secondary btn-sm btn-block" id="btnEnter">
+					<div class="col-* col-sm-5">
+						<input type="submit" value="Enter Game" class="btn btn-secondary btn-block" id="btnEnter">
 					</div>
 				</div>
-				
+
+				<div id="messageDiv" class="text-danger"></div>
 				
 			</form>
 		</div>
 		<div id="game_div" style="display: none"></div>
-	
+		
 	</div>
 	
 </body>

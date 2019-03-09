@@ -3,7 +3,11 @@
 
 window.onload = function () {
 
-    var game, config;
+    var game, config, socket;
+
+    var gameWidth = document.getElementById ('game_container').clientWidth;
+
+    console.log ( gameWidth );
 
     var username = document.getElementById('username');
 
@@ -51,6 +55,99 @@ window.onload = function () {
         socket.emit ('initUser', username.value );
     
     }
+    
+
+    var form = document.getElementById ('myForm');
+
+    form.onsubmit = function ( e ) {
+
+        e.preventDefault();
+
+        document.getElementById('game_login').style.display = 'none';
+        document.getElementById('game_div').style.display = 'block';
+        
+        enterGame ();
+        
+    }
+
+    readDeviceOrientation();
+
+    this.addEventListener("orientationchange", function() {
+        readDeviceOrientation()
+    });
+
+    function readDeviceOrientation () {
+
+        if ( window.orientation == undefined ) return;
+
+        var landscape = Math.abs ( window.orientation) == 0;
+
+        var btn_enter =  document.getElementById('btnEnter');
+
+        btn_enter.disabled = ( landscape ) ? true : false; 
+
+        var message_div =  document.getElementById('messageDiv');
+
+        message_div.innerHTML = ( !landscape ) ? '' : '<small>Please set device orientation to landscape.</small>';
+
+    }
+
+    function enterGame () {
+
+        var maxW = 800;
+
+        var container = document.getElementById('game_container');
+
+        var contW = container.clientWidth,
+            contH = container.clientHeight;
+
+        var tmpWidth = contW > maxW ? maxW : contW,
+            tmpHeight = Math.ceil(tmpWidth * 3/4);
+
+        console.log ( 'init', tmpHeight, contH )
+
+        var gameH = 0, gameW = 0;
+
+        if ( tmpHeight >= contH ) {
+
+            gameH = contH;
+            gameW = Math.ceil(gameH * 4/3);
+
+            console.log ( 'game dimensions adjusted by screen height' )
+
+        }else {
+
+            gameW = tmpWidth;
+            gameH = tmpHeight;
+            console.log ( 'game dimensions adjusted by screen width' )
+        }
+
+        var game_div = document.getElementById('game_div');
+        game_div.style.width = gameW + 'px';
+        game_div.style.height = gameH + 'px';
+     
+        config = {
+
+            type: Phaser.AUTO,
+            width: gameW,
+            height: gameH,
+            backgroundColor: '#dedede',
+            audio: {
+                disableWebAudio: false
+            },
+            parent:'game_div',
+            scene: [ Intro, SceneA ]
+
+        };
+
+        game = new Phaser.Game(config);
+
+        socket = io();
+
+        socket.emit ('initUser', username.value );
+
+    }
+
 
     var Intro = new Phaser.Class({
 
@@ -111,10 +208,11 @@ window.onload = function () {
 
             this.initSocketIOListeners();
 
+            this.createPlayButton();
+
             setTimeout ( function () {
                 socket.emit ('getPlayersOnline');
             }, 1000 );
-
             
         },
         initSocketIOListeners () {
@@ -135,6 +233,12 @@ window.onload = function () {
                 _this.playersOnlineTxt.text = 'Players Online : ' + data;
 
             });
+            socket.on ('playersAvailable', function ( data ) {
+                
+                console.log ( data );
+
+            });
+
 
         },
         initSound : function () {
@@ -149,8 +253,8 @@ window.onload = function () {
         initGraphicAndTitles () {
 
             var graphics = this.add.graphics();
-            graphics.fillStyle( 0x9a9a9a, 1);
-            graphics.fillRect ( 0, config.height * 0.7 , config.width, config.height * 0.5 );
+                graphics.fillStyle( 0x9a9a9a, 1);
+                graphics.fillRect ( 0, config.height * 0.75 , config.width, config.height * 0.5 );
 
 
             var ptx = config.width * 0.03, 
@@ -235,143 +339,152 @@ window.onload = function () {
         },
         initSelect : function () {
 
-            this.selectGame = 0;
-            this.selectGameType = 0;
+            this.gameData = { game : 0, type : 0 };
 
-            this.rects = [];
-            this.rectsb = [];
 
-            this.selects = {};
-            
+            var divW = config.width * 0.26,
+                divH = config.height * 0.28,
+                divS = divW * 0.05,
+                divT = ( 2 *  divW ) + divS,
+                divX = (( config.width - divT )/2 ),
+                divY = config.height * 0.35;
 
-            var configtxt2 = { 
+            /*
+            for (var i = 0; i < 2; i++ ) {
+                var xp = divX + ( i * ( divW + divS ) ) + ( divW/2 ),
+                    yp = divY + ( divH/2 );
+                //var rectDiv = this.add.rectangle ( xp, yp, divW, divH, 0xdedede, 1 );
+            }*/
+
+            var configText = { 
                 color : '#6a6a6a', 
-                fontSize : config.height *0.025, 
-                fontFamily:'Trebuchet MS' 
+                fontSize : divH * 0.1, 
+                fontStyle : 'bold',
+                fontFamily:'Trebuchet MS',
             };
 
-            var xt1 = config.width * 0.29,
-                xt2 = xt1 + config.width * 0.3;
+            //select texts..
+            var tXa = divX, tXb = divX + divW + divS, tY = divY;
 
-            var text2 = this.add.text ( xt1, config.height * 0.38, 'Select Game', configtxt2 )
+            var txtSelectGame = this.add.text ( tXa, tY, 'Select Game', configText );
 
-            var text3 = this.add.text ( xt2, config.height * 0.38, 'Select Type', configtxt2 )
+            var txtSelectType= this.add.text ( tXb, tY, 'Select Type', configText );
 
-            var text_arr = [
-                { name: 'Blitz', desc : '30 seconds preparation, 15 seconds per turn' },
-                { name: 'Classic', desc : 'Untimed game' }
-            ];
 
-            var text_arr2 = [
-                { name: 'vs Computer', desc : '' },
-                { name: 'vs Online Players', desc : '' }
-            ];
+            //create select games
+            var selectGameArr = [ 'vs Computer', 'vs Random Opponent', 'vs Online Friend' ];
 
-            var xo = config.width *0.54, yo = config.height * .45;
+            var selW = divW, 
+                selH = divH * 0.22, 
+                selS = selH * 0.1, 
+                selY = divY + (divH * 0.2) + (selH/2);
 
-            var line = this.add.line (xo, yo, 0, 0, 0, config.height * 0.13, 0x9c9c9c, 1 ).setLineWidth (1);
-            //
-            var size = config.width * 0.023,
-                sp = size * 0.5;
+            var rad = selH * 0.28;
 
-            var xp1 = config.width * 0.3,
-                xp2 = xp1 + size,
-                xp3 = xp1 + config.width* 0.3,
-                xp4 = xp3 + size,
-                ypa = config.height * 0.45;
+            var selectTextConfig = { 
+                color : '#6a6a6a', 
+                fontSize : selH * 0.4, 
+                fontStyle : 'bold',
+                fontFamily:'Trebuchet MS',
+            };
+
+            this.circArr = []; this.selectBtns = [];
 
             var _this = this;
 
-            var selectTxtConfig = { 
-                fontSize: size, 
-                color : '#6a6a6a', 
-                fontFamily:'Trebuchet MS' 
-            };
+            for (var i in selectGameArr ) {
 
+                var circa = this.add.circle ( tXa + selW*0.1, selY + i *( selH + selS ), rad, 0x3a3a3a, 1 );
 
-            for ( var i=0; i < 2; i++) {
+                this.circArr.push ( circa );
+                
+                var texta = this.add.text ( tXa + selW*0.18, selY + i *( selH + selS ), selectGameArr[i], selectTextConfig ).setOrigin (0, 0.5);
 
-                var circ = this.add.circle ( xp1 , ypa +( i * ( size + sp ) ), size/2, 0x3a3a3a  );
+                var recta = this.add.rectangle ( tXa + selW/2, selY + i *( selH + selS ), selW, selH, 0x343434, 0.1 ).setInteractive().setData ( 'game', i );
 
-                this.rects.push ( circ );
+                recta.on ('pointerdown', function () {
 
-                var circb = this.add.circle ( xp3, ypa +( i * ( size + sp ) ), size/2, 0x3a3a3a  );
+                    var game = this.getData('game');
 
-                this.rectsb.push ( circb );
-
-                var txt = this.add.text ( xp2, ypa + i * ( size + sp ), text_arr2[i].name, selectTxtConfig ).setOrigin(0, 0.5);
-
-                var txtb = this.add.text ( xp4, ypa + i * ( size + sp ), text_arr[i].name, selectTxtConfig ).setOrigin(0, 0.5);
-
-                var rcW = config.width * 0.22,
-                    rcWb = config.width * 0.12,
-                    rcH = size * 1.1,
-                    rcX = xp1 + (rcW/2) - (size/2),
-                    rcXb = xp3 + (rcWb/2) - (size/2),
-                    rcY = ypa;
-
-                var recttop = this.add.rectangle ( rcX, rcY + i * ( size + sp ), rcW, rcH ).setInteractive().setData( 'game', i );
-
-                recttop.on('pointerdown', function () {
-
-                    var gamedata = this.getData('game');
-
-                    if ( _this.selectGame != gamedata ) {
-
-                        _this.selectGame = gamedata;
-
-                        _this.srect.setPosition ( _this.rects[gamedata].x, _this.rects[gamedata].y );
+                    if ( _this.gameData.game != game ) {
 
                         _this.music.play ('clickc');
 
+                        _this.gameData.game = game;
+
+                        _this.srect.y = _this.circArr [ parseInt(game) ].y;
                     }
 
                 });
 
-                this.selects ['game' + i ] = recttop;
-
-
-                var recttopb = this.add.rectangle ( rcXb, rcY + i * ( size + sp ), rcWb, rcH ).setInteractive().setData( 'type', i );
-
-                recttopb.on('pointerdown', function () {
-
-                    var type = this.getData('type');
-
-                    if ( _this.selectGameType != type ) {
-
-                        _this.selectGameType = type;
-
-                        _this.srectb.setPosition ( _this.rectsb [type].x, _this.rectsb[type].y );
-
-                        _this.txtDesc.setText ( '✱ ' + text_arr[ type ].desc );
-
-                        _this.music.play ('clickc');
-                    }
-
-                });
-
-                this.selects ['type' + i ] = recttopb;
+                this.selectBtns.push (recta);
 
             }
 
-            this.srect = this.add.circle ( this.rects[0].x,  this.rects[0].y, size/2*0.6, 0xff0000 );
+            this.srect = this.add.circle ( this.circArr[0].x, this.circArr[0].y, rad * 0.61, 0xff0000 );
 
-            this.srectb = this.add.circle ( this.rectsb[0].x,  this.rectsb[0].y, size/2*0.6, 0xff0000 );
 
+            //create select games
+            var selectTypeArr = [ 
+                { name : 'Blitz' , desc : '30 seconds preparation, 15 seconds per turn' }, 
+                { name : 'Classic', desc : 'Untimed game' } 
+            ];
+
+            for (var j in selectTypeArr ) {
+
+                var circb = this.add.circle ( tXb + selW*0.1, selY + j *( selH + selS ), rad, 0x3a3a3a, 1 );
+
+                this.circArr.push ( circb );
+
+                var texta = this.add.text ( tXb + selW*0.18, selY + j *( selH + selS ), selectTypeArr[j].name, selectTextConfig ).setOrigin (0, 0.5);
+                
+                var rectb = this.add.rectangle ( tXb + selW/2, selY + j *( selH + selS ), selW, selH, 0x343434, 0.1 ).setInteractive().setData ( 'type', j );
+                
+                rectb.on ('pointerdown', function () {
+
+                    var type = this.getData('type');
+
+                    if ( _this.gameData.type != type ) {
+
+                        _this.music.play ('clickc');
+
+                        _this.gameData.type = type;
+
+                        _this.srectb.y = _this.circArr [ parseInt(type) + 3 ].y;
+
+                        _this.txtDesc.text = '✱ ' + selectTypeArr [ parseInt(type) ].desc;
+
+                    }
+                    
+
+                });
+
+                this.selectBtns.push (rectb);
+
+            }
+
+            this.srectb = this.add.circle ( this.circArr[3].x,  this.circArr[3].y,  rad * 0.61, 0xff0000 );
+
+            //game description...
             var txtDescConfig = { 
-                fontSize: size * 0.7, 
+                fontSize: config.height * 0.023, 
                 color : '#3a3a3a', 
                 fontFamily:'Trebuchet MS' 
             };
 
-            this.txtDesc = this.add.text ( config.width/2, config.height * 0.61, '✱ ' + text_arr[0].desc, txtDescConfig ).setOrigin(0.5)
+            this.txtDesc = this.add.text ( config.width/2, config.height * 0.65, '✱ ' + selectTypeArr[0].desc, txtDescConfig ).setOrigin(0.5)
 
+
+        },
+        createPlayButton  : function () {
 
             //button...
+            var _this = this;
+
             var bw = config.width*0.4,
                 bh = config.height * 0.1,
                 bx = ( config.width - bw )/2,
-                by = config.height * 0.65;
+                by = config.height * 0.7;
 
             this.graphics2 = this.add.graphics();
             this.graphics2.fillStyle( 0x3a3a3a, 1);
@@ -385,22 +498,28 @@ window.onload = function () {
 
                 _this.music.play ('clicka');
 
+                _this.disableButtons();
+
+                var data = _this.gameData;
+
                 var toSendData = {
-                    'isSinglePlayer' :  _this.selectGame == 0 ? true : false,
-                    'isTimed' : _this.selectGameType == 0 ? true : false
+                    'isSinglePlayer' : parseInt (data.game) == 0 ? true : false,
+                    'isChoosingOpponent' : parseInt (data.game) == 2 ? true : false,
+                    'isTimed' : parseInt (data.type) == 0 ? true : false
                 }
 
-                if ( _this.selectGame == 1) {
-
-                    socket.emit ('enterGame', toSendData );
-
-                    _this.showWaitScreen ();
-
-                }else {
-
-                    _this.disableButtons();
-
-                    socket.emit ('enterGame', toSendData );
+                switch ( parseInt(data.game) ) {
+                    case 0 : 
+                        socket.emit ('enterGame', toSendData );
+                        _this.showWaitScreen();
+                    break;
+                    case 1 : 
+                        socket.emit ('enterGame', toSendData );
+                        _this.showWaitScreen();
+                    break;
+                    case 2 : 
+                        _this.showOnlinePeeps();
+                    break;
                     
                 }
                 
@@ -419,33 +538,29 @@ window.onload = function () {
                 _this.graphics2.fillRoundedRect ( bx, by, bw, bh, bh*0.1);
             });
 
-            this.selects ['playBtn'] = playBtn;
+            this.selectBtns.push ( playBtn );
 
         },
         disableButtons : function ( disabled = true ) {
 
             if ( disabled ) {
-
-                for ( var i in this.selects ) {
-                    this.selects[i].removeInteractive();
+                for ( var i in this.selectBtns ) {
+                    this.selectBtns[i].removeInteractive();
                 }
-
             }else {
-
-                for ( var i in this.selects ) {
-                    this.selects[i].setInteractive();
+                for ( var i in this.selectBtns ) {
+                    this.selectBtns[i].setInteractive();
                 }
             }
-            
-            
+
         },
         showWaitScreen : function () {
 
             var _this = this;
 
-            this.screenElements = [];
+            this.waitScreenShown = true;
 
-            this.disableButtons ();
+            this.screenElements = [];
 
             var graphics = this.add.graphics();
             graphics.fillStyle ( 0x0a0a0a, 0.8 );
@@ -543,15 +658,124 @@ window.onload = function () {
             this.screenElements.push (hitArea);
 
         },
+        showOnlinePeeps : function () {
+
+            var _this = this;
+            
+            this.showingOnlinePeeps = true;
+
+            this.screenElements = [];
+
+            var graphics = this.add.graphics();
+
+            graphics.fillStyle ( 0x0a0a0a, 0.7 );
+            graphics.fillRect ( 0, 0, config.width, config.height );
+
+            var bW = config.width *0.55,
+                bH = config.height  *0.5,
+                bX = (config.width - bW )/2,
+                bY =  (config.height - bH)/2;
+
+            graphics.fillStyle ( 0xdedede , 1 );
+            graphics.fillRoundedRect ( bX, bY, bW, bH, bH * 0.02 );
+
+            var cS = bW * 0.07;
+
+            graphics.fillStyle ( 0x3a3a3a , 1 );
+            graphics.fillCircle ( bX + bW, bY, cS/2 );
+            graphics.lineStyle ( 1, 0x9c9c9c);
+            graphics.strokeCircle ( bX + bW, bY, cS/2 );
+            
+            this.screenElements.push ( graphics );
+
+            
+            var recta = this.add.rectangle ( bX + bW, bY, cS, cS ).setInteractive();
+            recta.on('pointerdown', function () {
+                _this.music.play('clicka');
+                _this.removeOnlinePeepsScreen();
+            });
+
+            var close = this.add.text ( bX + bW, bY, 'x', { color : '#fff', fontSize : cS * 0.7, fontFamily : 'Arial', fontStyle : 'bold' } ).setOrigin(0.5);
+
+            var configTxt = {
+                color : '#3a3a3a',
+                fontFamily : 'Trebuchet MS',
+                fontSize : bH * 0.06,
+                fontStyle : 'bold'
+            }
+
+            var txt = this.add.text ( bX + bW * 0.05, bY + bH * 0.05, 'Available Players', configTxt );
+
+            this.screenElements.push ( txt );
+
+            var lineA = this.add.line ( config.width/2, bY+bH*0.15, 0, 0, bW *0.9, 0, 0x6c6c6c, 1 )
+
+            this.screenElements.push ( lineA );
+
+
+            var max = 3;
+
+            var cT = bW * 0.9,
+                cS = bW * 0.01,
+                cW = ( cT - (( max * cS ) - cS ) ) / max,
+                cH = bH * 0.12,
+                cX = ( config.width - cT )/2,
+                cY = bY + bH * 0.22;
+
+            var plyrTxtConfig = {
+                color : '#3a3a3a',
+                fontFamily : 'Trebuchet MS',
+                fontSize : cH * 0.35,
+                fontStyle : 'bold'
+            }
+
+            var txt3 = this.add.text ( cX, cY, 'This feature is not yet available.', plyrTxtConfig );
+
+            this.screenElements.push ( txt3 );
+
+
+            /* 
+            for ( var i = 0 ; i < 15; i++ ) {
+
+                var ix = Math.floor ( i/max) , iy = i%max;
+
+                var rect = this.add.rectangle ( cX + iy * ( cW + cS ), cY + ix * ( cH + cS ), cW, cH, 0x9c9c9c, 1 );
+
+                var rand = Math.floor ( Math.random() * 99999 ) + 1000;
+
+                var plyrTxt = this.add.text ( cX + iy * ( cW + cS ), cY + ix * ( cH + cS ), 'Player'+ rand , plyrTxtConfig ).setOrigin(0.5);
+
+                this.screenElements.push ( rect );
+                this.screenElements.push ( plyrTxt );     
+
+            } 
+            
+            */
+
+            
+
+
+
+        },
         removeWaitScreen : function () {
 
             for ( var i in this.screenElements) {
                 this.screenElements[i].destroy();
             }
-
             this.disableButtons (false);
+            this.waitScreenShown = false;
 
         },
+        removeOnlinePeepsScreen : function () {
+
+            for ( var i in this.screenElements) {
+                this.screenElements[i].destroy();
+            }
+            this.disableButtons (false);
+            this.showingOnlinePeeps = false;
+
+        },
+
         initGame : function ( data ) {
 
             socket.removeAllListeners();
@@ -772,7 +996,7 @@ window.onload = function () {
 
                 if ( data.win ) {
 
-                    if ( data.base ) _this.playSound ('home');
+                    if ( data.base ) _this.playSound ('home', 0.5);
 
                     _this.endGame ( data.isWinner );
 
@@ -1525,7 +1749,7 @@ window.onload = function () {
 
                         this.reset();
                         _this.removeActive();
-                        _this.playSound ('pick');
+                        _this.playSound ('pick', 0.8 );
 
                     }
 
@@ -2176,7 +2400,7 @@ window.onload = function () {
                     
                     this.endGame ( this.turn );
 
-                    this.playSound('home');
+                    this.playSound('home', 0.3 );
 
                     win = true;
                 }
@@ -2236,7 +2460,7 @@ window.onload = function () {
                     this.createAnim ( destPost.x - destPost.width *0.25, destPost.y, 0 );
                     this.createAnim ( destPost.x + destPost.width *0.25, destPost.y, 1 );
 
-                    this.playSound ('clashdraw');
+                    this.playSound ('clashdraw', 0.5 );
 
                 break;
                 case 1 : 
@@ -2255,7 +2479,7 @@ window.onload = function () {
 
                     this.createAnim ( destPost.x, destPost.y, residentPiece.type );
 
-                    this.playSound ( residentPiece.plyr == 'self' ? 'clashlost' : 'clashwon' );
+                    this.playSound ( residentPiece.plyr == 'self' ? 'clashlost' : 'clashwon', 0.5 );
 
 
                 break;
@@ -2279,7 +2503,7 @@ window.onload = function () {
 
                     this.createAnim ( destPost.x, destPost.y, movingPiece.type );
                     
-                    this.playSound ( movingPiece.plyr == 'self' ? 'clashlost' : 'clashwon' );
+                    this.playSound ( movingPiece.plyr == 'self' ? 'clashlost' : 'clashwon', 0.5 );
 
                 break;
 
@@ -2619,7 +2843,7 @@ window.onload = function () {
 
             if ( this.isWinning != '' && this.isWinning == this.turn ) {
 
-                this.playSound('home');
+                this.playSound('home', 0.5 );
 
                 this.endGame (this.turn);
 
@@ -3201,7 +3425,7 @@ window.onload = function () {
                             _this.button[2].removeInteractive();
         
                             setTimeout ( function () {
-                                _this.playSound('bleep');
+                                _this.playSound('bleep', 0.4);
                                 _this.plyrInd['self'].updateStatus();
                             }, 300); 
 
@@ -3591,14 +3815,14 @@ window.onload = function () {
             //return tmp[randInx];
 
         },
-        playSound: function ( key ) {
+        playSound: function ( key, vol=0.8 ) {
 
             if ( !this.soundOff ) {
                 
                 if ( key == 'tick') {
                     this.tick.play();
                 }else {
-                    this.music.play (key);
+                    this.music.play (key , { volume : vol });
                 }
             }
 
