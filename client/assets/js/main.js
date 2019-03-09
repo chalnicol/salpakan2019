@@ -511,7 +511,7 @@ window.onload = function () {
                 switch ( parseInt(data.game) ) {
                     case 0 : 
                         socket.emit ('enterGame', toSendData );
-                        _this.showWaitScreen();
+                        //_this.showWaitScreen();
                     break;
                     case 1 : 
                         socket.emit ('enterGame', toSendData );
