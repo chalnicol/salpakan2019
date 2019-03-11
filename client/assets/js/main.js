@@ -1036,6 +1036,7 @@ window.onload = function () {
             socket.on ('timeRanOut', function ( data ) {
 
                 //console.log ( 'timeRanOut ');
+                _this.playSound ('alarm');
 
                 _this.playerTimeRanOut = true;
 
@@ -2686,7 +2687,8 @@ window.onload = function () {
                             var opp = plyr == 'self' ? 'oppo' : 'self';
         
                             _this.playSound ('alarm');
-        
+                            _this.playerTimeRanOut = true;
+
                             _this.removeActive();
                             _this.removeBlinkers(false);
                             _this.endGame( opp );
@@ -3230,11 +3232,16 @@ window.onload = function () {
 
                     if ( this.playerResign ) captionTxt = 'Opponent has resigned.';
 
+                    if ( this.playerTimeRanOut ) captionTxt = 'Opponent has failed to make turn.';
+
                 break;
                 case 'oppo' : 
                     txt = 'Sorry, You lose.';
 
                     if ( this.playerResign ) captionTxt = 'You have resigned.';
+
+                    if ( this.playerTimeRanOut ) captionTxt = 'You have failed to make turn.';
+
                     
                 break;
                 default : 
@@ -3686,6 +3693,7 @@ window.onload = function () {
             this.isWinning = '';
             this.activePiece = '';
             this.playerResign = false;
+            this.playerTimeRanOut = false;
             
             this.elimPieces = [];
 
