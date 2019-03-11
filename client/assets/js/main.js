@@ -932,6 +932,10 @@ window.onload = function () {
             });
             socket.on ('moveResult', function ( data ) {
 
+                //console.log ( data.isWinning );
+
+                _this.isWinning = data.isWinning;
+
                 if ( data.oppoPieces.length > 0) {
 
                     _this.setOppoRanks ( data.oppoPieces );
@@ -1029,7 +1033,20 @@ window.onload = function () {
                 _this.commenceGame ();
 
             });
+            socket.on ('timeRanOut', function ( data ) {
 
+                //console.log ( 'timeRanOut ');
+
+                _this.playerTimeRanOut = true;
+
+                if ( _this.gamePhase != 'end') _this.endGame ( data.winner );
+
+                _this.plyrInd [ data.turn ].forceEnd ();
+
+                _this.setOppoRanks ( data.oppoPieces );
+
+            });
+            
         },
         initializeGameSounds: function () {
 
@@ -3632,9 +3649,18 @@ window.onload = function () {
 
         },
         setOppoRanks : function ( pieces ) {
+
             for ( var i in pieces ) {
-                this.gamePiece [ 'oppo_' + pieces[i].cnt ].rnk = pieces[i].rank;
+
+                var myPiece = this.gamePiece ['oppo_' + pieces[i].cnt ];
+
+                myPiece.rnk = pieces[i].rank;
+
+                if ( this.gamePhase == 'end' && !myPiece.isFlipped ) {
+                    myPiece.flip();
+                }
             }
+
         }, 
         resetGame : function () {
 
@@ -3836,6 +3862,7 @@ window.onload = function () {
             this.origin = plyr == 'self' ? 'bot' : 'top';
             this.isDestroyed = false;
             this.bgColor = type == 0 ? 0xffffff : 0x000000;
+            this.isFlipped = false;
 
             this.shape = scene.add.graphics ( { fillStyle: { color: this.bgColor, alpha: 1 }, lineStyle: { width : 1, color : 0x6c6c6c } } );
             this.shape.fillRoundedRect ( -width/2, -height/2, width, height, height * 0.1);
@@ -3895,11 +3922,11 @@ window.onload = function () {
 
             if ( this.rnk > 0 ) {
                 
+                this.isFlipped = true;
+
                 this.image.setFrame (this.rnk - 1);
 
                 this.txt.text = ranks[this.rnk - 1];
-
-                //this.txt.text = this.id;
                 
             }
 
@@ -4214,6 +4241,14 @@ window.onload = function () {
             scene.children.add ( this ); //add to scene...
             
         },
+
+        forceEnd : function () {
+
+            this.bar.clear();
+
+            this.timertxt.text = "00:00:00";
+
+        },
         tick: function ( time ) {
 
             //if ( time <= 3 ) this.timertxt.setColor ( '#f33' );
@@ -4236,8 +4271,6 @@ window.onload = function () {
             this.bar.fillStyle ( time > 5 ? 0x00ff00 : 0xff0033, 1);
             this.bar.fillRect ( left + this.width * 0.94, top + this.height * 0.8 - bH, bW, bH );
 
-            
-            
         },
         offTimer :  function ( caption ) {
             
