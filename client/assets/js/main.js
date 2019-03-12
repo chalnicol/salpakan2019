@@ -5,7 +5,6 @@ window.onload = function () {
 
     var game, config, socket;
 
-
     var username = document.getElementById('username');
 
     username.value = 'Player' + Math.floor( Math.random() * 99999 );
@@ -96,11 +95,10 @@ window.onload = function () {
         game = new Phaser.Game(config);
 
         socket = io();
-
+        
         socket.emit ('initUser', username.value );
 
     }
-
 
     var Intro = new Phaser.Class({
 
@@ -164,8 +162,8 @@ window.onload = function () {
             this.createPlayButton();
 
             setTimeout ( function () {
-                socket.emit ('getPlayersOnline');
-            }, 1000 );
+                socket.emit ('getInitData');
+            }, 500 ); 
             
         },
         initSocketIOListeners () {
@@ -174,21 +172,56 @@ window.onload = function () {
 
             var _this = this;
 
+            socket.on ('pairInvite', function ( data ) {
+                
+                if ( _this.connectScreenShown ) _this.removeConnectScreen();
+
+                setTimeout ( function () {
+                    _this.showInviteScreen ( data );
+                }, 100 );
+                
+            });
+
+
+            socket.on ('pairingError', function ( data ) {
+               
+                if ( _this.isPrompted ) _this.removePrompt ();
+
+                var err = "";
+
+                if ( data.error == 0 ) {
+                    err = 'Pairing unsuccessful.';
+                }else if ( data.error == 1 ) {
+                    err = 'Error : Pairing Code does not exist or friend is already on a game.';
+                }else {
+                    err = 'Error : Game does not exist anymore.';
+                }
+
+                setTimeout ( function () {
+                    _this.showPromptScreen ( err );
+                }, 100 );
+
+            });
+
+            socket.on ('sendInitData', function ( data ) {
+
+                _this.music.play ('message');
+
+                _this.playersID.text = 'Pairing Code : ' + data.pid;
+
+                _this.playersOnlineTxt.text = 'Players Online : ' + data.count;
+            });
+
             socket.on ('initGame', function ( data ) {
                 
                 _this.initGame (data);
 
             });
             socket.on ('playersOnline', function ( data ) {
-                
+            
                 _this.music.play ('message');
 
                 _this.playersOnlineTxt.text = 'Players Online : ' + data;
-
-            });
-            socket.on ('playersAvailable', function ( data ) {
-                
-                console.log ( data );
 
             });
 
@@ -210,12 +243,22 @@ window.onload = function () {
                 graphics.fillRect ( 0, config.height * 0.75 , config.width, config.height * 0.5 );
 
 
-            var ptx = config.width * 0.03, 
-                pty = config.height * 0.03;
+            var pyW = config.width *0.27,
+                pyH = config.height * 0.08;
+                pyX = config.width *0.013,
+                pyY = pyX;
+
+            //graphics.fillStyle ( 0x3a3a3a, 0.1 );
+            //graphics.fillRoundedRect ( pyX, pyY, pyW, pyH, pyH*0.05 );
+
+            var image = this.add.image ( pyX + pyW *0.11 , pyY + pyH/2, 'thumbs', 18 ).setScale ( pyH*0.8/50 );
+
+            var ptx = pyX + pyW *0.24, 
+                pty = pyY + pyH *0.1;
 
             var textNameConfig = { 
-                color:'#663300', 
-                fontSize: config.height * 0.025, 
+                color:'#ff3300', 
+                fontSize: pyH * 0.33, 
                 fontFamily:'Trebuchet MS', 
                 fontStyle: 'bold'  
             };
@@ -224,18 +267,30 @@ window.onload = function () {
 
             var polConfig = { 
                 color : '#3c3c3c', 
-                fontSize : config.height * 0.02, 
-                fontStyle:'bold',
+                fontSize : pyH *0.25, 
+                //fontStyle:'bold',
                 fontFamily : 'Trebuchet MS'
 
             };
 
-            var ptyb = config.height *0.065;
+            this.playersID = this.add.text ( ptx, pyY + pyH *0.55, 'Pairing Code : -' , polConfig );
 
-            this.playersOnlineTxt = this.add.text ( ptx, ptyb, 'Players Online : -', polConfig );
-
+            var lw = config.width*0.3,
+                lx = ( config.width - lw )/2,
+                ly = config.height *0.83;
            
-            
+            var line = this.add.line ( lx, ly, 0, 0, lw, 0, 0x6c6c6c, 0.5 ).setOrigin (0);
+
+            var oltxtConfig = { 
+                color : '#3a3a3a', 
+                fontSize : config.height * 0.025, 
+                fontFamily:'Trebuchet MS', 
+                fontStyle: 'bold' 
+            };
+
+            this.playersOnlineTxt = this.add.text ( config.width/2, config.height *0.87, 'Players Online : -' , oltxtConfig ).setOrigin(0.5);
+
+
             var cW = config.width * 0.45,
                 cH = config.height * 0.22,
                 cX = ( config.width - cW )/2,
@@ -289,11 +344,12 @@ window.onload = function () {
 
             }
 
+
+
         },
         initSelect : function () {
 
             this.gameData = { game : 0, type : 0 };
-
 
             var divW = config.width * 0.26,
                 divH = config.height * 0.28,
@@ -375,7 +431,6 @@ window.onload = function () {
             }
 
             this.srect = this.add.circle ( this.circArr[0].x, this.circArr[0].y, rad * 0.61, 0xff0000 );
-
 
             //create select games
             var selectTypeArr = [ 
@@ -471,7 +526,9 @@ window.onload = function () {
                         _this.showWaitScreen();
                     break;
                     case 2 : 
-                        _this.showOnlinePeeps();
+
+                        _this.showConnectToFriendScreen();
+
                     break;
                     
                 }
@@ -493,6 +550,18 @@ window.onload = function () {
 
             this.selectBtns.push ( playBtn );
 
+
+        },
+        createFakeData : function ( len ) {
+            
+            var tmp = [];
+            for ( var i=0; i<len; i++) {
+
+                var rand = Phaser.Math.Between ( 1000, 9999 );
+
+                tmp.push ({ name: 'Player' + rand, 'id' : 'asdf-asdf-asdf-1001' });
+            }
+            return tmp;
         },
         disableButtons : function ( disabled = true ) {
 
@@ -507,11 +576,11 @@ window.onload = function () {
             }
 
         },
-        showWaitScreen : function () {
+        showWaitScreen : function ( pair = false ) {
 
             var _this = this;
 
-            this.waitScreenShown = true;
+            this.isPrompted = true;
 
             this.screenElements = [];
 
@@ -538,8 +607,6 @@ window.onload = function () {
 
             this.screenElements.push ( graphics );
             //
-           
-
             var txtConfig = {
                 color : '#3c3c3c',
                 fontSize : bH *0.12,
@@ -601,21 +668,176 @@ window.onload = function () {
             hitArea.on ('pointerdown', function () {
 
                 socket.emit ('leaveGame');
-
+                
                 _this.music.play ('clicka');
 
-                _this.removeWaitScreen();
+                _this.removePrompt ();
 
             });
 
             this.screenElements.push (hitArea);
 
         },
-        showOnlinePeeps : function () {
+        showInviteScreen : function ( data ) {
+
+            var _this = this;
+
+            this.isPrompted = true;
+
+            this.screenElements = [];
+
+            var graphics = this.add.graphics();
+
+            graphics.fillStyle ( 0x0a0a0a, 0.8 );
+            graphics.fillRect ( 0, 0, config.width, config.height );
+
+            var bW = config.width *0.6,
+                bH = config.height  *0.25,
+                bX = (config.width - bW )/2,
+                bY =  (config.height - bH)/2;
+
+            graphics.fillStyle ( 0xdedede , 0.9 );
+            graphics.fillRoundedRect ( bX, bY, bW, bH, bH * 0.03 );
+
+            this.screenElements.push ( graphics );
+            //
+            var txtConfig = {
+                color : '#3c3c3c',
+                fontSize : bH *0.1,
+                fontFamily : 'Trebuchet MS',
+                fontStyle : 'bold'
+            };
+
+            var gameType = data.isTimed ? 'Blitz' : 'Classic';
+
+            var txt = this.add.text ( bX + bW/2, bY + bH *0.25,   data.invite + ' has Invited you to a "'+ gameType +'" game.', txtConfig ).setOrigin (0.5);
+
+            this.screenElements.push ( txt );
+
+            var btW = bW *0.25, btH = bH *0.2,
+                btS = btW * 0.1,
+                btT = 2 * ( btW + btS ) - btS,
+                btX = bX + ( bW - btT )/2,
+                btY = bY + bH * 0.6;
+
+            var txtConfiga = {
+                color : '#f3f3f3',
+                fontSize : btH *0.5,
+                fontFamily : 'Trebuchet MS',
+                fontStyle : 'bold'
+            };
+            
+            for ( var i = 0; i < 2; i++ ) {
+
+                var xp = btX + i * ( btW + btS );
+
+                var rect = this.add.rectangle ( xp, btY, btW, btH, 0x3a3a3a, 1 ).setOrigin (0).setInteractive().setData ( 'id', i );
+
+                rect.on ('pointerover', function () {
+                    this.setFillStyle ( 0x6c6c6c);
+                });
+                rect.on ('pointerout', function () {
+                    this.setFillStyle ( 0x3a3a3a );
+                });
+                rect.on ('pointerdown', function () {
+
+                    var id = parseInt ( this.getData('id') );
+
+                    var accepted = ( id == 0 ) ? true : false;
+
+                    socket.emit ( 'pairingResponse', accepted );
+
+                    _this.music.play('clicka');
+
+                    _this.removePrompt ();
+
+                });
+                
+
+                this.screenElements.push ( rect );
+
+                var txts = this.add.text ( xp + btW/2, btY + btH/2, i == 0 ? 'Accept' : 'Reject', txtConfiga ).setOrigin (0.5);
+
+                this.screenElements.push ( txts );
+
+            }
+
+        },
+        showPromptScreen : function ( txt ) {
+
+            var _this = this;
+
+            this.isPrompted = true;
+
+            this.screenElements = [];
+
+            var graphics = this.add.graphics();
+
+            graphics.fillStyle ( 0x0a0a0a, 0.8 );
+            graphics.fillRect ( 0, 0, config.width, config.height );
+
+            var bW = config.width *0.6,
+                bH = config.height  *0.25,
+                bX = (config.width - bW )/2,
+                bY =  (config.height - bH)/2;
+
+            graphics.fillStyle ( 0xdedede , 0.9 );
+            graphics.fillRoundedRect ( bX, bY, bW, bH, bH * 0.03 );
+
+            this.screenElements.push ( graphics );
+            //
+            var txtConfig = {
+                color : '#3c3c3c',
+                fontSize : bH *0.1,
+                fontFamily : 'Trebuchet MS',
+                fontStyle : 'bold'
+            };
+
+            var txt = this.add.text ( bX + bW/2, bY + bH *0.25, txt, txtConfig ).setOrigin (0.5);
+
+            this.screenElements.push ( txt );
+
+            var btW = bW *0.25, btH = bH *0.2,
+                btX = bX + ( bW - btW )/2,
+                btY = bY + bH * 0.6;
+
+            var txtConfiga = {
+                color : '#f3f3f3',
+                fontSize : btH *0.5,
+                fontFamily : 'Trebuchet MS',
+                fontStyle : 'bold'
+            };
+            
+            var rect = this.add.rectangle ( btX, btY, btW, btH, 0x3a3a3a, 1 ).setOrigin (0).setInteractive();
+
+            rect.on ('pointerover', function () {
+                this.setFillStyle ( 0x6c6c6c);
+            });
+            rect.on ('pointerout', function () {
+                this.setFillStyle ( 0x3a3a3a );
+            });
+            rect.on ('pointerdown', function () {
+
+                _this.music.play('clicka');
+
+                _this.removePrompt ();
+
+            });
+            
+
+            this.screenElements.push ( rect );
+
+            var txts = this.add.text ( btX + btW/2, btY + btH/2, 'OK', txtConfiga ).setOrigin (0.5);
+
+            this.screenElements.push ( txts );
+            
+
+        },
+        showConnectToFriendScreen : function () {
 
             var _this = this;
             
-            this.showingOnlinePeeps = true;
+            this.connectScreenShown = true;
 
             this.screenElements = [];
 
@@ -624,17 +846,17 @@ window.onload = function () {
             graphics.fillStyle ( 0x0a0a0a, 0.7 );
             graphics.fillRect ( 0, 0, config.width, config.height );
 
-            var bW = config.width *0.55,
-                bH = config.height  *0.5,
+            var bW = config.width *0.3,
+                bH = config.height  *0.6,
                 bX = (config.width - bW )/2,
                 bY =  (config.height - bH)/2;
 
-            graphics.fillStyle ( 0xdedede , 1 );
+            graphics.fillStyle ( 0xf3f3f3 , 1 );
             graphics.fillRoundedRect ( bX, bY, bW, bH, bH * 0.02 );
 
-            var cS = bW * 0.07;
+            var cS = bW * 0.1;
 
-            graphics.fillStyle ( 0x3a3a3a , 1 );
+            graphics.fillStyle ( 0x6a6a6a, 1 );
             graphics.fillCircle ( bX + bW, bY, cS/2 );
             graphics.lineStyle ( 1, 0x9c9c9c);
             graphics.strokeCircle ( bX + bW, bY, cS/2 );
@@ -645,22 +867,23 @@ window.onload = function () {
             var recta = this.add.rectangle ( bX + bW, bY, cS, cS ).setInteractive();
             recta.on('pointerdown', function () {
                 _this.music.play('clicka');
-                _this.removeOnlinePeepsScreen();
+                _this.removeConnectScreen();
             });
             this.screenElements.push ( recta );
 
 
             var close = this.add.text ( bX + bW, bY, 'x', { color : '#fff', fontSize : cS * 0.7, fontFamily : 'Arial', fontStyle : 'bold' } ).setOrigin(0.5);
+
             this.screenElements.push ( close );
 
             var configTxt = {
                 color : '#3a3a3a',
                 fontFamily : 'Trebuchet MS',
-                fontSize : bH * 0.06,
+                fontSize : bH * 0.045,
                 fontStyle : 'bold'
             }
 
-            var txt = this.add.text ( bX + bW * 0.05, bY + bH * 0.05, 'Available Players', configTxt );
+            var txt = this.add.text ( bX + bW * 0.05, bY + bH * 0.08, 'Enter Friend\'s Pairing Code', configTxt );
 
             this.screenElements.push ( txt );
 
@@ -668,70 +891,175 @@ window.onload = function () {
 
             this.screenElements.push ( lineA );
 
+            var tfW = bW *0.9, tfH = bH * 0.12,
+                tfX = bX + ( bW - tfW )/2,
+                tfY = bY + bH*0.18;
 
-            var max = 3;
+            graphics.fillStyle ( 0xffff80, 1 );
+            graphics.fillRoundedRect ( tfX, tfY, tfW, tfH, tfH *0.1 );
+            graphics.lineStyle ( 1, 0x6a6a6a );
+            graphics.strokeRoundedRect (  tfX, tfY, tfW, tfH, tfH *0.1 );
+            
 
-            var cT = bW * 0.9,
-                cS = bW * 0.01,
-                cW = ( cT - (( max * cS ) - cS ) ) / max,
-                cH = bH * 0.12,
-                cX = ( config.width - cT )/2,
-                cY = bY + bH * 0.22;
-
-            var plyrTxtConfig = {
-                color : '#3a3a3a',
+            var configTxter = {
+                color : '#6c6c6c',
                 fontFamily : 'Trebuchet MS',
-                fontSize : cH * 0.35,
+                fontSize : tfH * 0.68,
                 fontStyle : 'bold'
             }
 
-            var txt3 = this.add.text ( cX, cY, 'This feature is not yet available.', plyrTxtConfig );
+            this.playerTextId = this.add.text ( tfX + tfW/2, tfY + tfH/2, '-----', configTxter ).setOrigin(0.5);
 
-            this.screenElements.push ( txt3 );
+            //this.screenElements.push ( txt2 );
 
 
-            /* 
-            for ( var i = 0 ; i < 15; i++ ) {
+            var btT = tfW,
+                btS = btT*0.02,
+                btW = (btT - (2*btS))/3, 
+                btH = bH * 0.15,
+                btX = tfX,
+                btY = bY + bH * 0.33;
 
-                var ix = Math.floor ( i/max) , iy = i%max;
+            var _this = this;
 
-                var rect = this.add.rectangle ( cX + iy * ( cW + cS ), cY + ix * ( cH + cS ), cW, cH, 0x9c9c9c, 1 );
+            var str = ''; 
 
-                var rand = Math.floor ( Math.random() * 99999 ) + 1000;
+            var configTxtC = {
+                color : '#3a3a3a',
+                fontFamily : 'Trebuchet MS',
+                fontSize : bH * 0.075,
+                fontStyle : 'bold'
+            }
 
-                var plyrTxt = this.add.text ( cX + iy * ( cW + cS ), cY + ix * ( cH + cS ), 'Player'+ rand , plyrTxtConfig ).setOrigin(0.5);
+            for ( var i = 0; i < 12 ; i++ ) {
 
-                this.screenElements.push ( rect );
-                this.screenElements.push ( plyrTxt );     
+                var ix = Math.floor ( i/3 ), iy = i%3;
 
-            } 
+                var xp = btX + iy * ( btW + btS ),
+                    yp = btY + ix * ( btH + btS );
+
+                var tmpTxt = '', rectid = '';
+
+                if ( i < 9 ) {
+                    tmpTxt = i+1;
+                } else if ( i == 9 ) {
+                    tmpTxt = '0';
+                } else if ( i == 10 ) {
+                    tmpTxt = 'clr';  
+                }else {
+                    tmpTxt = "ok";
+                }
+                
+                var prect = this.add.rectangle ( xp, yp, btW, btH, 0xc3c3c3, 1).setOrigin(0).setData ({ 'value' : i }).setInteractive();
+
+                prect.on ('pointerover', function () {
+                    this.setFillStyle ( 0x9c9c9c );
+                });
+                prect.on ('pointerout', function () {
+                    this.setFillStyle ( 0xc3c3c3 );
+                });
+                prect.on ('pointerup', function () {
+                    this.setFillStyle ( 0xc3c3c3 );
+                });
+                prect.on ('pointerdown', function () {
+
+                    var butValue = parseInt ( this.getData ('value') );
+
+                    if ( butValue < 10 ) {
+
+                        if ( str.length >= 6 ) {
+                            
+                            this.setFillStyle ( 0xff6a6a );
+                            
+                            _this.music.play('error');
+
+                        }else {
+                            
+                            this.setFillStyle ( 0x99ffff);
+
+                            str += ( butValue == 9 )? '0' : (butValue + 1);
+
+                            _this.playerTextId.text = str
+
+                            _this.music.play('clicka');
+                        }
+
+                    
+
+                    }else if ( butValue == 10 ) { //clear 
+
+                        this.setFillStyle ( 0x99ffff );
+
+                        str = '';
+                    
+                        _this.playerTextId.text = '-----';
+
+                        _this.music.play('clicka');
+                    
+                    }else { //enter
+                        
+
+                        if ( str == '' ) {
+
+                            this.setFillStyle ( 0xff6a6a );
+                            
+                            _this.music.play('error');
+
+
+                        }else {
+
+                            this.setFillStyle ( 0x99ffff );
+
+                            _this.music.play('clicka');
+                            
+                            _this.removeConnectScreen ();
+
+                            var isTimed = _this.gameData.type == 0 ? true : false;
+
+                            socket.emit ('pair', { 'code' : str, 'isTimed' : isTimed } );
+
+                            setTimeout ( function () {
+                                _this.showWaitScreen ();
+                            }, 100 );
+                        }
+                       
+                        //..
+                    }
+                    
+
+                });
+
             
-            */
+                var ttxt = this.add.text ( xp + btW/2, yp + btH/2, tmpTxt, configTxtC ).setOrigin(0.5);
 
-            
+                ttxt.setStroke('#f3f3f3', 3);
+                ttxt.setShadow( 1, 1, '#6a6a6a', 5, true, true );
+
+                this.screenElements.push ( prect );
+                this.screenElements.push ( ttxt );
 
 
+            }
 
         },
-        removeWaitScreen : function () {
+        removePrompt : function () {
 
             for ( var i in this.screenElements) {
                 this.screenElements[i].destroy();
             }
             this.disableButtons (false);
-            this.waitScreenShown = false;
+            
+            this.isPrompted = false;
 
         },
-        removeOnlinePeepsScreen : function () {
+        removeConnectScreen : function () {
 
-            for ( var i in this.screenElements) {
-                this.screenElements[i].destroy();
-            }
-            this.disableButtons (false);
-            this.showingOnlinePeeps = false;
+            this.connectScreenShown = false;
 
+            this.playerTextId.destroy();
+
+            this.removePrompt ();
         },
-
         initGame : function ( data ) {
 
             socket.removeAllListeners();
@@ -3610,7 +3938,7 @@ window.onload = function () {
 
             this.showPrompt ( 'Are you sure you want to leave the game?', '', true, 0.04 );
 
-            var buts = [ 'Confirm', 'Cancel' ];
+            var buts = [ '✔ Confirm', '✘ Cancel'];
 
             var bW = config.width * 0.2
                 bH = config.height * 0.065,
@@ -3941,7 +4269,6 @@ window.onload = function () {
         }
         
     });
-
     //..GamePiece...
     var Blinker =  new Phaser.Class({
 

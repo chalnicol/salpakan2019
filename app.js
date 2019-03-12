@@ -24,22 +24,25 @@ var playerList = {};
 var roomList = {};
 
 //Player..
-Player = function (id, username){
+Player = function ( id, username ){
 	
 	var plyr  = {
 		
 		id:id,
 		username:username,
+		pid : '',
 		roomid : '',
+		tmpRoom : '',
 		index : 0,
 		type : 0,
 		winCount : 0,
+		isInited : false,
 		isReady:false,
 		isReadyForRematch : false,
 		piecesRevealed : false,
 		pieces : {}
-	}
 
+	}
 	plyr.score = function () {
 
 		plyr.winCount += 1;
@@ -47,7 +50,6 @@ Player = function (id, username){
 		//console.log ( '\n --> Game Winner : ', plyr.username, plyr.winCount );
 		
 	}
-
 	plyr.gameResetData = function () {
 
 		plyr.isReady = false;
@@ -55,7 +57,6 @@ Player = function (id, username){
 		plyr.piecesRevealed = false;
 		plyr.pieces = {};
 	}
-	
 	plyr.gameReset = function () {
 
 		plyr.gameResetData();
@@ -63,7 +64,6 @@ Player = function (id, username){
 		plyr.type = plyr.type == 0 ? 1 : 0;
 
 	}
- 	
 	plyr.resetAll = function () {
 		
 		plyr.gameResetData();
@@ -72,7 +72,7 @@ Player = function (id, username){
 		plyr.type = 0;
 		plyr.winCount = 0;
 		plyr.roomid = '';
-
+		plyr.tmpRoom = '';
 	}
 
 	return plyr;
@@ -298,26 +298,113 @@ io.on('connection', function(socket){
 		
 		var newPlayer = Player ( socket.id, data );
 
-		playerList [ socket.id ] = newPlayer;
+		newPlayer.pid = generatePlayersID ();
 
-		//console.log ( '\n --> ' + newPlayer.username  + ' has entered the game.' );
+		playerList [ socket.id ] = newPlayer;	
 
 		sendPlayersOnline ();
+
+	});
+
+	socket.on ('getInitData', function () {
+		
+		var pcount = Object.keys(socketList).length;
+
+		var pid = playerList [ socket.id ].pid;
+
+		socket.emit ( 'sendInitData', { 'count' : pcount, 'pid' : pid } );
 		
 	});
 
-	socket.on ('getPlayersOnline', function () {
-		
-		var playersCount = Object.keys(socketList).length;
+	socket.on("pair", function (data) {
 
-		socket.emit ( 'playersOnline', playersCount );
-		
+		var player = playerList [socket.id];
+
+		var opponentID = getPair ( data.code, socket.id );
+
+		if ( opponentID != '' ) {
+
+			var newRoomID = player.username + '_' + Date.now();
+				
+			var newRoom = GameRoom ( newRoomID, data.isTimed );
+			
+			newRoom.playerIDs.push ( socket.id );
+
+			newRoom.playerCount += 1;
+
+			newRoom.isClosed = true;
+
+			roomList [ newRoomID ] = newRoom;
+
+			player.roomid = newRoomID;
+
+			var toReturn = {
+				'isTimed' : data.isTimed,
+				'invite' : player.username
+			}
+			
+			playerList [opponentID].tmpRoom = newRoomID;
+
+			socketList [opponentID].emit ('pairInvite', toReturn );
+
+		} else {
+
+			socket.emit ('pairingError', { 'error' : 1 } );
+		}
+
 	});
-	
+
+	socket.on("pairingResponse", function (data) {
+
+		var player = playerList [socket.id];
+
+		if ( roomList.hasOwnProperty ( player.tmpRoom ) ) {
+
+			if ( !data ) {
+				
+				var room = roomList [ player.tmpRoom ];
+
+				var invitee = room.playerIDs [0];
+
+				leaveRoom ( invitee );
+
+				player.tmpRoom = '';
+
+				socketList [invitee].emit ('pairingError', { error : 0 } );
+
+			} else {
+
+				player.roomid = player.tmpRoom;
+
+				player.index = 1;
+
+				player.type = 1;
+
+				var gameRoom = roomList [ player.roomid ];
+
+				gameRoom.playerIDs.push ( socket.id );
+
+				gameRoom.playerCount += 1;
+
+				initGame ( gameRoom.id );
+
+			}
+
+		}else {
+
+			player.tmpRoom = '';
+			
+			if ( data ) socket.emit ('pairingError', { 'error' : 2 });
+
+		}
+
+		
+
+	});
+
 	socket.on("enterGame", function (data) {
 	
 		var player = playerList [ socket.id ];
-
 
 		if ( data.isSinglePlayer ) {
 
@@ -353,56 +440,46 @@ io.on('connection', function(socket){
 
 
 		}else {
-	
-			if ( data.isChoosingOpponent ) {
 
-				console.log ('hey');
+			var availableRoom = getAvailableRoom( data.isTimed );
+
+			if ( availableRoom == 'none' ) {
+
+				var newRoomID = player.username + '_' + Date.now();
 				
-			}else {
+				var newRoom = GameRoom ( newRoomID, data.isTimed );
+				
+				newRoom.playerIDs.push ( socket.id );
 
-				var availableRoom = getAvailableRoom( data.isTimed );
+				newRoom.playerCount += 1;
 
-				if ( availableRoom == 'none' ) {
+				roomList [ newRoomID ] = newRoom;
 
-					var newRoomID = player.username + '_' + Date.now();
-					
-					var newRoom = GameRoom ( newRoomID, data.isTimed );
-					
-					newRoom.playerIDs.push ( socket.id );
+				player.roomid = newRoomID;
 
-					newRoom.playerCount += 1;
+				//console.log ( '\n --> '+ player.username +' created a room :', newRoom.id );
 
-					roomList [ newRoomID ] = newRoom;
+			}else  {
+				
 
-					player.roomid = newRoomID;
+				player.roomid = availableRoom;
 
-					//console.log ( '\n --> '+ player.username +' created a room :', newRoom.id );
+				player.index = 1;
 
-				}else  {
-					
+				player.type = 1;
 
-					player.roomid = availableRoom;
+				var gameRoom = roomList [ availableRoom ];
 
-					player.index = 1;
+				gameRoom.playerIDs.push ( socket.id );
 
-					player.type = 1;
+				gameRoom.playerCount += 1;
 
-					var gameRoom = roomList [ availableRoom ];
-
-					gameRoom.playerIDs.push ( socket.id );
-
-					gameRoom.playerCount += 1;
-
-					//console.log ( '\n --> '+ player.username +' join the room :', gameRoom.id );
-					
-					//initialize game..
-					initGame ( gameRoom.id );
-			
-				}
-
-
+				//console.log ( '\n --> '+ player.username +' join the room :', gameRoom.id );
+				
+				//initialize game..
+				initGame ( gameRoom.id );
+		
 			}
-			
 
 		}
 
@@ -618,6 +695,7 @@ io.on('connection', function(socket){
 			var plyr = playerList[socket.id];
 
 			//console.log ( '\n <-- ' + plyr.username  + ' has been disconnected.' );
+			if ( plyr.tmpRoom != '' ) cancelPairing ( socket.id );
 
 			if ( plyr.roomid != '' ) leaveRoom ( socket.id );
 		
@@ -633,6 +711,23 @@ io.on('connection', function(socket){
 
 });
 
+
+function cancelPairing ( socketid ) {
+
+}
+
+function getPair ( pcode, myID ) {
+
+	for ( var i in playerList ) {
+
+		var player = playerList [i];
+
+		if ( player.pid == pcode && player.roomid == '' && i !== myID  ) return i;
+
+	}
+
+	return '';
+}
 
 function timeRanOut ( roomid ) {
 
@@ -661,22 +756,6 @@ function timeRanOut ( roomid ) {
 		}
 
 	}
-}
-function getPlayersAvailable ( socketid ) {
-	
-	var playersAvailable = [];
-
-	for ( var i in playerList ) {
-
-		var player = playerList [ i ] ;
-
-		if ( player.roomid == '' ) playersAvailable.push (  player.username );
-	}
-
-	var tmpSocket = socketList [soccketid ];
-
-	tmpSocket.emit ( 'playersAvailable', playersAvailable );
-
 }
 function getPlayerPieces ( playerid ) {
 
@@ -801,15 +880,40 @@ function sendPlayerReady ( roomID ) {
 }
 function sendPlayersOnline () {
 	
-	var playersCount = Object.keys(socketList).length;
+	var pcount = Object.keys(socketList).length;
 
 	for ( var i in socketList ) {
-		
-		var socket = socketList [i]; 
 
-		socket.emit ( 'playersOnline', playersCount );
+		var socketa = socketList [i]; 
+
+		socketa.emit ( 'playersOnline', pcount );
 
 	}
+
+}
+
+function generatePlayersID () {
+
+	var isUnique = false;
+
+	var randID  = '';
+
+	while ( !isUnique ) {
+
+		var randID = Math.floor ( Math.random() * 99999 ) + 1000;
+
+		isUnique = checkIsUnique ( randID ); 
+
+	}
+
+	return randID;
+
+}
+function checkIsUnique ( id ) {
+	for ( var i in playerList ) {
+		if ( playerList[i].pid == id ) return false;
+	}
+	return true;
 }
 function commenceGame ( roomID ) {
 
@@ -894,7 +998,7 @@ function leaveRoom ( playerid ) {
 		//...
 		delete roomList [ player.roomid ];
 
-		//console.log ( '\n <-- Room deleted :', gameRoom.id  );
+		console.log ( '\n <-- Room deleted :', gameRoom.id  );
 
 	}
 	
