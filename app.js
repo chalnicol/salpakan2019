@@ -436,7 +436,7 @@ io.on('connection', function(socket){
 
 			socket.emit ('initGame', returnData ); 
 
-			console.log ( '\n --> Room Created :', newRoom.id );
+			//console.log ( '\n --> Room Created :', newRoom.id );
 
 
 		}else {

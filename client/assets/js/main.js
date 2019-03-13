@@ -125,6 +125,8 @@ window.onload = function () {
 
             this.load.audio('clocktick', ['client/assets/sfx/tick.ogg', 'client/assets/sfx/tick.mp3']);
 
+            this.load.image('header', 'client/assets/images/header.png');
+
             this.load.spritesheet('thumbs', 'client/assets/images/thumbs.png', { frameWidth: 50, frameHeight: 50 });
 
             this.loadtxt = this.add.text ( config.width/2, config.height/2, 'Loading Game Files...', { color : '#000', fontSize : '12px' } ).setOrigin(0.5);
@@ -248,9 +250,6 @@ window.onload = function () {
                 pyX = config.width *0.013,
                 pyY = pyX;
 
-            //graphics.fillStyle ( 0x3a3a3a, 0.1 );
-            //graphics.fillRoundedRect ( pyX, pyY, pyW, pyH, pyH*0.05 );
-
             var image = this.add.image ( pyX + pyW *0.11 , pyY + pyH/2, 'thumbs', 18 ).setScale ( pyH*0.8/50 );
 
             var ptx = pyX + pyW *0.24, 
@@ -275,22 +274,6 @@ window.onload = function () {
 
             this.playersID = this.add.text ( ptx, pyY + pyH *0.55, 'Pairing Code : -' , polConfig );
 
-            var lw = config.width*0.3,
-                lx = ( config.width - lw )/2,
-                ly = config.height *0.83;
-           
-            var line = this.add.line ( lx, ly, 0, 0, lw, 0, 0x6c6c6c, 0.5 ).setOrigin (0);
-
-            var oltxtConfig = { 
-                color : '#3a3a3a', 
-                fontSize : config.height * 0.025, 
-                fontFamily:'Trebuchet MS', 
-                fontStyle: 'bold' 
-            };
-
-            this.playersOnlineTxt = this.add.text ( config.width/2, config.height *0.87, 'Players Online : -' , oltxtConfig ).setOrigin(0.5);
-
-
             var cW = config.width * 0.45,
                 cH = config.height * 0.22,
                 cX = ( config.width - cW )/2,
@@ -299,24 +282,24 @@ window.onload = function () {
             var configtxt = { 
                 color : '#000', 
                 fontSize : cH * 0.4, 
-                fontFamily:'Tahoma', 
+                fontFamily:'Arial', 
                 fontStyle: 'bold' 
             };
 
             //graphics.fillStyle ( 0x9c9c9c, 0.5 );
             //graphics.fillRoundedRect ( cX, cY, cW, cH, cH * 0.08 );
 
-            var text = this.add.text ( config.width/2, cY + cH * 0.3, 'Salpakan 2017', configtxt ).setOrigin(0.5);
-            
-            text.setStroke('#f4f4f4', 5).setShadow( 1, 1, '#666', true, true );
+            var imgW = config.width *0.52;
+
+            var imgHeader = this.add.image (config.width/2, config.height *0.21, 'header').setScale ( imgW/420 );
 
             var m = 5,
-                r = config.width * 0.022,
+                r = config.width * 0.019,
                 s = config.width * 0.03,
                 t =  m * ( r + s ) - s;
 
             var xp = ( config.width - t )/2 + r/2,
-                yp = cY + cH*0.75;
+                yp = config.height * 0.3;
 
             for ( var i=0; i<m; i++) {
 
@@ -340,10 +323,16 @@ window.onload = function () {
                     ease : 'Power2',
                     delay : 500
                 });
-
-
             }
 
+            var oltxtConfig = { 
+                color : '#3a3a3a', 
+                fontSize : config.height * 0.025, 
+                fontFamily:'Trebuchet MS', 
+                fontStyle: 'bold' 
+            };
+
+            this.playersOnlineTxt = this.add.text ( config.width/2, config.height *0.86, 'Players Online : -' , oltxtConfig ).setOrigin(0.5);
 
 
         },
@@ -375,9 +364,9 @@ window.onload = function () {
             //select texts..
             var tXa = divX, tXb = divX + divW + divS, tY = divY;
 
-            var txtSelectGame = this.add.text ( tXa, tY, 'Select Game', configText );
+            var txtSelectGame = this.add.text ( tXa, tY, '* Select Game', configText );
 
-            var txtSelectType= this.add.text ( tXb, tY, 'Select Type', configText );
+            var txtSelectType= this.add.text ( tXb, tY, '* Select Type', configText );
 
 
             //create select games
@@ -871,14 +860,12 @@ window.onload = function () {
             
             this.screenElements.push ( graphics );
 
-            
             var recta = this.add.rectangle ( bX + bW, bY, cS, cS ).setInteractive();
             recta.on('pointerdown', function () {
                 _this.music.play('clicka');
                 _this.removeConnectScreen();
             });
             this.screenElements.push ( recta );
-
 
             var close = this.add.text ( bX + bW, bY, 'x', { color : '#fff', fontSize : cS * 0.7, fontFamily : 'Arial', fontStyle : 'bold' } ).setOrigin(0.5);
 
@@ -1040,7 +1027,7 @@ window.onload = function () {
                 var ttxt = this.add.text ( xp + btW/2, yp + btH/2, tmpTxt, configTxtC ).setOrigin(0.5);
 
                 ttxt.setStroke('#f3f3f3', 3);
-                ttxt.setShadow( 1, 1, '#6a6a6a', 5, true, true );
+                //ttxt.setShadow( 1, 1, '#6a6a6a', 5, true, true );
 
                 this.screenElements.push ( prect );
                 this.screenElements.push ( ttxt );
