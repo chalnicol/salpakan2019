@@ -184,7 +184,7 @@ window.onload = function () {
 
 
             socket.on ('pairingError', function ( data ) {
-               
+            
                 if ( _this.isPrompted ) _this.removePrompt ();
 
                 var err = "";
@@ -192,9 +192,9 @@ window.onload = function () {
                 if ( data.error == 0 ) {
                     err = 'Pairing unsuccessful.';
                 }else if ( data.error == 1 ) {
-                    err = 'Error : Pairing Code does not exist or friend is already on a game.';
+                    err = 'Pairing code error.';
                 }else {
-                    err = 'Error : Game does not exist anymore.';
+                    err = 'Game does not exist anymore.';
                 }
 
                 setTimeout ( function () {
@@ -267,8 +267,8 @@ window.onload = function () {
 
             var polConfig = { 
                 color : '#3c3c3c', 
-                fontSize : pyH *0.25, 
-                //fontStyle:'bold',
+                fontSize : pyH *0.26, 
+                fontStyle:'bold',
                 fontFamily : 'Trebuchet MS'
 
             };
@@ -498,15 +498,13 @@ window.onload = function () {
             this.graphics2.fillStyle( 0x3a3a3a, 1);
             this.graphics2.fillRoundedRect ( bx, by, bw, bh, bh*0.1);
 
-            var btnTxt = this.add.text ( bx + bw/2, by + bh/2, 'Play Game', { fontSize: bh * 0.5, color : '#ffffff', fontFamily:'Arial', fontStyle: 'bold'}).setOrigin(0.5);
+            var btnTxt = this.add.text ( bx + bw/2, by + bh/2, 'Start Game', { fontSize: bh * 0.5, color : '#ffffff', fontFamily:'Arial', fontStyle: 'bold'}).setOrigin(0.5);
 
             var playBtn = this.add.rectangle ( bx + bw/2, by + bh/2, bw, bh ).setInteractive();
 
             playBtn.on('pointerdown', function () {
 
                 _this.music.play ('clicka');
-
-                _this.disableButtons();
 
                 var data = _this.gameData;
 
@@ -580,6 +578,8 @@ window.onload = function () {
 
             var _this = this;
 
+            this.disableButtons ();
+
             this.isPrompted = true;
 
             this.screenElements = [];
@@ -596,15 +596,6 @@ window.onload = function () {
             graphics.fillStyle ( 0xdedede , 0.9 );
             graphics.fillRoundedRect ( bX, bY, bW, bH, bH * 0.03 );
 
-
-            var rW = bW * 0.5,
-                rH = bH * 0.2,
-                rX = bX + (bW - rW)/2,
-                rY = bY + (bH * 0.57) + (rH/2);
-
-            graphics.fillStyle ( 0x3c3c3c , 1 );
-            graphics.fillRoundedRect ( rX, rY, rW, rH, rH * 0.1 );
-
             this.screenElements.push ( graphics );
             //
             var txtConfig = {
@@ -617,7 +608,7 @@ window.onload = function () {
             var tx = bX + bW/2,
                 ty = bY + bH *0.25;
 
-            var txt = this.add.text ( tx, ty, 'Waiting for players..' , txtConfig ).setOrigin(0.5);
+            var txt = this.add.text ( tx, ty, 'Connecting..' , txtConfig ).setOrigin(0.5);
 
             this.screenElements.push ( txt );
 
@@ -650,22 +641,22 @@ window.onload = function () {
 
             }
 
-            var btx = rX + (rW/2),
-                bty = rY + (rH/2) ;
+            var btw = bW * 0.5,
+                bth = bH *0.2,  
+                btx = bX + ( bW - btw )/2,
+                bty = bY + bH *0.65;
 
-            var back = this.add.text ( btx, bty, 'Cancel', { color : '#f3f3f3', fontSize : bH * 0.11, fontFamily : 'Trebuchet MS'}).setOrigin ( 0.5 );
+            var btnP = this.add.rectangle ( btx, bty, btw, bth, 0x3a3a3a, 1 ).setInteractive().setOrigin (0);
 
-            this.screenElements.push (back);
-
-            var hitArea = this.add.rectangle ( btx,bty, rW, rH, 0x343434, 0.1 ).setInteractive();
-
-            hitArea.on ('pointerover', function () {
-                back.setColor ( '#ff3300');
+            btnP.on ('pointerover', function () {
+                this.setFillStyle ( 0x6c6c6c )
+                //back.setColor ( '#ff3300');
             });
-            hitArea.on ('pointerout', function () {
-                back.setColor ('#f3f3f3' );
+            btnP.on ('pointerout', function () {
+                this.setFillStyle ( 0x3a3a3a )
+                //back.setColor ('#f3f3f3' );
             });
-            hitArea.on ('pointerdown', function () {
+            btnP.on ('pointerdown', function () {
 
                 socket.emit ('leaveGame');
                 
@@ -675,7 +666,17 @@ window.onload = function () {
 
             });
 
-            this.screenElements.push (hitArea);
+            this.screenElements.push (btnP);
+
+            var btnTxtConfig = { 
+                color : '#f3f3f3', 
+                fontSize : bH * 0.11, 
+                fontFamily : 'Trebuchet MS'
+            };
+
+            var back = this.add.text ( btx + btw/2, bty + bth/2, 'Cancel', btnTxtConfig ).setOrigin ( 0.5 );
+
+            this.screenElements.push (back);
 
         },
         showInviteScreen : function ( data ) {
@@ -683,6 +684,8 @@ window.onload = function () {
             var _this = this;
 
             this.isPrompted = true;
+
+            this.disableButtons ();
 
             this.screenElements = [];
 
@@ -692,7 +695,7 @@ window.onload = function () {
             graphics.fillRect ( 0, 0, config.width, config.height );
 
             var bW = config.width *0.6,
-                bH = config.height  *0.25,
+                bH = config.height  *0.23,
                 bX = (config.width - bW )/2,
                 bY =  (config.height - bH)/2;
 
@@ -703,18 +706,18 @@ window.onload = function () {
             //
             var txtConfig = {
                 color : '#3c3c3c',
-                fontSize : bH *0.1,
+                fontSize : bH *0.12,
                 fontFamily : 'Trebuchet MS',
                 fontStyle : 'bold'
             };
 
             var gameType = data.isTimed ? 'Blitz' : 'Classic';
 
-            var txt = this.add.text ( bX + bW/2, bY + bH *0.25,   data.invite + ' has Invited you to a "'+ gameType +'" game.', txtConfig ).setOrigin (0.5);
+            var txt = this.add.text ( bX + bW/2, bY + bH *0.3,   data.invite + ' has Invited you to a "'+ gameType +'" game.', txtConfig ).setOrigin (0.5);
 
             this.screenElements.push ( txt );
 
-            var btW = bW *0.25, btH = bH *0.2,
+            var btW = bW *0.25, btH = bH *0.22,
                 btS = btW * 0.1,
                 btT = 2 * ( btW + btS ) - btS,
                 btX = bX + ( bW - btT )/2,
@@ -769,6 +772,8 @@ window.onload = function () {
 
             this.isPrompted = true;
 
+            this.disableButtons ();
+
             this.screenElements = [];
 
             var graphics = this.add.graphics();
@@ -776,8 +781,8 @@ window.onload = function () {
             graphics.fillStyle ( 0x0a0a0a, 0.8 );
             graphics.fillRect ( 0, 0, config.width, config.height );
 
-            var bW = config.width *0.6,
-                bH = config.height  *0.25,
+            var bW = config.width *0.4,
+                bH = config.height  *0.2,
                 bX = (config.width - bW )/2,
                 bY =  (config.height - bH)/2;
 
@@ -788,18 +793,19 @@ window.onload = function () {
             //
             var txtConfig = {
                 color : '#3c3c3c',
-                fontSize : bH *0.1,
+                fontSize : bH *0.13,
                 fontFamily : 'Trebuchet MS',
                 fontStyle : 'bold'
             };
 
-            var txt = this.add.text ( bX + bW/2, bY + bH *0.25, txt, txtConfig ).setOrigin (0.5);
+            var txt = this.add.text ( bX + bW/2, bY + bH *0.28, txt, txtConfig ).setOrigin (0.5);
 
             this.screenElements.push ( txt );
 
-            var btW = bW *0.25, btH = bH *0.2,
+            var btW = bW *0.35, 
+                btH = bH *0.25,
                 btX = bX + ( bW - btW )/2,
-                btY = bY + bH * 0.6;
+                btY = bY + bH * 0.57;
 
             var txtConfiga = {
                 color : '#f3f3f3',
@@ -838,6 +844,8 @@ window.onload = function () {
             var _this = this;
             
             this.connectScreenShown = true;
+
+            this.disableButtons ();
 
             this.screenElements = [];
 
@@ -1014,13 +1022,12 @@ window.onload = function () {
                             
                             _this.removeConnectScreen ();
 
+                            _this.showWaitScreen ();
+
                             var isTimed = _this.gameData.type == 0 ? true : false;
 
                             socket.emit ('pair', { 'code' : str, 'isTimed' : isTimed } );
 
-                            setTimeout ( function () {
-                                _this.showWaitScreen ();
-                            }, 100 );
                         }
                        
                         //..
@@ -1927,6 +1934,8 @@ window.onload = function () {
                                 }else {
 
                                     if ( _this.elimScreenShown ) _this.toggleElimPiecesScreen();
+
+                                    if ( _this.instructionsShown ) _this.removeInstructions();
 
                                     this.change (0x9999ff);
 

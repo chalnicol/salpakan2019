@@ -712,23 +712,17 @@ io.on('connection', function(socket){
 });
 
 
-function cancelPairing ( socketid ) {
-
-}
-
 function getPair ( pcode, myID ) {
 
 	for ( var i in playerList ) {
 
 		var player = playerList [i];
-
-		if ( player.pid == pcode && player.roomid == '' && i !== myID  ) return i;
+		
+		if ( player.pid == pcode && player.roomid == '' && player.tmpRoom == '' && i !== myID  ) return i;
 
 	}
-
 	return '';
 }
-
 function timeRanOut ( roomid ) {
 
 	var room = roomList[roomid];
@@ -891,7 +885,6 @@ function sendPlayersOnline () {
 	}
 
 }
-
 function generatePlayersID () {
 
 	var isUnique = false;
@@ -998,7 +991,7 @@ function leaveRoom ( playerid ) {
 		//...
 		delete roomList [ player.roomid ];
 
-		console.log ( '\n <-- Room deleted :', gameRoom.id  );
+		//console.log ( '\n <-- Room deleted :', gameRoom.id  );
 
 	}
 	
