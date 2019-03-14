@@ -241,10 +241,33 @@ window.onload = function () {
         initGraphicAndTitles () {
 
             var graphics = this.add.graphics();
-                graphics.fillStyle( 0x9a9a9a, 1);
-                graphics.fillRect ( 0, config.height * 0.75 , config.width, config.height * 0.5 );
+
+            //graphics.fillStyle( 0xc3c3c3, 1);
+            //graphics.fillRect ( 0, 0 , config.width, config.height * 0.12 );
+
+            //graphics.fillStyle( 0x9a9a9a, 0.4 );
+            //graphics.fillRect ( 0, config.height * 0.75 , config.width, config.height * 0.5 );
 
 
+            var trW = config.width *0.08,
+                trH = config.height * 0.01,
+                trX = config.width *0.88,
+                trS = trH *0.8,
+                trY = 0;
+
+            var maxT = 56;
+
+            graphics.fillStyle( 0x9a9a9a, 1 );
+
+            for ( var j = 0; j < maxT; j++ ) {
+
+                var ny = trY + j * ( trH + trS ) ;
+
+                graphics.fillRect ( trX, ny, trW, trH );
+
+            } 
+
+            //..
             var pyW = config.width *0.27,
                 pyH = config.height * 0.08;
                 pyX = config.width *0.013,
@@ -314,26 +337,37 @@ window.onload = function () {
                     ease : 'Power2'
                 });
 
-                var star2 = this.add.star ( xp + i*( r + s ), yp, 5, r * 0.3, r * 2 * 0.3 ,0xf5f5f5 ).setAlpha (0);
+                var star2 = this.add.star ( xp + i*( r + s ), yp, 5, r * 0.3, r * 2 * 0.3 ,0xf5f5f5 ).setScale(0.2).setAlpha (0);
 
                 this.tweens.add ({
                     targets : star2,
                     alpha  : 1,
+                    scaleX : 1,
+                    scaleY : 1,
                     duration : 1000,
-                    ease : 'Power2',
+                    ease : 'Elastic',
+                    easeParams : [1.2, 0.5 ],
                     delay : 500
                 });
             }
 
+            var liw = config.width * 0.34,
+                lih = 1;
+                lix = (config.width - liw)/2, 
+                liy = config.height  * 0.82,
+                
+            graphics.fillStyle (0x3a3a3a, 1)
+            graphics.fillRect ( lix, liy, liw, lih );
+
             var oltxtConfig = { 
-                color : '#3a3a3a', 
-                fontSize : config.height * 0.025, 
+                color : '#4e4e4e', 
+                fontSize : config.height * 0.028, 
                 fontFamily:'Trebuchet MS', 
                 fontStyle: 'bold' 
             };
 
             this.playersOnlineTxt = this.add.text ( config.width/2, config.height *0.86, 'Players Online : -' , oltxtConfig ).setOrigin(0.5);
-
+        
 
         },
         initSelect : function () {
