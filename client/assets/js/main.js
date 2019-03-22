@@ -1925,7 +1925,15 @@ window.onload = function () {
                         break;
                         case 'cont3' :
 
-                            if ( _this.isPrompted ) {
+
+                            if ( _this.elimScreenShown )  _this.toggleElimPiecesScreen();
+
+                            _this.playSound('clicka');
+
+                            _this.toggleEmojis ();
+
+                            /*  
+                            if ( _this.isPrompted  ) {
 
                                 this.change (0xff9999);
 
@@ -1933,12 +1941,9 @@ window.onload = function () {
 
                             }else {
 
-                                if ( _this.elimScreenShown )  _this.toggleElimPiecesScreen();
-
-                                _this.playSound('clicka');
-
-                                _this.toggleEmojis ();
-                            }
+                               
+                            } 
+                            */
                             
                         break;
 
@@ -2213,7 +2218,9 @@ window.onload = function () {
                     var xpos = x + ( yp * esize ) + esize/2,
                         ypos = y + ( xp * esize ) + esize/2;
 
-                    var clicks = this.add.rectangle ( xpos, ypos, esize, esize, 0x0a0a0a, 0.8 ).setInteractive().setDepth (998).setData('count', i);
+                    var clicks = this.add.rectangle ( xpos, ypos, esize, esize, 0x0a0a0a, 0.8 );
+                    
+                    clicks.setInteractive().setDepth (9999).setData('count', i);
 
                     clicks.on('pointerover', function () {
                         this.setFillStyle ( 0x9999ff, 1 );
@@ -2249,7 +2256,7 @@ window.onload = function () {
 
                     var imgsize = esize * 0.9;
 
-                    var emoji = this.add.image ( xpos , ypos, 'thumbs', 30 + i ).setScale(imgsize/50).setDepth (998);
+                    var emoji = this.add.image ( xpos , ypos, 'thumbs', 30 + i ).setScale(imgsize/50).setDepth (9999);
 
                     this.myEmojis.push ( emoji );
 
@@ -2287,7 +2294,7 @@ window.onload = function () {
                     cY = this.fieldY + (cH/2);
 
                 this.elimScreen = this.add.rectangle( -(cW/2), cY, cW, cH, 0x0a0a0a, 0.9 );
-                this.elimScreen.setInteractive().setDepth (1000);
+                this.elimScreen.setInteractive().setDepth (999);
 
                 this.tweens.add ({
                     targets : this.elimScreen,
@@ -2297,7 +2304,7 @@ window.onload = function () {
                 });
 
 
-                this.line1 = this.add.line ( -(cW/2) , config.height * 0.45, 0, 0, 0, config.height * 0.5, 0x6a6a6a, 1 ).setDepth ( 1000 );
+                this.line1 = this.add.line ( -(cW/2) , config.height * 0.45, 0, 0, 0, config.height * 0.5, 0x6a6a6a, 1 ).setDepth ( 999 );
 
                 this.tweens.add ({
                     targets : this.line1,
@@ -2314,7 +2321,7 @@ window.onload = function () {
                     fontStyle : 'bold'
                 };
 
-                this.texta = this.add.text( -(cW/2), config.height * 0.15, 'Eliminated Pieces', configtxt).setOrigin(0.5).setDepth(1000);
+                this.texta = this.add.text( -(cW/2), config.height * 0.15, 'Eliminated Pieces', configtxt).setOrigin(0.5).setDepth(999);
 
                 this.tweens.add ({
                     targets : this.texta,
@@ -2346,7 +2353,7 @@ window.onload = function () {
                         gp.x = pXa + xp * ( pW + pSx ) - cW;
                         gp.y = pY + yp * ( pH + pSy );
 
-                        gp.setVisible(true).setDepth (2000);
+                        gp.setVisible(true).setDepth (1000);
                         gp.reset();
                         
                         this.tweens.add ({
@@ -2368,7 +2375,7 @@ window.onload = function () {
                         gp.x = pXb + xpa * ( pW + pSx ) - cW;
                         gp.y = pY + ypa * ( pH + pSy );
 
-                        gp.setVisible (true).setDepth (2000);
+                        gp.setVisible (true).setDepth (1000);
                         gp.reset();
 
                         this.tweens.add ({
@@ -2425,7 +2432,7 @@ window.onload = function () {
 
                 var xp = w/2, yp =  y + i*h + ( h/2 );
 
-                var rect = this.add.rectangle ( xp, yp, w, h, 0x0a0a0a, 0.6 ).setDepth(998);
+                var rect = this.add.rectangle ( xp, yp, w, h, 0x0a0a0a, 0.6 ).setDepth(9999);
 
                 this.msgelements.push ( rect );
 
@@ -2442,7 +2449,7 @@ window.onload = function () {
                     fontStyle:'bold' 
                 };
 
-                var text = this.add.text ( tx, yp, this.player[tmpPlyr].name + " :", txtConfig ).setDepth(998).setOrigin(0,0.5);
+                var text = this.add.text ( tx, yp, this.player[tmpPlyr].name + " :", txtConfig ).setDepth(9999).setOrigin(0,0.5);
 
                 this.msgelements.push ( text );
 
@@ -2453,7 +2460,7 @@ window.onload = function () {
 
                 var imgsize = h * 0.9, sp = imgsize * 0.15;
 
-                var emoji = this.add.image ( tx + text.width + (imgsize/2), yp, 'thumbs', 30 + tmpFrame ).setScale(imgsize/50).setDepth (998);
+                var emoji = this.add.image ( tx + text.width + (imgsize/2), yp, 'thumbs', 30 + tmpFrame ).setScale(imgsize/50).setDepth (9999);
 
                 this.msgelements.push ( emoji );
 
