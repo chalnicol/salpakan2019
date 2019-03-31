@@ -127,6 +127,8 @@ window.onload = function () {
 
             this.load.image('header', 'client/assets/images/header.png');
 
+            this.load.image('designimg', 'client/assets/images/design.png');
+
             this.load.spritesheet('thumbs', 'client/assets/images/thumbs.png', { frameWidth: 50, frameHeight: 50 });
 
             this.loadtxt = this.add.text ( config.width/2, config.height/2, 'Loading Game Files...', { color : '#000', fontSize : '12px' } ).setOrigin(0.5);
@@ -251,11 +253,15 @@ window.onload = function () {
 
             var trW = config.width *0.08,
                 trH = config.height * 0.01,
-                trX = config.width *0.88,
+                trX = config.width *0.87,
                 trS = trH *0.8,
                 trY = 0;
 
-            var maxT = 56;
+
+                
+            
+            
+            /* var maxT = 56;
 
             graphics.fillStyle( 0x9a9a9a, 1 );
 
@@ -265,7 +271,11 @@ window.onload = function () {
 
                 graphics.fillRect ( trX, ny, trW, trH );
 
-            } 
+            }   */ 
+            
+            
+
+           var image1 = this.add.image ( trX , trY, 'designimg' ).setOrigin ( 0).setScale( config.height/600 );
 
             //..
             var pyW = config.width *0.27,
