@@ -17,6 +17,8 @@
 	<link rel="shortcut icon" href="client/assets/images/sv_icon.ico">
 	<link rel="apple-touch-icon" href="client/assets/images/sv_icon.png">
 
+	<!-- <link href="https://fonts.googleapis.com/css?family=Libre+Franklin:900&display=swap" rel="stylesheet"> -->
+
 	
 	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
 
@@ -27,12 +29,17 @@
 	
 	<style>
 
+		@font-face {
+			font-family: 'Impact';
+			src: url('webfont.eot'); /* IE9 Compat Modes */
+			src: url('client/assets/fonts/impact.ttf')  format('truetype'); /* Legacy iOS */
+		}
+
 		html, body {
 			padding: 0;
 			margin:0;
 			height : 100vh;
 			background: #ccc url('client/assets/images/background_1.jpg') repeat;
-			font-family: Arial, Helvetica, sans-serif;
 		}
 
 		#game_container {
@@ -56,15 +63,17 @@
 		}
 
 		#game_div {
-			max-width: 800px;
-			max-height: 600px;
+			max-width: 1280px;
+			max-height: 720px;
 			margin:auto;
 			background-color : #ccc;
+			display: none;
 		}
 
 		.form-control {
 			border-color : #9c9c9c !important;
 		}
+
 
 	</style>
 
@@ -91,7 +100,9 @@
 				
 			</form>
 		</div>
-		<div id="game_div" style="display: none"></div>
+		<div id="game_div">
+			<!-- insert game here -->
+		</div>
 		
 	</div>
 	

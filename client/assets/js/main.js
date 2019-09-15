@@ -5,6 +5,9 @@ window.onload = function () {
 
     var game, config, socket;
 
+    var _gameW = 0, _gameH = 0;
+
+
     var username = document.getElementById('username');
 
     username.value = 'Player' + Math.floor( Math.random() * 99999 );
@@ -49,7 +52,7 @@ window.onload = function () {
 
     function enterGame () {
 
-        var maxW = 800;
+        var maxW = 1280;
 
         var container = document.getElementById('game_container');
 
@@ -57,14 +60,12 @@ window.onload = function () {
             contH = container.clientHeight;
 
         var tmpWidth = contW > maxW ? maxW : contW,
-            tmpHeight = Math.ceil(tmpWidth * 3/4);
-
-        var gameH = 0, gameW = 0;
+            tmpHeight = Math.ceil(tmpWidth * 9/16);
 
         if ( tmpHeight >= contH ) {
 
             gameH = contH;
-            gameW = Math.ceil(gameH * 4/3);
+            gameW = Math.ceil(gameH * 16/9);
             //console.log ( 'game dimensions adjusted by screen height' )
 
         }else {
@@ -74,10 +75,14 @@ window.onload = function () {
             //console.log ( 'game dimensions adjusted by screen width' )
         }
 
+        _gameW = gameW;
+        _gameH = gameH;
+        
         var game_div = document.getElementById('game_div');
         game_div.style.width = gameW + 'px';
         game_div.style.height = gameH + 'px';
      
+
         config = {
 
             type: Phaser.AUTO,
@@ -125,13 +130,56 @@ window.onload = function () {
 
             this.load.audio('clocktick', ['client/assets/sfx/tick.ogg', 'client/assets/sfx/tick.mp3']);
 
-            this.load.image('header', 'client/assets/images/header.png');
+            this.load.image('bg', 'client/assets/images/intro/background.jpg');
+            this.load.image('lines', 'client/assets/images/intro/lines.png');
+            this.load.image('title', 'client/assets/images/intro/title.png');
+            this.load.image('star', 'client/assets/images/intro/star.png');
+            this.load.image('select', 'client/assets/images/intro/select.png');
+            this.load.image('shade', 'client/assets/images/intro/shade.png');
+            this.load.image('avatar_placement', 'client/assets/images/intro/avatar_placement.png');
 
-            this.load.image('designimg', 'client/assets/images/design.png');
-
+           
+            this.load.spritesheet('start', 'client/assets/images/intro/start_btn.png', { frameWidth: 528, frameHeight: 93 });
             this.load.spritesheet('thumbs', 'client/assets/images/thumbs.png', { frameWidth: 50, frameHeight: 50 });
 
-            this.loadtxt = this.add.text ( config.width/2, config.height/2, 'Loading Game Files...', { color : '#000', fontSize : '12px' } ).setOrigin(0.5);
+            //....
+            this.load.image('pairing_placement', 'client/assets/images/intro/pairing_placement.png');
+            this.load.spritesheet('keys', 'client/assets/images/intro/keyboard.png', { frameWidth: 106, frameHeight: 83 });
+
+            //...
+            this.load.image('prompt', 'client/assets/images/intro/prompt.png');
+            this.load.image('invite', 'client/assets/images/intro/invite.png');
+            this.load.spritesheet('prompt_btns', 'client/assets/images/intro/prompt_btns.png', { frameWidth: 224, frameHeight: 58 });
+
+
+            //..
+            this.load.image('bg2', 'client/assets/images/proper/bg.png');
+            this.load.image('panel', 'client/assets/images/proper/control_panel.png');
+            this.load.image('elim_field', 'client/assets/images/proper/elim_field.png');
+            this.load.image('send_emoji', 'client/assets/images/proper/send_emoji.png');
+            
+            this.load.image('prompt_big', 'client/assets/images/proper/prompt_big.png');
+            this.load.image('prompt_small', 'client/assets/images/proper/prompt_small.png');
+            this.load.image('commence', 'client/assets/images/proper/commence.png');
+            
+            this.load.spritesheet('piece', 'client/assets/images/proper/pieces.png', { frameWidth: 112, frameHeight: 62 });
+            this.load.spritesheet('main_btns', 'client/assets/images/proper/main_btns.png', { frameWidth: 89, frameHeight: 48 });
+            this.load.spritesheet('cont_btns', 'client/assets/images/proper/cont_btns.png', { frameWidth: 71, frameHeight: 71 });
+            this.load.spritesheet('indicatorbg', 'client/assets/images/proper/indicator_placement.png', { frameWidth: 557, frameHeight: 71 });
+            this.load.spritesheet('prompt_btns2', 'client/assets/images/proper/prompt_btns.png', { frameWidth: 197, frameHeight: 62 });
+            this.load.spritesheet('emojis', 'client/assets/images/proper/emojis.png', { frameWidth: 100, frameHeight: 100 });
+            
+
+
+            var txtH = Math.floor ( 16 * _gameH/720 );
+
+            var txtConfig = { 
+                color : '#3a3a3a', 
+                fontSize : txtH,
+                fontFamily : 'Impact'
+            }
+
+            this.loadtxt = this.add.text ( _gameW/2, _gameH/2, 'Loading Game Files...',  txtConfig ).setOrigin(0.5);
 
 
             var _this = this;
@@ -153,17 +201,22 @@ window.onload = function () {
         },
         create : function () {
 
+            this.gameData = {
+                'game' : 0,
+                'type' : 0
+            }
+
             this.loadtxt.destroy();
 
             this.initSound ();
 
-            this.initGraphicAndTitles ();
+            this.initGameInterface ();
 
-            this.initSelect ();
+            this.initGameSelect ();
 
             this.initSocketIOListeners();
 
-            this.createPlayButton();
+            //this.createPlayButton();
 
             setTimeout ( function () {
                 socket.emit ('getInitData');
@@ -172,7 +225,7 @@ window.onload = function () {
         },
         initSocketIOListeners () {
 
-            console.log ('listeners loaded');
+            //console.log ('listeners loaded');
 
             var _this = this;
 
@@ -186,7 +239,6 @@ window.onload = function () {
                 
             });
 
-
             socket.on ('pairingError', function ( data ) {
             
                 if ( _this.isPrompted ) _this.removePrompt ();
@@ -196,13 +248,13 @@ window.onload = function () {
                 if ( data.error == 0 ) {
                     err = 'Pairing unsuccessful.';
                 }else if ( data.error == 1 ) {
-                    err = 'Pairing code error.';
+                    err = 'Pairing ID error.';
                 }else {
                     err = 'Game does not exist anymore.';
                 }
 
                 setTimeout ( function () {
-                    _this.showPromptScreen ( err );
+                    _this.showPromptScreen ( 'error', err );
                 }, 100 );
 
             });
@@ -211,7 +263,7 @@ window.onload = function () {
 
                 _this.music.play ('message');
 
-                _this.playersID.text = 'Pairing Code : ' + data.pid;
+                _this.playersID.text = 'Pairing ID : ' + data.pid;
 
                 _this.playersOnlineTxt.text = 'Players Online : ' + data.count;
             });
@@ -240,348 +292,221 @@ window.onload = function () {
             this.music = this.sound.addAudioSprite('sfx');
 
         },
-        initGraphicAndTitles () {
+        initGameInterface  : function () {
 
-            var graphics = this.add.graphics();
+            var background = this.add.image (0, 0, 'bg' ).setOrigin ( 0 ).setScale(_gameW/1280);
+            var lines = this.add.image (0, 0, 'lines' ).setOrigin ( 0 ).setScale(_gameW/1280);
+            var title = this.add.image (0, - (_gameH * 0.26), 'title' ).setOrigin ( 0 ).setScale(_gameW/1280).setAlpha (0);
 
-            //graphics.fillStyle( 0xc3c3c3, 1);
-            //graphics.fillRect ( 0, 0 , config.width, config.height * 0.12 );
+            this.tweens.add ({
+                targets : title,
+                y :  0,
+                alpha : 1,
+                duration : 1000,
+                easeParams : [0.5, 1.5],
+                ease : 'Bounce'
+            });
 
-            //graphics.fillStyle( 0x9a9a9a, 0.4 );
-            //graphics.fillRect ( 0, config.height * 0.75 , config.width, config.height * 0.5 );
+            //avatar
+            var avatar_plt = this.add.image ( _gameW*0.029, _gameH*0.029, 'avatar_placement' ).setOrigin ( 0 ).setScale(_gameW/1280);
+            
+            var avatar_img = this.add.image ( _gameW*0.029, _gameH*0.045, 'thumbs', 18  ).setOrigin ( 0 ).setScale(_gameW/1280);
 
+            var playerName = this.add.text ( _gameW*0.075, _gameH*0.042, username.value, { color : '#7f6868', fontFamily : 'Impact', fontSize: _gameH*0.035 } ).setOrigin(0);
+    
+            this.playersID = this.add.text ( _gameW*0.075, _gameH*0.087, "Pairing ID : ---", { color : '#eb6d10', fontFamily : 'Impact', fontSize: _gameH*0.025 } ).setOrigin(0);
+    
+            this.playersOnlineTxt = this.add.text ( _gameW*0.033, _gameH*0.145, "Players Online : -", { color : '#b5a9a0', fontFamily : 'Impact', fontSize: _gameH*0.025 } ).setOrigin(0);
+            
+            var strSize = _gameW * 0.052, strCount = 5;
+            
+            var xSpacing = _gameW * 0.008,
+                xStart =  (_gameW - ((( strSize + xSpacing ) * strCount )-xSpacing))/2;
 
-            var trW = config.width *0.08,
-                trH = config.height * 0.01,
-                trX = config.width *0.87,
-                trS = trH *0.8,
-                trY = 0;
+            for ( var i = 0; i < strCount; i++ ) {
 
+                var image4 = this.add.image ( _gameW*0.078, _gameH*0.302, 'star' ).setOrigin ( 0 ).setScale(_gameW/1280).setAlpha (0);
 
+                this.tweens.add ({
+                    targets : image4,
+                    x : xStart + ( (4-i) * ( strSize + xSpacing ) ),
+                    alpha : 1,
+                    duration : 300,
+                    delay : (i * 100) + 1000,
+                    ease : 'Power3'
+                });
                 
-            
-            
-            /* var maxT = 56;
+            }   
 
-            graphics.fillStyle( 0x9a9a9a, 1 );
+        },
+        initGameSelect : function () {
 
-            for ( var j = 0; j < maxT; j++ ) {
+            var _this = this;
 
-                var ny = trY + j * ( trH + trS ) ;
-
-                graphics.fillRect ( trX, ny, trW, trH );
-
-            }   */ 
-            
-            
-
-           var image1 = this.add.image ( trX , trY, 'designimg' ).setOrigin ( 0).setScale( config.height/600 );
-
-            //..
-            var pyW = config.width *0.27,
-                pyH = config.height * 0.08;
-                pyX = config.width *0.013,
-                pyY = pyX;
-
-            var image = this.add.image ( pyX + pyW *0.11 , pyY + pyH/2, 'thumbs', 18 ).setScale ( pyH*0.8/50 );
-
-            var ptx = pyX + pyW *0.24, 
-                pty = pyY + pyH *0.1;
-
+            var btxa = Math.floor ( 365 * _gameW/1280 ),
+                btxb = Math.floor ( 658 * _gameW/1280 ),
+                bty =  Math.floor ( 388 * _gameH/720 ),
+                bts = Math.floor ( 41 * _gameW/1280 );
+                
+            var shade1 = this.add.image ( btxa + (bts/2), bty + (bts/2), 'shade' ).setOrigin (0,0.5).setAlpha(0).setScale(_gameW/1280);
+            var shade2 = this.add.image ( btxb + (bts/2), bty + (bts/2), 'shade' ).setOrigin (0,0.5).setAlpha(0).setScale(_gameW/1280);
+    
+            var select_img = this.add.image (0, 0, 'select' ).setOrigin ( 0 ).setAlpha(0).setScale(_gameW/1280);
+    
+            var dot1 = this.add.image ( btxa + (bts/2), bty + (bts/2), 'thumbs', 19 ).setOrigin ( 0.5 ).setAlpha(0).setScale(_gameW/1280);
+            var dot2 = this.add.image ( btxb + (bts/2), bty + (bts/2), 'thumbs', 19 ).setOrigin ( 0.5 ).setAlpha(0).setScale(_gameW/1280);
+    
             var textNameConfig = { 
-                color:'#ff3300', 
-                fontSize: pyH * 0.33, 
-                fontFamily:'Trebuchet MS', 
-                fontStyle: 'bold'  
+                color:'#b4b4b4', 
+                fontSize: _gameW * 0.016,
+                fontFamily : 'Impact'
             };
-
-            var textName = this.add.text ( ptx, pty, 'Hi, ' + username.value + '!', textNameConfig );
-
-            var polConfig = { 
-                color : '#3c3c3c', 
-                fontSize : pyH *0.26, 
-                fontStyle:'bold',
-                fontFamily : 'Trebuchet MS'
-
-            };
-
-            this.playersID = this.add.text ( ptx, pyY + pyH *0.55, 'Pairing Code : -' , polConfig );
-
-            var cW = config.width * 0.45,
-                cH = config.height * 0.22,
-                cX = ( config.width - cW )/2,
-                cY = config.height * 0.12;
-
-            var configtxt = { 
-                color : '#000', 
-                fontSize : cH * 0.4, 
-                fontFamily:'Arial', 
-                fontStyle: 'bold' 
-            };
-
-            //graphics.fillStyle ( 0x9c9c9c, 0.5 );
-            //graphics.fillRoundedRect ( cX, cY, cW, cH, cH * 0.08 );
-
-            var imgW = config.width *0.52;
-
-            var imgHeader = this.add.image (config.width/2, config.height *0.21, 'header').setScale ( imgW/420 );
-
-            var m = 5,
-                r = config.width * 0.019,
-                s = config.width * 0.03,
-                t =  m * ( r + s ) - s;
-
-            var xp = ( config.width - t )/2 + r/2,
-                yp = config.height * 0.3;
-
-            for ( var i=0; i<m; i++) {
-
-                var star = this.add.star ( xp + i*( r + s ), yp, 5, r/2, r, 0x333333).setScale(3).setRotation(90);
-
-                this.tweens.add ({
-                    targets : star,
-                    scaleX : 1,
-                    scaleY : 1,
-                    rotation : 0,
-                    duration : 500,
-                    ease : 'Power2'
-                });
-
-                var star2 = this.add.star ( xp + i*( r + s ), yp, 5, r * 0.3, r * 2 * 0.3 ,0xf5f5f5 ).setScale(0.2).setAlpha (0);
-
-                this.tweens.add ({
-                    targets : star2,
-                    alpha  : 1,
-                    scaleX : 1,
-                    scaleY : 1,
-                    duration : 1000,
-                    ease : 'Elastic',
-                    easeParams : [1.2, 0.5 ],
-                    delay : 500
-                });
-            }
-
-            var liw = config.width * 0.34,
-                lih = 1;
-                lix = (config.width - liw)/2, 
-                liy = config.height  * 0.82,
-                
-            graphics.fillStyle (0x3a3a3a, 1)
-            graphics.fillRect ( lix, liy, liw, lih );
-
-            var oltxtConfig = { 
-                color : '#4e4e4e', 
-                fontSize : config.height * 0.028, 
-                fontFamily:'Trebuchet MS', 
-                fontStyle: 'bold' 
-            };
-
-            this.playersOnlineTxt = this.add.text ( config.width/2, config.height *0.86, 'Players Online : -' , oltxtConfig ).setOrigin(0.5);
-        
-
-        },
-        initSelect : function () {
-
-            this.gameData = { game : 0, type : 0 };
-
-            var divW = config.width * 0.26,
-                divH = config.height * 0.28,
-                divS = divW * 0.05,
-                divT = ( 2 *  divW ) + divS,
-                divX = (( config.width - divT )/2 ),
-                divY = config.height * 0.35;
-
-            /*
-            for (var i = 0; i < 2; i++ ) {
-                var xp = divX + ( i * ( divW + divS ) ) + ( divW/2 ),
-                    yp = divY + ( divH/2 );
-                //var rectDiv = this.add.rectangle ( xp, yp, divW, divH, 0xdedede, 1 );
-            }*/
-
-            var configText = { 
-                color : '#6a6a6a', 
-                fontSize : divH * 0.1, 
-                fontStyle : 'bold',
-                fontFamily:'Trebuchet MS',
-            };
-
-            //select texts..
-            var tXa = divX, tXb = divX + divW + divS, tY = divY;
-
-            var txtSelectGame = this.add.text ( tXa, tY, '* Select Game', configText );
-
-            var txtSelectType= this.add.text ( tXb, tY, '* Select Type', configText );
+    
+            var textName = this.add.text ( _gameW *0.519, _gameH*0.680, "◉ No Timer", textNameConfig ).setOrigin(0).setAlpha(0);
+    
+            this.tweens.add ({
+                targets : [select_img, textName, dot1,dot2,shade1,shade2],
+                alpha : 1,
+                duration : 500,
+                delay : 2000,
+                ease : 'Power3',
+              
+            });
+            
+            setTimeout (function () {
+                _this.music.play ('move');
+            }, 2000)
+            
 
 
-            //create select games
-            var selectGameArr = [ 'vs Computer', 'vs Random Opponent', 'vs Online Friend' ];
+            
 
-            var selW = divW, 
-                selH = divH * 0.22, 
-                selS = selH * 0.1, 
-                selY = divY + (divH * 0.2) + (selH/2);
+            var btw = Math.floor ( 275 * _gameW/1280 ),
+                btsp = Math.ceil ( 7 * _gameH/720 );
 
-            var rad = selH * 0.28;
+            for ( var i = 0; i<3; i++ ) {
 
-            var selectTextConfig = { 
-                color : '#6a6a6a', 
-                fontSize : selH * 0.4, 
-                fontStyle : 'bold',
-                fontFamily:'Trebuchet MS',
-            };
+                var rectDiv = this.add.rectangle ( btxa, bty + i * ( bts + btsp ) , btw, bts, 0xdedede, 0 ).setOrigin(0).setData ('id', i).setInteractive();
+            
+                rectDiv.on('pointerdown', function () {
 
-            this.circArr = []; this.selectBtns = [];
+                    var data1 = this.getData('id');
 
-            var _this = this;
+                    shade1.y = this.y + (bts/2);
 
-            for (var i in selectGameArr ) {
+                    dot1.y = this.y + (bts/2);
 
-                var circa = this.add.circle ( tXa + selW*0.1, selY + i *( selH + selS ), rad, 0x3a3a3a, 1 );
+                    dot1.setScale (0);
 
-                this.circArr.push ( circa );
-                
-                var texta = this.add.text ( tXa + selW*0.18, selY + i *( selH + selS ), selectGameArr[i], selectTextConfig ).setOrigin (0, 0.5);
+                    _this.music.play ('clickc');
 
-                var recta = this.add.rectangle ( tXa + selW/2, selY + i *( selH + selS ), selW, selH, 0x343434, 0.1 ).setInteractive().setData ( 'game', i );
+                    _this.tweens.add ({
+                        targets : dot1,
+                        scaleX : _gameW/1280,
+                        scaleY : _gameW/1280,
+                        duration : 300,
+                        ease : 'Bounce'
+                    });
 
-                recta.on ('pointerdown', function () {
+                    _this.gameData.game = data1;
 
-                    var game = this.getData('game');
-
-                    if ( _this.gameData.game != game ) {
-
-                        _this.music.play ('clickc');
-
-                        _this.gameData.game = game;
-
-                        _this.srect.y = _this.circArr [ parseInt(game) ].y;
-                    }
 
                 });
-
-                this.selectBtns.push (recta);
 
             }
 
-            this.srect = this.add.circle ( this.circArr[0].x, this.circArr[0].y, rad * 0.61, 0xff0000 );
-
-            //create select games
-            var selectTypeArr = [ 
-                { name : 'Blitz' , desc : '30 seconds preparation, 15 seconds per turn' }, 
-                { name : 'Classic', desc : 'Untimed game' } 
-            ];
-
-            for (var j in selectTypeArr ) {
-
-                var circb = this.add.circle ( tXb + selW*0.1, selY + j *( selH + selS ), rad, 0x3a3a3a, 1 );
-
-                this.circArr.push ( circb );
-
-                var texta = this.add.text ( tXb + selW*0.18, selY + j *( selH + selS ), selectTypeArr[j].name, selectTextConfig ).setOrigin (0, 0.5);
+            for ( var i = 0; i<2; i++ ) {
                 
-                var rectb = this.add.rectangle ( tXb + selW/2, selY + j *( selH + selS ), selW, selH, 0x343434, 0.1 ).setInteractive().setData ( 'type', j );
+                var rectDivb = this.add.rectangle ( btxb, bty + i * ( bts + btsp ) , btw, bts, 0xdedede, 0 ).setOrigin(0).setData ('id', i).setInteractive();
+
+                rectDivb.on('pointerdown', function () {
+
+                    var data2 = this.getData('id');
                 
-                rectb.on ('pointerdown', function () {
+                    shade2.y = this.y + (bts/2);
 
-                    var type = this.getData('type');
+                    dot2.y = this.y + (bts/2);
 
-                    if ( _this.gameData.type != type ) {
+                    dot2.setScale (0);
 
-                        _this.music.play ('clickc');
+                    _this.music.play ('clickc');
 
-                        _this.gameData.type = type;
+                    _this.tweens.add ({
+                        targets : dot2,
+                        scaleX : _gameW/1280,
+                        scaleY : _gameW/1280,
+                        duration : 300,
+                        ease : 'Bounce'
+                    });
 
-                        _this.srectb.y = _this.circArr [ parseInt(type) + 3 ].y;
 
-                        _this.txtDesc.text = '✱ ' + selectTypeArr [ parseInt(type) ].desc;
+                    textName.text = data2 == 0 ? '◉ No Timer' : '◉ 30 secs prep, 15 secs turn';
 
-                    }
-                    
+                    _this.gameData.type = data2;
 
                 });
 
-                this.selectBtns.push (rectb);
-
             }
 
-            this.srectb = this.add.circle ( this.circArr[3].x,  this.circArr[3].y,  rad * 0.61, 0xff0000 );
+            var bh = Math.floor(523 * _gameH/720);
 
-            //game description...
-            var txtDescConfig = { 
-                fontSize: config.height * 0.023, 
-                color : '#3a3a3a', 
-                fontFamily:'Trebuchet MS' 
-            };
+            var start_btn = this.add.image ( _gameW/2, _gameH + (bh), 'start', 0 ).setInteractive().setScale(_gameW/1280);
 
-            this.txtDesc = this.add.text ( config.width/2, config.height * 0.65, '✱ ' + selectTypeArr[0].desc, txtDescConfig ).setOrigin(0.5)
+            this.tweens.add ({
+                targets : start_btn,
+                y :  _gameH*0.864,
+                alpha : 1,
+                duration : 400,
+                delay : 2000,
+                easeParams : [ 1, 0.5 ],
+                ease : 'Quad.easeOut'
+            });
+
+            start_btn.on ('pointerout', function () {
+                this.setFrame (0)
+            });
+            start_btn.on ('pointerup', function () {
+                this.setFrame (0)
+            });
+            start_btn.on ('pointerover', function () {
+                this.setFrame (1)
+                //_this.music.play ('move');
+            });
+            start_btn.on ('pointerdown', function () {
 
 
-        },
-        createPlayButton  : function () {
-
-            //button...
-            var _this = this;
-
-            var bw = config.width*0.4,
-                bh = config.height * 0.1,
-                bx = ( config.width - bw )/2,
-                by = config.height * 0.7;
-
-            this.graphics2 = this.add.graphics();
-            this.graphics2.fillStyle( 0x3a3a3a, 1);
-            this.graphics2.fillRoundedRect ( bx, by, bw, bh, bh*0.1);
-
-            var btnTxt = this.add.text ( bx + bw/2, by + bh/2, 'Start Game', { fontSize: bh * 0.5, color : '#ffffff', fontFamily:'Arial', fontStyle: 'bold'}).setOrigin(0.5);
-
-            var playBtn = this.add.rectangle ( bx + bw/2, by + bh/2, bw, bh ).setInteractive();
-
-            playBtn.on('pointerdown', function () {
+                this.setFrame (2);
 
                 _this.music.play ('clicka');
 
-                var data = _this.gameData;
-
                 var toSendData = {
-                    'isSinglePlayer' : parseInt (data.game) == 0 ? true : false,
-                    'isChoosingOpponent' : parseInt (data.game) == 2 ? true : false,
-                    'isTimed' : parseInt (data.type) == 0 ? true : false
+                    'isSinglePlayer' : _this.gameData.game == 0 ? true : false,
+                    'isChoosingOpponent' : _this.gameData.game == 2 ? true : false,
+                    'isTimed' : _this.gameData.type == 0 ? false : true
                 }
 
-                switch ( parseInt(data.game) ) {
-                    case 0 : 
-                        socket.emit ('enterGame', toSendData );
-                        //_this.showWaitScreen();
-                    break;
-                    case 1 : 
-                        socket.emit ('enterGame', toSendData );
-                        _this.showWaitScreen();
-                    break;
-                    case 2 : 
+                if ( _this.gameData.game == 0) {
+                    socket.emit ('enterGame', toSendData );
 
-                        _this.showConnectToFriendScreen();
+                    //_this.scene.add('Connect', Connect, true,{err : 0});
 
-                    break;
+                }else if ( _this.gameData.game == 1 ) {
                     
+                    socket.emit ('enterGame', toSendData );
+
+                     _this.showPromptScreen ( 'connect' );
+
+                    //_this.scene.add('Pair', Pair, true);
+                }else {
+
+                    _this.showConnectToFriendScreen();
+                    //_this.scene.add('Connect', Connect, true,{err : 3});
                 }
                 
-                
+
             });
 
-            playBtn.on('pointerover', function () {
-                _this.graphics2.clear();
-                _this.graphics2.fillStyle( 0x6a6a6a, 1);
-                _this.graphics2.fillRoundedRect ( bx, by, bw, bh, bh*0.1);
-            });
-
-            playBtn.on('pointerout', function () {
-                _this.graphics2.clear();
-                _this.graphics2.fillStyle( 0x3a3a3a, 1);
-                _this.graphics2.fillRoundedRect ( bx, by, bw, bh, bh*0.1);
-            });
-
-            this.selectBtns.push ( playBtn );
-
-
+            
         },
         createFakeData : function ( len ) {
             
@@ -607,109 +532,127 @@ window.onload = function () {
             }
 
         },
-        showWaitScreen : function ( pair = false ) {
+        showPromptScreen : function ( promptType, err='' ) {
 
             var _this = this;
-
-            this.disableButtons ();
 
             this.isPrompted = true;
 
             this.screenElements = [];
 
-            var graphics = this.add.graphics();
-            graphics.fillStyle ( 0x0a0a0a, 0.8 );
-            graphics.fillRect ( 0, 0, config.width, config.height );
+            var rectBg = this.add.rectangle ( 0, 0, _gameW, _gameH, 0x000000, 0.65 ).setOrigin(0).setInteractive();
 
-            var bW = config.width *0.4,
-                bH = config.height  *0.25,
-                bX = (config.width - bW )/2,
-                bY =  (config.height - bH)/2;
+            var window = this.add.image ( 0, 0, 'prompt' ).setOrigin ( 0 ).setScale( _gameW/1280 );
 
-            graphics.fillStyle ( 0xdedede , 0.9 );
-            graphics.fillRoundedRect ( bX, bY, bW, bH, bH * 0.03 );
+            var bx = _gameW/2,
+                by = _gameH * 0.525;
 
-            this.screenElements.push ( graphics );
-            //
-            var txtConfig = {
-                color : '#3c3c3c',
-                fontSize : bH *0.12,
-                fontFamily : 'Trebuchet MS',
-                fontStyle : 'bold'
-            };
+            var txtx = _gameW/2,
+                txty = _gameH * 0.385,
+                txtH = Math.floor ( 32 * _gameH/720 );
 
-            var tx = bX + bW/2,
-                ty = bY + bH *0.25;
-
-            var txt = this.add.text ( tx, ty, 'Connecting..' , txtConfig ).setOrigin(0.5);
-
-            this.screenElements.push ( txt );
-
-            var max = 5;
-
-            var bSize = config.width * 0.01,
-                bSpace = config.width * 0.02,
-                bTotal = max * ( bSize + bSpace ) - bSpace;
-                cX = (config.width - bTotal) /2,
-                cY = bY + (bH *0.45) + (bSize/2);
+            var _this = this;
+    
+            switch ( promptType ) {
+    
+                case 'connect':
+    
+                    var cancel_btn = this.add.image ( bx, by, 'prompt_btns', 0 ).setScale( _gameW/1280 ).setOrigin(0.5).setInteractive();
+    
+                    cancel_btn.on('pointerover', function () {
+                        this.setFrame ( 1 );
+                    });
+                    cancel_btn.on('pointerout', function () {
+                        this.setFrame ( 0 );
+                    });
                 
-            var duration = 500, delay = duration/max;
+                    cancel_btn.on('pointerdown', function () {
+                        
+                        socket.emit ('leaveGame');
+                        
+                        _this.music.play ('clicka');
 
-            for ( var i=0; i<max; i++) {
+                        _this.removePrompt ();
 
-                var rect = this.add.circle ( cX + i*( bSize+ bSpace), cY, bSize/2, 0x6c6c6c, 1 );
-        
-                this.tweens.add ({
-                    targets : rect,
-                    scaleX : 1.5,
-                    scaleY : 1.5,
-                    duration : duration,
-                    ease : 'Power2',
-                    repeat : -1,
-                    yoyo : true,
-                    delay : i * delay,
-                });
+                    });
+    
+                    var txtConfig = { 
+                        color:'#746a62', 
+                        fontSize: txtH,
+                        fontFamily : 'Impact'
+                    };
 
-                this.screenElements.push (rect);
+                    var txt = this.add.text ( txtx, txty, "Connecting..", txtConfig ).setOrigin(0.5);
+                    
+                    this.screenElements = [ rectBg, window, cancel_btn, txt ];
 
+                    var max = 5;
+
+                    var bSize = Math.floor ( 25 * _gameW/1280 ),
+                        bSpace = Math.floor ( 3 * _gameW/1280 ),
+                        bTotal = max * ( bSize + bSpace ) - bSpace;
+                        cX = (_gameW - bTotal) /2,
+                        cY = _gameH * 0.45;
+
+                        
+                    var duration = 500, delay = duration/max;
+
+                    for ( var i=0; i<max; i++) {
+
+                        var circ = this.add.circle ( cX + ( i*( bSize + bSpace) ) + (bSize/2), cY, bSize/2, 0x6c6c6c, 1 );
+                
+                        this.tweens.add ({
+                            targets : circ,
+                            scaleX : 0.5,
+                            scaleY : 0.5,
+                            duration : duration,
+                            ease : 'Power2',
+                            repeat : -1,
+                            yoyo : true,
+                            delay : i * delay,
+                        });
+
+                        this.screenElements.push (circ);
+
+                    }
+
+                    break;
+
+                case 'error':
+                    
+                    var confirm_btn = this.add.image ( bx, by, 'prompt_btns', 2 ).setScale( _gameW/1280 ).setOrigin(0.5).setInteractive();
+    
+                    confirm_btn.on('pointerover', function () {
+                        this.setFrame ( 3 );
+                    });
+                    confirm_btn.on('pointerout', function () {
+                        this.setFrame ( 2 );
+                    });
+                    confirm_btn.on('pointerdown', function () {
+
+                        _this.music.play ('clicka');
+
+                        _this.removePrompt ();
+
+                    });
+
+                    var txtConfig = { 
+                        color:'#746a62', 
+                        fontSize: txtH,
+                        fontFamily : 'Impact'
+                    };
+
+                    var txt = this.add.text ( txtx, txty, err, txtConfig ).setOrigin(0.5);
+                    
+
+                    this.screenElements = [ rectBg, window, confirm_btn, txt ];
+                  
+    
+                    break;
+                default:
+                    //nothing to do..
+                
             }
-
-            var btw = bW * 0.5,
-                bth = bH *0.2,  
-                btx = bX + ( bW - btw )/2,
-                bty = bY + bH *0.65;
-
-            var btnP = this.add.rectangle ( btx, bty, btw, bth, 0x3a3a3a, 1 ).setInteractive().setOrigin (0);
-
-            btnP.on ('pointerover', function () {
-                this.setFillStyle ( 0x6c6c6c )
-                //back.setColor ( '#ff3300');
-            });
-            btnP.on ('pointerout', function () {
-                this.setFillStyle ( 0x3a3a3a )
-                //back.setColor ('#f3f3f3' );
-            });
-            btnP.on ('pointerdown', function () {
-
-                socket.emit ('leaveGame');
-                
-                _this.music.play ('clicka');
-
-                _this.removePrompt ();
-
-            });
-
-            this.screenElements.push (btnP);
-
-            var btnTxtConfig = { 
-                color : '#f3f3f3', 
-                fontSize : bH * 0.11, 
-                fontFamily : 'Trebuchet MS'
-            };
-
-            var back = this.add.text ( btx + btw/2, bty + bth/2, 'Cancel', btnTxtConfig ).setOrigin ( 0.5 );
-
-            this.screenElements.push (back);
 
         },
         showInviteScreen : function ( data ) {
@@ -718,159 +661,71 @@ window.onload = function () {
 
             this.isPrompted = true;
 
-            this.disableButtons ();
-
             this.screenElements = [];
 
-            var graphics = this.add.graphics();
+            var rectBg = this.add.rectangle ( 0, 0, _gameW, _gameH, 0x000000, 0.65 ).setOrigin(0).setInteractive();
 
-            graphics.fillStyle ( 0x0a0a0a, 0.8 );
-            graphics.fillRect ( 0, 0, config.width, config.height );
+            var window = this.add.image ( 0, 0, 'invite' ).setScale(_gameW/1280).setOrigin ( 0 );
+            
 
-            var bW = config.width *0.6,
-                bH = config.height  *0.23,
-                bX = (config.width - bW )/2,
-                bY =  (config.height - bH)/2;
+            var txtH = Math.floor ( 28 * _gameW/1280 ),
+                txtX = Math.floor ( 640 * _gameW/1280 ),
+                txtY = Math.floor ( 265 * _gameH/720 );
 
-            graphics.fillStyle ( 0xdedede , 0.9 );
-            graphics.fillRoundedRect ( bX, bY, bW, bH, bH * 0.03 );
-
-            this.screenElements.push ( graphics );
-            //
-            var txtConfig = {
-                color : '#3c3c3c',
-                fontSize : bH *0.12,
-                fontFamily : 'Trebuchet MS',
-                fontStyle : 'bold'
+            var textNameConfig = { 
+                color:'#9c5825', 
+                fontSize: txtH,
+                fontFamily : 'Impact'
             };
-
+            
             var gameType = data.isTimed ? 'Blitz' : 'Classic';
 
-            var txt = this.add.text ( bX + bW/2, bY + bH *0.3,   data.invite + ' has Invited you to a "'+ gameType +'" game.', txtConfig ).setOrigin (0.5);
+            var str = data.invite + ' has Invited you to a "'+ gameType +'" game.';
 
-            this.screenElements.push ( txt );
+            var textName = this.add.text ( txtX, txtY, str, textNameConfig ).setOrigin(0.5, 0);
 
-            var btW = bW *0.25, btH = bH *0.22,
-                btS = btW * 0.1,
-                btT = 2 * ( btW + btS ) - btS,
-                btX = bX + ( bW - btT )/2,
-                btY = bY + bH * 0.6;
 
-            var txtConfiga = {
-                color : '#f3f3f3',
-                fontSize : btH *0.5,
-                fontFamily : 'Trebuchet MS',
-                fontStyle : 'bold'
-            };
-            
-            for ( var i = 0; i < 2; i++ ) {
+            var btnXa = Math.floor ( 413 * _gameW/1280 ),
+                btnXb = Math.floor ( 643 * _gameW/1280 ),
+                btnY = Math.floor ( 348 * _gameH/720 );
 
-                var xp = btX + i * ( btW + btS );
+            var accept_btn = this.add.image ( btnXa, btnY, 'prompt_btns', 4 ).setScale( _gameW/1280 ).setOrigin(0).setInteractive();
 
-                var rect = this.add.rectangle ( xp, btY, btW, btH, 0x3a3a3a, 1 ).setOrigin (0).setInteractive().setData ( 'id', i );
-
-                rect.on ('pointerover', function () {
-                    this.setFillStyle ( 0x6c6c6c);
-                });
-                rect.on ('pointerout', function () {
-                    this.setFillStyle ( 0x3a3a3a );
-                });
-                rect.on ('pointerdown', function () {
-
-                    var id = parseInt ( this.getData('id') );
-
-                    var accepted = ( id == 0 ) ? true : false;
-
-                    socket.emit ( 'pairingResponse', accepted );
-
-                    _this.music.play('clicka');
-
-                    _this.removePrompt ();
-
-                });
-                
-
-                this.screenElements.push ( rect );
-
-                var txts = this.add.text ( xp + btW/2, btY + btH/2, i == 0 ? 'Accept' : 'Reject', txtConfiga ).setOrigin (0.5);
-
-                this.screenElements.push ( txts );
-
-            }
-
-        },
-        showPromptScreen : function ( txt ) {
-
-            var _this = this;
-
-            this.isPrompted = true;
-
-            this.disableButtons ();
-
-            this.screenElements = [];
-
-            var graphics = this.add.graphics();
-
-            graphics.fillStyle ( 0x0a0a0a, 0.8 );
-            graphics.fillRect ( 0, 0, config.width, config.height );
-
-            var bW = config.width *0.4,
-                bH = config.height  *0.2,
-                bX = (config.width - bW )/2,
-                bY =  (config.height - bH)/2;
-
-            graphics.fillStyle ( 0xdedede , 0.9 );
-            graphics.fillRoundedRect ( bX, bY, bW, bH, bH * 0.03 );
-
-            this.screenElements.push ( graphics );
-            //
-            var txtConfig = {
-                color : '#3c3c3c',
-                fontSize : bH *0.13,
-                fontFamily : 'Trebuchet MS',
-                fontStyle : 'bold'
-            };
-
-            var txt = this.add.text ( bX + bW/2, bY + bH *0.28, txt, txtConfig ).setOrigin (0.5);
-
-            this.screenElements.push ( txt );
-
-            var btW = bW *0.35, 
-                btH = bH *0.25,
-                btX = bX + ( bW - btW )/2,
-                btY = bY + bH * 0.57;
-
-            var txtConfiga = {
-                color : '#f3f3f3',
-                fontSize : btH *0.5,
-                fontFamily : 'Trebuchet MS',
-                fontStyle : 'bold'
-            };
-            
-            var rect = this.add.rectangle ( btX, btY, btW, btH, 0x3a3a3a, 1 ).setOrigin (0).setInteractive();
-
-            rect.on ('pointerover', function () {
-                this.setFillStyle ( 0x6c6c6c);
+            accept_btn.on ('pointerover', function () {
+                this.setFrame  (5)
             });
-            rect.on ('pointerout', function () {
-                this.setFillStyle ( 0x3a3a3a );
+            accept_btn.on ('pointerout', function () {
+                this.setFrame  (4)
             });
-            rect.on ('pointerdown', function () {
+            
+            accept_btn.on('pointerdown', function () {
+               
+                socket.emit ( 'pairingResponse', true );
 
                 _this.music.play('clicka');
 
                 _this.removePrompt ();
-
             });
+
+            var reject_btn = this.add.image ( btnXb, btnY, 'prompt_btns', 6 ).setScale( _gameW/1280 ).setOrigin(0).setInteractive();
+
+            reject_btn.on ('pointerover', function () {
+                this.setFrame  (7)
+            });
+            reject_btn.on ('pointerout', function () {
+                this.setFrame  (6)
+            });
+            reject_btn.on('pointerdown', function () {
+               
+                socket.emit ( 'pairingResponse', false );
+
+                _this.music.play('clicka');
+
+                _this.removePrompt ();
+            });
+
+            this.screenElements = [ rectBg, window, accept_btn, reject_btn, textName ];
             
-
-            this.screenElements.push ( rect );
-
-            var txts = this.add.text ( btX + btW/2, btY + btH/2, 'OK', txtConfiga ).setOrigin (0.5);
-
-            this.screenElements.push ( txts );
-            
-
         },
         showConnectToFriendScreen : function () {
 
@@ -878,206 +733,127 @@ window.onload = function () {
             
             this.connectScreenShown = true;
 
-            this.disableButtons ();
-
             this.screenElements = [];
-
-            var graphics = this.add.graphics();
-
-            graphics.fillStyle ( 0x0a0a0a, 0.7 );
-            graphics.fillRect ( 0, 0, config.width, config.height );
-
-            var bW = config.width *0.3,
-                bH = config.height  *0.6,
-                bX = (config.width - bW )/2,
-                bY =  (config.height - bH)/2;
-
-            graphics.fillStyle ( 0xf3f3f3 , 1 );
-            graphics.fillRoundedRect ( bX, bY, bW, bH, bH * 0.02 );
-
-            var cS = bW * 0.1;
-
-            graphics.fillStyle ( 0x6a6a6a, 1 );
-            graphics.fillCircle ( bX + bW, bY, cS/2 );
-            graphics.lineStyle ( 1, 0x9c9c9c);
-            graphics.strokeCircle ( bX + bW, bY, cS/2 );
             
-            this.screenElements.push ( graphics );
 
-            var recta = this.add.rectangle ( bX + bW, bY, cS, cS ).setInteractive();
-            recta.on('pointerdown', function () {
+            var rectBg = this.add.rectangle ( 0, 0, _gameW, _gameH, 0x000000, 0.65 ).setOrigin(0).setInteractive();
+
+            var window = this.add.image (0, 0, 'pairing_placement' ).setOrigin ( 0 ).setScale(_gameW/1280);
+
+            var cX = Math.floor ( 803 * _gameW/1280 ),
+                cY = Math.floor ( 70 * _gameH/720 ),
+                cS = Math.floor ( 23 * _gameW/1280 );
+
+            var circ = this.add.circle ( cX, cY, cS, 0x3a3a3a, 0 ).setOrigin(0).setInteractive();
+
+            circ.on('pointerdown', function () {
                 _this.music.play('clicka');
                 _this.removeConnectScreen();
             });
-            this.screenElements.push ( recta );
 
-            var close = this.add.text ( bX + bW, bY, 'x', { color : '#fff', fontSize : cS * 0.7, fontFamily : 'Arial', fontStyle : 'bold' } ).setOrigin(0.5);
-
-            this.screenElements.push ( close );
-
-            var configTxt = {
-                color : '#3a3a3a',
-                fontFamily : 'Trebuchet MS',
-                fontSize : bH * 0.045,
-                fontStyle : 'bold'
-            }
-
-            var txt = this.add.text ( bX + bW * 0.05, bY + bH * 0.08, 'Enter Friend\'s Pairing Code', configTxt );
-
-            this.screenElements.push ( txt );
-
-            var lineA = this.add.line ( config.width/2, bY+bH*0.15, 0, 0, bW *0.9, 0, 0x6c6c6c, 1 )
-
-            this.screenElements.push ( lineA );
-
-            var tfW = bW *0.9, tfH = bH * 0.12,
-                tfX = bX + ( bW - tfW )/2,
-                tfY = bY + bH*0.18;
-
-            graphics.fillStyle ( 0xffff80, 1 );
-            graphics.fillRoundedRect ( tfX, tfY, tfW, tfH, tfH *0.1 );
-            graphics.lineStyle ( 1, 0x6a6a6a );
-            graphics.strokeRoundedRect (  tfX, tfY, tfW, tfH, tfH *0.1 );
-            
-
-            var configTxter = {
-                color : '#6c6c6c',
-                fontFamily : 'Trebuchet MS',
-                fontSize : tfH * 0.68,
-                fontStyle : 'bold'
-            }
-
-            this.playerTextId = this.add.text ( tfX + tfW/2, tfY + tfH/2, '-----', configTxter ).setOrigin(0.5);
-
-            //this.screenElements.push ( txt2 );
+            var txtH = Math.floor ( 50 * _gameH/720 );
+            var txtConfig = { 
+                color:'#4e4e4e', 
+                fontSize: txtH, 
+                fontFamily:'Impact', 
+            };
 
 
-            var btT = tfW,
-                btS = btT*0.02,
-                btW = (btT - (2*btS))/3, 
-                btH = bH * 0.15,
-                btX = tfX,
-                btY = bY + bH * 0.33;
+            var txtX = Math.floor ( 788 * _gameW/1280 ),
+                txtY = Math.floor ( 230 * _gameH/720 );
 
-            var _this = this;
+            var txt = this.add.text (txtX, txtY, '0', txtConfig ).setOrigin (1);
 
-            var str = ''; 
+            this.screenElements = [ rectBg, window, circ, txt ]
 
-            var configTxtC = {
-                color : '#3a3a3a',
-                fontFamily : 'Trebuchet MS',
-                fontSize : bH * 0.075,
-                fontStyle : 'bold'
-            }
+            var inputCount = 0, maxInput = 6;
 
-            for ( var i = 0; i < 12 ; i++ ) {
+            var xW = Math.floor ( 106 * _gameW/1280 ),
+                xH = Math.floor ( 83 * _gameW/1280 ),
+                xSp = Math.floor ( 3 * _gameW/1280 ),
+
+                xStart =  (_gameW - ((3 * (xW + xSp)) - xSp))/2,
+                yStart =  Math.floor ( 248 * _gameW/1280 );
+
+            for ( var i = 0; i < 12; i++ ) {
 
                 var ix = Math.floor ( i/3 ), iy = i%3;
 
-                var xp = btX + iy * ( btW + btS ),
-                    yp = btY + ix * ( btH + btS );
+                var keys = this.add.image ( xStart + iy * (xW + xSp), yStart + ix *( xH + xSp ), 'keys' ).setScale(_gameW/1280).setOrigin ( 0 ).setFrame(i).setData('frame', i).setInteractive();
 
-                var tmpTxt = '', rectid = '';
-
-                if ( i < 9 ) {
-                    tmpTxt = i+1;
-                } else if ( i == 9 ) {
-                    tmpTxt = '0';
-                } else if ( i == 10 ) {
-                    tmpTxt = 'clr';  
-                }else {
-                    tmpTxt = "ok";
-                }
+                keys.on('pointerover', function () {
+                    this.setFrame ( this.getData('frame') + 12 );
+                });
+                keys.on('pointerout', function () {
+                    this.setFrame ( this.getData('frame') );
+                });
+                keys.on('pointerdown', function () {
                 
-                var prect = this.add.rectangle ( xp, yp, btW, btH, 0xc3c3c3, 1).setOrigin(0).setData ({ 'value' : i }).setInteractive();
 
-                prect.on ('pointerover', function () {
-                    this.setFillStyle ( 0x9c9c9c );
-                });
-                prect.on ('pointerout', function () {
-                    this.setFillStyle ( 0xc3c3c3 );
-                });
-                prect.on ('pointerup', function () {
-                    this.setFillStyle ( 0xc3c3c3 );
-                });
-                prect.on ('pointerdown', function () {
+                    var data = this.getData('frame');
 
-                    var butValue = parseInt ( this.getData ('value') );
+                    if ( data < 10 ) {
 
-                    if ( butValue < 10 ) {
+                        if ( inputCount < maxInput ) {
 
-                        if ( str.length >= 6 ) {
-                            
-                            this.setFillStyle ( 0xff6a6a );
-                            
-                            _this.music.play('error');
+                            this.setFrame ( data + 12 );
 
-                        }else {
-                            
-                            this.setFillStyle ( 0x99ffff);
+                            if ( inputCount == 0 ) txt.text = '';
 
-                            str += ( butValue == 9 )? '0' : (butValue + 1);
-
-                            _this.playerTextId.text = str
+                            if ( data == 9 ) {
+                                txt.text += '0'
+                            }else {
+                                txt.text += (data + 1) ;
+                            }
+                           
+                            inputCount++;
 
                             _this.music.play('clicka');
-                        }
-
-                    
-
-                    }else if ( butValue == 10 ) { //clear 
-
-                        this.setFillStyle ( 0x99ffff );
-
-                        str = '';
-                    
-                        _this.playerTextId.text = '-----';
-
-                        _this.music.play('clicka');
-                    
-                    }else { //enter
-                        
-
-                        if ( str == '' ) {
-
-                            this.setFillStyle ( 0xff6a6a );
-                            
-                            _this.music.play('error');
 
 
                         }else {
+                            _this.music.play('error');
+                        }
 
-                            this.setFillStyle ( 0x99ffff );
+
+                    }else if ( data == 10 ) {
+
+                        txt.text = '0';
+                        inputCount = 0;
+                        //this.setFrame ( this.getData('frame') + 12 );
+
+                        _this.music.play('clicka');
+
+                    }else {
+
+                        if ( inputCount > 0 ) {
+
+                            //this.setFrame ( this.getData('frame') + 12 );
 
                             _this.music.play('clicka');
                             
                             _this.removeConnectScreen ();
 
-                            _this.showWaitScreen ();
+                            _this.showPromptScreen ('connect');
 
                             var isTimed = _this.gameData.type == 0 ? true : false;
 
-                            socket.emit ('pair', { 'code' : str, 'isTimed' : isTimed } );
+                            socket.emit ('pair', { 'code' : txt.text, 'isTimed' : isTimed } );
 
+                        }else {
+                            _this.music.play('error');
                         }
-                       
-                        //..
-                    }
-                    
 
+                       
+                        
+
+                    }
+                
                 });
 
-            
-                var ttxt = this.add.text ( xp + btW/2, yp + btH/2, tmpTxt, configTxtC ).setOrigin(0.5);
-
-                ttxt.setStroke('#f3f3f3', 3);
-                //ttxt.setShadow( 1, 1, '#6a6a6a', 5, true, true );
-
-                this.screenElements.push ( prect );
-                this.screenElements.push ( ttxt );
-
-
+                this.screenElements.push ( keys );
             }
+
 
         },
         removePrompt : function () {
@@ -1085,8 +861,7 @@ window.onload = function () {
             for ( var i in this.screenElements) {
                 this.screenElements[i].destroy();
             }
-            this.disableButtons (false);
-            
+
             this.isPrompted = false;
 
         },
@@ -1094,9 +869,8 @@ window.onload = function () {
 
             this.connectScreenShown = false;
 
-            this.playerTextId.destroy();
-
             this.removePrompt ();
+
         },
         initGame : function ( data ) {
 
@@ -1109,6 +883,7 @@ window.onload = function () {
         }
 
     });
+
 
     var SceneA = new Phaser.Class({
 
@@ -1179,6 +954,8 @@ window.onload = function () {
         create: function () 
         {
             
+            this.bg = this.add.image ( 0, 0, 'bg2' ).setScale(_gameW/1280 ).setOrigin(0);
+
             var _this = this;
 
             this.timer;
@@ -1189,16 +966,14 @@ window.onload = function () {
 
             var postArr = this.presetPost ( this.presetIndex );
 
-            
+
             this.createGameData();
-
-            this.createPanels();
-
-            this.createGrid ();
 
             this.createPlayers();
 
             this.createPlayerIndicator ();
+
+            this.createGrid ();
 
             this.createGamePiecesData ('self', postArr );
 
@@ -1208,12 +983,15 @@ window.onload = function () {
 
             this.initSocketIOListeners();
 
+            this.createControlPanel ();
+
+            this.createButtons ();
+
+            this.createGameControls();
+
+
             setTimeout ( function () {
                 
-                _this.createButtons ();
-
-                _this.createGameControls();
-
                 _this.makePreparations ();
         
             }, 800);
@@ -1225,7 +1003,7 @@ window.onload = function () {
 
             socket.on ('drawResponse', function (data) {
 
-                console.log ( data );
+                //console.log ( data );
 
                 _this.clearPrompt();
 
@@ -1375,7 +1153,7 @@ window.onload = function () {
                 _this.gamePhase = 'end';
 
                 setTimeout(() => {
-                    _this.showPrompt ('Opponent has left the game.', '', false, 0.05 );
+                    _this.showPrompt ('Opponent has left the game.', '', false, 'sml' );
                 }, 200);
                 
             });
@@ -1478,225 +1256,105 @@ window.onload = function () {
             };
             
         },
-        createGrid: function  () 
-        {
-            var gW = this.gameWidth/9,
-                gH = config.height * 0.09,
-                gX = ( config.width - this.gameWidth )/2,
-                gY = config.height * 0.11;
+        createControlPanel : function () {
 
-            this.fieldY = gY;
-            this.fieldHeight = gH * 8;
+            this.panel = this.add.image ( 0, 0, 'panel' ).setScale(_gameW/1280 ).setOrigin(0);
 
-            var graphics = this.add.graphics();
+        },
+        createGrid : function () {
 
-            graphics.lineStyle (2, 0xcccccc);
+            this.grid = [];
 
-            var txtConfig = {
-                color : '#ccc',
-                fontSize : gW * 0.11,
-                fontFamily : "Arial"
-            };
+            var col = 9, row = 8;
 
-            var counter = 0;
+            var btw = Math.floor ( 125 * _gameW/1280 ),
+                bth = Math.floor ( 74 * _gameH/720 ),
+                btx = Math.floor ( 21 * _gameW/1280 ),
+                bty = Math.floor ( 99 * _gameH/720 );
 
-            for ( var i = 0; i < 8; i++ ) {
+            var strke = Math.floor ( 4 * _gameW/1280);
 
-                for ( var j = 0; j < 9; j++ ) {
+            for ( var i = 0; i < 72; i++ ) {
 
-                    graphics.fillStyle ( i < 4 ? 0x0000cc : 0xff0000, 1 );
-                    graphics.fillRect ( gX + j*gW, gY + i*gH, gW, gH );
-                    graphics.strokeRect ( gX + j*gW, gY + i*gH, gW, gH );
+                var ix = Math.floor ( i/col ), iy = i%col;
 
-                    //var txt = this.add.text ( gX + j*gW, gY + i*gH, counter, txtConfig );
-                    
-                    this.grid. push ({
+                var clr = ( i < 36 ) ?  0xff0000 : 0x1919e0;
 
-                        x : gX + j*gW + gW/2, 
-                        y : gY + i*gH + gH/2,
-                        width : gW,
-                        height : gH,
-                        row  : i,
-                        col : j,
-                        cnt : counter,
-                        resident : '',
-                        residentPlayer : ''
+               
+                var xp = btx + ( iy * btw ),
+                    yp = bty + ( ix * bth );
 
-                    });
+                var rect = this.add.rectangle ( xp, yp, btw, bth, clr, 1 ).setOrigin (0).setStrokeStyle ( strke, 0xffffff );
 
-                    counter++;
-                }    
-
+                this.grid.push ({
+                    x : xp + (btw/2), 
+                    y : yp + (bth/2),
+                    width : btw,
+                    height : bth,
+                    row  : ix,
+                    col : iy,
+                    cnt : i,
+                    resident : '',
+                    residentPlayer : ''
+                });
             }
-                
+
         },
         createPlayerIndicator: function () 
         {
-            var maxWins = 3;
 
-            var pSp = config.width * 0.008,
-                pW = ( this.gameWidth - pSp ) /2,
-                pH = config.height * 0.075,
-                pX = ( config.width - this.gameWidth )/2 + pW/2,
-                pY = (( config.height * 0.101 ) - pH )/2  + pH/2;
+            var btw = Math.floor ( 553 * _gameW/1280 ),
+                bth = Math.floor ( 67 * _gameH/720 ),
+                btxa = Math.floor ( 21 * _gameW/1280 ),
+                btxb = Math.floor ( 595 * _gameW/1280 ),
+                bty = Math.floor ( 18 * _gameH/720 );
 
-            
-            var count=0;
-            for ( var i in this.player ) {
+            var self = new PlayerIndicator (this, 'self', btxa + btw/2, bty + bth/2, btw, bth, this.player['self'].name, 5 );
 
-                var pi = new PlayerIndicator (this, this.player[i].id , pX + count * (pW + pSp), 0, pW, pH, this.player[i].name, maxWins );
+            this.plyrInd [ 'self' ] = self;
 
-                this.plyrInd [ this.player[i].id ] = pi;
+            var oppo = new PlayerIndicator (this, 'oppo', btxb + btw/2, bty + bth/2, btw, bth, this.player['oppo'].name, 5 );
 
-                this.tweens.add ({
-                    targets : pi,
-                    y: pY,
-                    duration : 500,
-                    ease : 'Elastic',
-                    //delay : i * 100,
-                    easeParams : [0.5, 1.1 ]
-                });
+            this.plyrInd [ 'oppo' ] = oppo;
 
-                count++;
-            }
-
-        },
-        createPanels: function () {
-
-            var panelH_top = config.height * 0.101,
-                panelH_bot = config.height * 0.076;
-
-            var graphics = this.add.graphics();
-
-            graphics.lineStyle ( 1, 0x9e9e9e );
-            
-            graphics.fillStyle ( 0xdedede, 1 );
-            graphics.fillGradientStyle ( 0xf5f5f5, 0xf5f5f5, 0xc3c3c3, 0xc3c3c3, 1 );
-
-
-            graphics.fillRect ( 0, 0, config.width, panelH_top ); //top
-
-            graphics.beginPath();
-            graphics.moveTo( 0, panelH_top );
-            graphics.lineTo( config.width, panelH_top,);
-            graphics.strokePath();
-
-            graphics.fillGradientStyle ( 0xf5f5f5, 0xf5f5f5, 0xa4a4a4, 0xa4a4a4, 1 );
-            graphics.fillRect ( 0, config.height - panelH_bot, config.width, panelH_bot ); // bottom
-            
-            graphics.beginPath();
-            graphics.moveTo( 0, config.height - panelH_bot );
-            graphics.lineTo( config.width, config.height - panelH_bot);
-            graphics.strokePath();
-
-            //line
-            graphics.lineStyle ( 1, 0x333333 );
-            graphics.beginPath();
-            graphics.moveTo( 0, config.height * 0.841 );
-            graphics.lineTo( config.width * 0.2, config.height * 0.841 );
-            graphics.lineTo( config.width * 0.25, config.height * 0.91 );
-            graphics.lineTo( config.width * 0.75, config.height * 0.91 );
-            graphics.lineTo( config.width * 0.8, config.height * 0.841 );
-            graphics.lineTo( config.width, config.height * 0.841 );
-            graphics.strokePath();
-
-            graphics.lineStyle ( 1, 0xf4f4f4 );
-            graphics.beginPath();
-            graphics.moveTo( 0, config.height * 0.842 );
-            graphics.lineTo( config.width * 0.2, config.height * 0.842 );
-            graphics.lineTo( config.width * 0.25, config.height * 0.911 );
-            graphics.lineTo( config.width * 0.75, config.height * 0.911 );
-            graphics.lineTo( config.width * 0.8, config.height * 0.842 );
-            graphics.lineTo( config.width, config.height * 0.842 );
-            graphics.strokePath();
-
-            /* graphics.lineStyle ( 1, 0x333333 );
-            graphics.beginPath();
-            graphics.moveTo( 0, config.height * 0.97 );
-            graphics.lineTo( config.width  * 0.7, config.height * 0.97 );
-            graphics.strokePath();
-
-            graphics.lineStyle ( 1, 0xf4f4f4 );
-            graphics.beginPath();
-            graphics.moveTo( 0, config.height * 0.971 );
-            graphics.lineTo( config.width  * 0.7, config.height * 0.971  );
-            graphics.strokePath();
-
-            graphics.lineStyle ( 1, 0x333333 );
-            graphics.beginPath();
-            graphics.moveTo( 0, config.height * 0.96 );
-            graphics.lineTo( config.width * 0.7, config.height * 0.96 );
-            graphics.strokePath();
-
-            graphics.lineStyle ( 1, 0xf4f4f4 );
-            graphics.beginPath();
-            graphics.moveTo( 0, config.height * 0.961 );
-            graphics.lineTo( config.width * 0.7, config.height * 0.961  );
-            graphics.strokePath();  */
-
-            graphics.lineStyle ( 1, 0x6a6a6a );
-            graphics.beginPath();
-            graphics.moveTo( 0, config.height * 0.951);
-            graphics.lineTo( config.width, config.height * 0.951  );
-            graphics.strokePath();
-
-            graphics.lineStyle ( 1, 0xf4f4f4 );
-            graphics.beginPath();
-            graphics.moveTo( 0, config.height * 0.952 );
-            graphics.lineTo( config.width, config.height * 0.952  );
-            graphics.strokePath();
-
-            
-            var txtConfig = {
-                fontSize : config.height * 0.018,
-                color : '#6a6a6a',
-                fontFamily : 'Verdana',
-                //fontStyle : 'bold'
-            };
-
-            var txt = this.add.text ( config.width * 0.012, config.height * 0.849, 'Control Panel', txtConfig ).setOrigin(0);
+            /* this.tweens.add ({
+                targets : [self, oppo],
+                y: bty,
+                duration : 500,
+                ease : 'Elastic',
+                easeParams : [0.5, 1.1 ]
+            }); */
 
         },
         createButtons : function ( proper = false ) {
-
+            
             var buts = [];
             
             if ( !proper ) {
-
-                buts = [
-                    { id : 'preset', value : '⚔ Preset' },
-                    { id : 'random', value : '☋ Random' },
-                    { id : 'ready', value : '✔ Ready' }
-                ];
-
+                buts = ['preset', 'random', 'ready'];
             }else {
-                
-                buts = [
-                    { id : 'proposedraw', value : '⚖ Game Draw' },
-                    { id : 'resign', value : '⚑ Resign' },
-                    { id : 'showpieces', value : '❖ Reveal Pieces' }
-                ];
-
-                //if ( this.isSinglePlayer ) buts.pop();
-
+                buts = ['proposedraw', 'resign', 'showpieces'];
             }
 
-            var bS = config.width * 0.008,
-                bW = (config.width * 0.5 - ( bS * (buts.length - 1) ) )/ buts.length,
-                bH = config.height * 0.06,
-                bX = config.width * 0.25 + bW/2,
-                bY = config.height * 0.841 + bH/2;
-                
+            var btw = Math.floor ( 85 * _gameW/1280 ),
+                bth = Math.floor ( 46 * _gameH/720 ),
+                btx = Math.floor ( 1184 * _gameW/1280 ) ,
+                bty = Math.floor ( 542 * _gameH/720 ),
+                bts = Math.floor ( 10 * _gameH/720 );
+
             var _this = this;
 
             for ( var i = 0; i < buts.length; i++ ) {
 
-                var but = new MyButton (this, buts[i].id,  bX + i * (bW + bS), bY, bW, bH, buts[i].value, 0xf3f3f3 );
+                var xs = btx + (btw/2),
+                    ys =  bty + (i*(bth + bts)) + (bth/2);
 
-                but.setScale (0.5);
+                var frame = !proper ? i*3 : (i*3)+9;
+                
+                var but = new MyButton ( this, buts[i], xs, ys, btw, bth, frame, 'main_btns' ).setAlpha(0).setScale(0.1);
 
                 but.on('pointerover', function () {
-                    this.change ();
+                    this.isHovered ();
                 });
                 but.on('pointerout',  function () {
                     this.reset();
@@ -1704,10 +1362,9 @@ window.onload = function () {
                 but.on('pointerup',  function () {
                     this.reset()
                 });
-                
                 but.on('pointerdown', function () {
 
-                   
+                    
                     if ( _this.isEmoji ) _this.toggleEmojis ();
 
                     if ( _this.elimScreenShown ) _this.toggleElimPiecesScreen();
@@ -1718,7 +1375,7 @@ window.onload = function () {
 
                             if ( _this.isTimed && _this.timerCount >= ( _this.maxPrepTime - 1) ) return;
 
-                            this.change ( 0x00ffff );
+                            this.isDown();
 
                             _this.playSound('clicka');
 
@@ -1736,7 +1393,7 @@ window.onload = function () {
 
                             if ( _this.isTimed && _this.timerCount >= (_this.maxPrepTime - 1) ) return;
 
-                            this.change ( 0x00ffff );
+                            this.isDown();
 
                             _this.playSound('clicka');
 
@@ -1750,8 +1407,11 @@ window.onload = function () {
                             
                             if ( _this.isTimed && _this.timerCount >= ( _this.maxPrepTime - 1) ) return;
 
+
                             //..
-                            this.change ( 0x00ffff );
+                            this.isDown();
+
+                            this.disableInteractive();
 
                             _this.playSound('clicka');
 
@@ -1765,13 +1425,13 @@ window.onload = function () {
 
                             if ( _this.isPrompted ) {
                                 
-                                this.change ( 0xff9999 );
+                                this.isDown();
 
                                 _this.playSound ('error');
 
                             }else {
 
-                                this.change ( 0x00ffff );
+                                this.isDown();
                                 
                                 _this.playSound('clicka');
 
@@ -1788,13 +1448,13 @@ window.onload = function () {
 
                             if ( _this.isPrompted ) {
 
-                                this.change ( 0xff9999 );
+                                this.isDown();
 
                                 _this.playSound ('error');
 
                             }else {
 
-                                this.change ( 0x00ffff );
+                                this.isDown();
                                 
                                 _this.playSound('clicka');
 
@@ -1806,7 +1466,7 @@ window.onload = function () {
 
                                     } else {
 
-                                        _this.showNotification ('You can only offer a draw on your turn.');
+                                        _this.showNotification ('You can only propose a draw on your turn.');
                                     }                
                                 
                                 }, 100);
@@ -1819,13 +1479,13 @@ window.onload = function () {
 
                             if ( _this.isPrompted ) {
 
-                                this.change ( 0xff9999 );
+                                this.isDown();
 
                                 _this.playSound ('error');
 
                            }else {
 
-                                this.change ( 0x00ffff );
+                                this.isDown();  
 
                                 _this.playSound('clicka');
 
@@ -1841,60 +1501,66 @@ window.onload = function () {
                         default :
                     }
 
-                    
-                    
-
                 });
                     
                 this.tweens.add ({
-
                     targets : but,
                     scaleX : 1,
                     scaleY : 1,
+                    alpha : 1,
                     duration : 300,
-                    ease : 'Elastic',
-                    easeParams : [ 1, 0.5],
-
+                    ease : 'Bounce',
+                    easeParams : [ 0.5, 1],
+                    delay : 500
                 });
 
                 this.button.push ( but );
+
             }
+
         },
         createGameControls: function () {
 
-            var cntrl = [ 'Show/Hide Eliminated Pieces', 'Set Music On/Off', 'Set Sound On/Off', 'Send Emoji', 'Leave Game' ];
-
-            var cD = config.width * 0.04,
-                cS = cD * 0.16,
-                cW = ( cntrl.length * ( cD + cS ) ) - cD/2,
-                cX = config.width - cW,
-                cY = config.height * 0.963;
+            
+            var buts = ['elims', 'music', 'sound', 'emoji', 'close'];
+            
+            var btw = Math.floor ( 63 * _gameW/1280 ),
+                bth = Math.floor ( 63 * _gameH/720 ),
+                btx = Math.floor ( 1193 * _gameW/1280 ) ,
+                bty = Math.floor ( 34 * _gameH/720 ),
+                bts = Math.floor ( 8 * _gameH/720 );
 
             var _this = this;
 
-            for ( var i = 0; i < cntrl.length; i++ ) {
+            for ( var i = 0; i < buts.length; i++ ) {
 
-                var x = cX + i * (cD + cS);
-                var cntrols = new Controls (this, 'cont' + i, x, cY, cD/2, cntrl[i], i, 0xcccccc );
+                var xs = btx + (btw/2),
+                    ys =  bty + (i*(bth + bts)) + (bth/2);
 
-                cntrols.on ('pointerover', function () {
-                    this.change (0xdedede);
-                    _this.controlsText.setText ( '· ' + this.txt  + ' ·');
+                //var frame = !proper ? i*3 : (i*3)+6;
+                
+                var but = new MyButton ( this, buts[i], xs, ys, btw, bth, i*3, 'cont_btns' ).setAlpha(0).setScale(0);
 
+                but.on('pointerover', function () {
+                    this.isHovered ();
                 });
-                cntrols.on ('pointerout', function () {
-                    this.reset();
-                    _this.controlsText.setText ('');
-                });
-                cntrols.on ('pointerup', function () {
+                but.on('pointerout',  function () {
                     this.reset();
                 });
-                cntrols.on ('pointerdown', function () {
+                but.on('pointerup',  function () {
+                    this.reset()
+                });
+                but.on('pointerdown', function () {
+
+                    this.isDown();
+                    
+                    //if ( _this.isEmoji ) _this.toggleEmojis ();
+
+                    //if ( _this.elimScreenShown ) _this.toggleElimPiecesScreen();
 
                     switch (this.id) {
 
-                        case 'cont0' :
-
+                        case 'elims' :
 
                             if ( _this.isEmoji ) _this.toggleEmojis ();
 
@@ -1902,11 +1568,9 @@ window.onload = function () {
                             
                             _this.toggleElimPiecesScreen();
                             
-
                         break;
-                        case 'cont1' :
 
-                           
+                        case 'music' :
 
                             if ( !_this.bgmusic.isPaused ) {
                                 _this.bgmusic.pause();
@@ -1916,25 +1580,19 @@ window.onload = function () {
                             
                             _this.playSound('clicka');
 
-                            this.toggle();
-                            
 
                         break;
-                        case 'cont2' :
-
-                            
-
+                       
+                        case 'sound' :
+                          
+                        
                             _this.soundOff = !_this.soundOff;
 
                             _this.playSound('clicka');
 
-                            this.toggle();
-
-                           
 
                         break;
-                        case 'cont3' :
-
+                        case 'emoji' :
 
                             if ( _this.elimScreenShown )  _this.toggleElimPiecesScreen();
 
@@ -1942,28 +1600,14 @@ window.onload = function () {
 
                             _this.toggleEmojis ();
 
-                            /*  
-                            if ( _this.isPrompted  ) {
-
-                                this.change (0xff9999);
-
-                                _this.playSound('error');
-
-                            }else {
-
-                               
-                            } 
-                            */
                             
+
                         break;
-
-                        case 'cont4' :
-
+                        case 'close' :
+                            
                             if ( _this.gamePhase != 'end' ) {
 
                                 if ( _this.isPrompted ) {
-
-                                    this.change (0xff9999);
 
                                     _this.playSound('error');
 
@@ -1973,8 +1617,6 @@ window.onload = function () {
 
                                     if ( _this.instructionsShown ) _this.removeInstructions();
 
-                                    this.change (0x9999ff);
-
                                     _this.playSound('clicka');
 
                                     setTimeout ( function () {                        
@@ -1983,42 +1625,79 @@ window.onload = function () {
 
                                 }
 
-                                
                             }else{
 
-                                this.change (0x9999ff);
                                 
                                 _this.playSound('clicka');
 
                                 _this.leaveGame ();
 
                             }
-                            
+
                         break;
+                       
                         
+                        default :
                     }
 
-                   
-
-                    //this.change (0x9999ff);
+                
+                });
                     
+                this.tweens.add ({
+                    targets : but,
+                    scaleX : 1,
+                    scaleY : 1,
+                    alpha : 1,
+                    duration : 500,
+                    ease : 'Bounce',
+                    easeParams : [ 0.5, 1],
+                    delay : (i * 100) + 1000,
                 });
 
-                this.controls.push ( cntrols );
+                this.controls.push ( but );
+
             }
+
             
-            var txtConfig = {
-                color : '#300',
-                fontSize : config.height * 0.02,
-                fontFamily : 'Trebuchet MS',
-                fontStyle : 'bold'
-            };
+           
 
-            var tx = config.width * 0.75,
-                ty = config.height * 0.978;
+        },
+        showControlPanel : function ( show = true ) {
 
-            this.controlsText = this.add.text ( tx, ty, '', txtConfig ).setOrigin(1);
+            var bgX = show ? 0 : -_gameW;
 
+            var _this = this;
+
+            this.toggle_btn.setFrame ( show ? 40 : 41 );
+
+            this.tweens.add ({
+                targets : this.panel,
+                x : bgX,
+                duration : 300,
+                ease : 'Quad.easeOut',
+                onComplete : function () {
+                    _this.toggle_btn.setInteractive();
+                }
+            });
+
+            for ( var i in this.button ) {
+                
+                var xs = show ? this.button [i].x + _gameW : this.button [i].x - _gameW;
+
+                this.button [i].disableInteractive();
+
+                this.tweens.add ({
+                    targets : this.button [i],
+                    x : xs,
+                    duration : 300,
+                    ease : 'Quad.easeOut',
+                    onComplete : function () {
+                        this.targets[0].setInteractive();
+                    }
+                });
+
+            }
+ 
         },
         createGamePiecesData : function ( plyr, postArr ) {
 
@@ -2200,20 +1879,20 @@ window.onload = function () {
 
             this.isEmoji = !this.isEmoji;
 
-            this.controls[3].toggle();
+
+            //this.controls[3].toggle();
 
             if ( this.isEmoji ) {
 
-                var esize = config.width * 0.075;
+                this.emojiSCreen = this.add.image (0,0,'send_emoji').setOrigin(0).setScale(_gameW/1280 );
 
-                var emojiCount = 9, c = 3, r = Math.ceil ( emojiCount/c );
 
-                var w = esize * c,
-                    h = esize * r,
-                    x = config.width - w,
-                    y = config.height * 0.924 - h;
+                var bts = Math.floor ( 55 * _gameW/1280 ),
+                    btx = Math.floor ( 800 * _gameW/1280 ),
+                    bty = Math.floor ( 167 * _gameH/720 );
+                    
+                var emojiCount = 24;
 
-                //this.rectBg = this.add.rectangle ( x + w/2, y + h/2, w, h, 0x0a0a0a, 0.5 ).setDepth(999);
 
                 var _this = this;
 
@@ -2223,21 +1902,21 @@ window.onload = function () {
 
                 for ( var i = 0; i< emojiCount; i++ ) {
 
-                    var xp = Math.floor ( i/3 ), yp = i%3;
+                    var xp = Math.floor ( i/6 ), yp = i%6;
 
-                    var xpos = x + ( yp * esize ) + esize/2,
-                        ypos = y + ( xp * esize ) + esize/2;
+                    var xpos = btx + ( yp * bts ) + bts/2,
+                        ypos = bty + ( xp * bts ) + bts/2;
 
-                    var clicks = this.add.rectangle ( xpos, ypos, esize, esize, 0x0a0a0a, 0.8 );
+                    var clicks = this.add.rectangle ( xpos, ypos, bts, bts, 0x0a0a0a, 0 );
                     
                     clicks.setInteractive().setDepth (9999).setData('count', i);
 
                     clicks.on('pointerover', function () {
-                        this.setFillStyle ( 0x9999ff, 1 );
+                        this.setFillStyle ( 0xffffff, 0.3 );
 
                     });
                     clicks.on('pointerout', function () {
-                        this.setFillStyle ( 0x0a0a0a, 0.8 );
+                        this.setFillStyle ( 0xffffff, 0 );
                     });
                     clicks.on('pointerdown', function () {
                         
@@ -2264,15 +1943,16 @@ window.onload = function () {
                     
                     this.clickables.push ( clicks );
 
-                    var imgsize = esize * 0.9;
 
-                    var emoji = this.add.image ( xpos , ypos, 'thumbs', 30 + i ).setScale(imgsize/50).setDepth (9999);
+                    var emoji = this.add.image ( xpos , ypos, 'emojis', i ).setScale(_gameW/1280 * 0.5 ).setDepth (9999);
 
                     this.myEmojis.push ( emoji );
 
                 }
 
             }else {
+
+                this.emojiSCreen.destroy();
 
                 for ( var i = 0; i< this.myEmojis.length ; i++ ) {
 
@@ -2292,55 +1972,14 @@ window.onload = function () {
 
             this.elimScreenShown = !this.elimScreenShown;
             
-            this.controls[0].toggle();
-            
+            //this.controls[0].toggle();
             var duration_all = 500;
 
             if ( this.elimScreenShown ) {
                 
-                var cW = config.width,
-                    cH = this.fieldHeight,
-                    cX = config.width/2,
-                    cY = this.fieldY + (cH/2);
+               this.elimScreen = this.add.image (_gameW/2, _gameH/2, 'elim_field').setScale(_gameW/1280);
 
-                this.elimScreen = this.add.rectangle( -(cW/2), cY, cW, cH, 0x0a0a0a, 0.9 );
-                this.elimScreen.setInteractive().setDepth (999);
-
-                this.tweens.add ({
-                    targets : this.elimScreen,
-                    x : cX,
-                    duration : duration_all,
-                    ease : 'Power2'
-                });
-
-
-                this.line1 = this.add.line ( -(cW/2) , config.height * 0.45, 0, 0, 0, config.height * 0.5, 0x6a6a6a, 1 ).setDepth ( 999 );
-
-                this.tweens.add ({
-                    targets : this.line1,
-                    x : config.width/2,
-                    duration : duration_all,
-                    ease : 'Power2'
-                }); 
-
-               
-                var configtxt = {
-                    color : '#f5f5f5',
-                    fontSize : config.height * 0.026,
-                    fontFamily : 'Trebuchet MS',
-                    fontStyle : 'bold'
-                };
-
-                this.texta = this.add.text( -(cW/2), config.height * 0.15, 'Eliminated Pieces', configtxt).setOrigin(0.5).setDepth(999);
-
-                this.tweens.add ({
-                    targets : this.texta,
-                    x : config.width/2,
-                    duration : duration_all,
-                    ease : 'Power2'
-                });
-                
-                var pW = this.pieceDimensions.width,
+                /* var pW = this.pieceDimensions.width,
                     pH = this.pieceDimensions.height,
                     pSx = pW * 0.1,
                     pSy = pH * 0.15,
@@ -2348,30 +1987,44 @@ window.onload = function () {
                     pXa = ( ( config.width/2 ) - pT )/2 + (pW/2),
                     pXb = config.width/2 + pXa;
                     pY = config.height * 0.25;
+                */
+
+
+                var stw = this.pieceDimensions.width,
+                    sth = this.pieceDimensions.height;
+
+                var stxa = Math.floor ( 58 * _gameW/1280 ),
+                    stxb = Math.floor ( 631 * _gameW/1280 ),
+                    spx = Math.floor ( 10 * _gameW/1280 ),
+                    spy = Math.floor ( 10 * _gameH/720 )
+                    sty = Math.floor ( 206 * _gameH/720 );
+
 
                 var countera = 0, counterb = 0;
 
                 for ( var i in this.elimPieces ) {
-                    
+                
                     var gp = this.gamePiece [ this.elimPieces[i] ];
 
                     if ( gp.plyr == 'self' ) {
 
-                        var xp = countera % 4, 
-                            yp = Math.floor ( countera/4 );
+                        var xp = Math.floor ( countera/4 ), 
+                            yp = countera%4;
 
-                        gp.x = pXa + xp * ( pW + pSx ) - cW;
-                        gp.y = pY + yp * ( pH + pSy );
+                        gp.x = stxa + (yp*( stw + spx )) + stw/2;
+                        gp.y = sty + (xp*( sth + spy )) + sth/2;
 
                         gp.setVisible(true).setDepth (1000);
                         gp.reset();
                         
+                        /*
                         this.tweens.add ({
                             targets : gp,
                             x : pXa + xp * ( pW + pSx ),
                             duration : duration_all,
                             ease : 'Power2'
                         });
+                        */
 
                         countera ++;
                         
@@ -2379,21 +2032,23 @@ window.onload = function () {
 
                     if ( gp.plyr == 'oppo' ) {
 
-                        var xpa = counterb % 4, 
-                            ypa = Math.floor ( counterb/4 );
+                        var xpa = Math.floor ( counterb/4 ), 
+                            ypa = counterb%4;
 
-                        gp.x = pXb + xpa * ( pW + pSx ) - cW;
-                        gp.y = pY + ypa * ( pH + pSy );
-
+                            gp.x = stxb + (ypa*( stw + spx )) + stw/2;
+                            gp.y = sty + (xpa*( sth + spy )) + sth/2;
+    
                         gp.setVisible (true).setDepth (1000);
                         gp.reset();
 
+                        /*
                         this.tweens.add ({
                             targets : gp,
                             x : pXb + xpa * ( pW + pSx ),
                             duration : duration_all,
                             ease : 'Power2'
                         });
+                        */
                 
                         counterb ++;
                         
@@ -2403,12 +2058,8 @@ window.onload = function () {
 
             }else {
 
-
                 //destroy elements..
-
                 this.elimScreen.destroy();
-                this.texta.destroy();
-                this.line1.destroy();
 
                 for ( var i in this.gamePiece ) {
                     if ( this.gamePiece[i].isDestroyed ) {
@@ -2470,7 +2121,7 @@ window.onload = function () {
 
                 var imgsize = h * 0.9, sp = imgsize * 0.15;
 
-                var emoji = this.add.image ( tx + text.width + (imgsize/2), yp, 'thumbs', 30 + tmpFrame ).setScale(imgsize/50).setDepth (9999);
+                var emoji = this.add.image ( tx + text.width + (imgsize/2), yp, 'emojis', tmpFrame ).setScale( _gameW/1280 * 0.4 ).setDepth (9999);
 
                 this.msgelements.push ( emoji );
 
@@ -2985,24 +2636,23 @@ window.onload = function () {
         },
         removeButtons: function () {
 
-            for ( var i in this.button ){
+            var _this = this;
 
-                this.button[i].removeInteractive();
+            if ( _this.button.length > 0 ) {
 
                 this.tweens.add ({
-                    targets : this.button[i],
-                    //y : config.height + this.button[i].height,
+                    targets : this.button,
                     alpha : 0,
-                    scaleX : 0.5,
-                    scaleY : 0.5,
-                    duration : 300,
-                    ease : 'Sine.easeInOut',
+                    duration : 400,
+                    ease : 'Quad.easeOut',
                     onComplete : function () {
                         this.targets[0].destroy();
                     }
                 });
+
+                this.button = [];
             }
-            this.button = [];
+            
         },   
         enabledPieces: function (plyr, enable=true ) {
 
@@ -3104,6 +2754,8 @@ window.onload = function () {
             }else {
 
                 this.plyrInd ['self'].offTimer ('· Preparation' );
+                this.plyrInd ['oppo'].offTimer ('· Preparation' );
+                
             }
                 
         },
@@ -3137,7 +2789,7 @@ window.onload = function () {
 
             }else {
 
-                this.showPrompt ('Waiting for other player..', '', false, 0.05 );
+                this.showPrompt ('Waiting for other player..', '', false, 'sml' );
 
                 var toSend = this.getGamePieceData ('self');
 
@@ -3215,7 +2867,7 @@ window.onload = function () {
 
             if ( !this.isTimed ) {
 
-                this.plyrInd [this.turn].offTimer('· Your Turn');
+                this.plyrInd [this.turn].setCaption ('· Your Turn');
 
             }else {
 
@@ -3366,7 +3018,7 @@ window.onload = function () {
                 break;
                 case 'proper' : 
                     instructions = [
-                        'Hit "Game Draw" button to offer a draw to your opponent. Can only be done once.',
+                        'Hit "Game Draw" button to propose a draw to your opponent. Can only be done once.',
                         'Hit "Reveal Pieces" button to reveal your pieces to the opponent. Cannot be undone.',
                         'Hit "Resign" button to concede'
                     ];
@@ -3425,7 +3077,7 @@ window.onload = function () {
                 fontFamily : "Trebuchet MS" 
             };
 
-            console.log ( instructions.length );
+            //console.log ( instructions.length );
 
             for ( var i in instructions ) {
                 
@@ -3448,56 +3100,35 @@ window.onload = function () {
             
             this.commenceElements = [];
 
-            var cH = config.height * 0.2,
-                cX = ( config.width - cH )/2,
-                cY = this.fieldY + ( ( this.fieldHeight - cH )/2 );
 
-            var graphics = this.add.graphics();
+            var comx = Math.floor ( 587 * _gameW/1280 ),
+                comy = Math.floor ( 388 * _gameH/720 );
 
-            var sW = config.width, 
-                sH = this.fieldHeight,
-                sX = 0, sY = this.fieldY;
-
-            graphics.fillStyle (0x0a0a0a, 0.5);
-            graphics.fillRect ( sX, sY, sW, sH);
-
-            graphics.fillStyle ( 0x6c6c6c, 0.2 );
-            graphics.fillCircle ( cX + cH/2, cY + cH/2, cH/2 );
-            graphics.lineStyle ( 1, 0x3a3a3a, 0.9 );
-
-            var tX = cX + cH/2,
-                tY = cY + cH/2;
-
-            var starAnim = this.add.star ( tX, tY, 20, (cH*0.4) * 0.9, cH*0.4,  0xffff00, 1 ).setScale ( 0.3 );
-
-            var starAnim2 = this.add.star ( tX, tY, 20, (cH*0.35) * 0.9, cH*0.35,  0xffcc00, 1 ).setScale ( 0.3 );
+            var commence_img = this.add.image (comx, comy, 'commence').setScale( _gameW/1280 * 0.5 );
 
             this.tweens.add ({
-                targets : [starAnim, starAnim2],
-                scaleX : 1,
-                scaleY : 1,
+                targets : commence_img,
+                scaleX : _gameW/1280,
+                scaleY : _gameW/1280,
                 rotation : 2,
                 ease : 'Power2',
                 yoyo : true,
                 duration : 500,
                 repeat : 2
-            });
-            
-            this.commenceElements.push ( graphics );
-            this.commenceElements.push ( starAnim );
-            this.commenceElements.push ( starAnim2 );
-            
+            })
+
+            this.commenceElements = [ commence_img ];
+
+            var txtsize = Math.floor ( 115 * _gameH/720 );
+
             var txtConfig = {
-                color : '#f5f5f5',
-                fontSize : cH * 0.6,
-                fontFamily : 'Arial',
-                fontStyle : 'bold'
+                color : '#383333',
+                fontSize : txtsize,
+                fontFamily : 'Impact',
             };
+            this.commenceText = this.add.text ( comx, comy, '3', txtConfig).setOrigin(0.5);
 
-            this.commenceText = this.add.text ( tX, tY, '3', txtConfig).setOrigin(0.5);
-            this.commenceText.setStroke('#6c6c6c', 5);
 
-            
             //start commence timer..
 
             var _this = this;
@@ -3541,58 +3172,57 @@ window.onload = function () {
             }
 
         },
-        showPrompt : function ( text, caption = '', withButtons = false, promptTxtSize = 0.08 ) {
+        showPrompt : function ( text, caption = '', withButtons = false, tSize = 'med' ) {
 
             this.isPrompted = true;
 
             this.promptElements = [];
 
-            var pGraphics = this.add.graphics({ lineStyle : {width : 1, color : 0xf5f5f5 }}).setDepth ( 999 );
+            var img = !withButtons ? 'prompt_small' : 'prompt_big';
 
-            var gW = config.width * 0.6,
-                gH = withButtons ? config.height * 0.3 : config.height * 0.12,
-                gX = ( config.width - gW )/2,
-                gY = this.fieldY + ( ( this.fieldHeight - gH )/2 );
+            var txtsize = 0;
 
-            var sW = config.width, 
-                sH = this.fieldHeight,
-                sX = 0, sY = this.fieldY;
+            switch ( tSize ) {
+                case 'sml' :
+                    txtsize = Math.floor (24 * _gameH/720);
+                    break;
+                case 'med' :
+                    txtsize = Math.floor (32 * _gameH/720);
+                    break;
+                case 'lrg' :
+                    txtsize = Math.floor (52 * _gameH/720);
+                break;
+                default :   
+                    xtsize = Math.floor (15 * _gameH/720)
+                                
+            }
+        
+            var imgBg = this.add.image ( 0,0, img).setOrigin (0).setScale(_gameW/1280);
+        
+            var txtx = Math.floor (587 * _gameW/1280),
+                txtya = Math.floor (306 * _gameH/720),
+                txtyb = Math.floor (360 * _gameH/720);
 
-            pGraphics.fillStyle (0x0a0a0a, 0.5 );
-            pGraphics.fillRect ( sX, sY, sW, sH);
+            if ( !withButtons ) txtya =  Math.floor (  258  * _gameH/720 );
 
-            pGraphics.fillStyle (0x3a3a3a, 0.8 );
-            pGraphics.fillRoundedRect ( gX, gY, gW, gH, gH * 0.05 );
-
-            this.promptElements.push ( pGraphics );
-            
+             // main text...
             var txtConfig = {
-                color : '#fff',
-                fontSize : gW * promptTxtSize,
-                fontFamily : "Trebuchet MS",
-                fontStyle : 'bold'
-            };
-            
-            var tx = gX + gW/2,
-                ty = withButtons ? gY + gH * 0.35 : gY + gH/2;
+                color : '#ffffff',
+                fontSize : txtsize,
+                fontFamily : "Impact"
+            }; 
+            var promptTxt = this.add.text ( txtx, txtya, text, txtConfig).setOrigin(0.5);
 
-            var promptTxt = this.add.text ( tx, ty, text, txtConfig).setOrigin(0.5).setDepth ( 999 );
 
-            this.promptElements.push ( promptTxt );
-
+             // caption text...
             var captionTxtConfig = {
-                color : '#ffff00',
-                fontSize : gW * 0.026,
-                fontFamily : "Trebuchet MS",
-                //fontStyle : 'bold'
+                color : '#cafb05',
+                fontSize : txtsize * 0.35,
+                fontFamily : "Impact"
             };
+            var captionTxt = this.add.text ( txtx, txtyb, caption, captionTxtConfig ).setOrigin(0.5);
 
-            var cx = tx,
-                cy = withButtons ? gY + gH * 0.52 : gY + gH * 0.6;
-
-            var captionTxt = this.add.text ( cx, cy, caption, captionTxtConfig).setOrigin(0.5).setDepth ( 999 );
-
-            this.promptElements.push ( captionTxt );
+            this.promptElements = [ imgBg, promptTxt, captionTxt ];
 
         },
         showEndScreen : function () {
@@ -3623,294 +3253,348 @@ window.onload = function () {
                     txt = 'Game is a draw.';
             }
             
-            this.showPrompt ( txt, captionTxt, true );
+            this.showPrompt ( txt, captionTxt, true, 'lrg' );
 
-            var buts = ['⚒ Rematch', '⚑ Quit'];
-
-            var bW = config.width * 0.2
-                bH = config.height * 0.065,
-                bS = bW * 0.05,
-                bT = buts.length * ( bW + bS ) - bS
-                bX =  ( config.width - bT )/2 + (bW/2),
-                bY =  config.height * 0.51 + (bH/2);
+            
+            var btw = Math.floor ( 191 * _gameW/1280 ),
+                bth = Math.floor ( 54 * _gameH/720 ),
+                btxa = Math.floor ( 379 * _gameW/1280 ) ,
+                btxb = Math.floor ( 595 * _gameW/1280 ) ,
+                bty = Math.floor ( 393 * _gameH/720 );
 
             var _this = this;
+            
+            //confirm_btn 
+            var rematch_btn = new MyButton (this, 'rematch', btxa + btw/2, bty + bth/2, btw, bth, 6, 'prompt_btns2');
 
-            for ( var i = 0; i< buts.length; i++) {
-                
-                var btn = new MyButton ( this, 'but' + i, bX + i*(bW + bS), bY, bW, bH, buts[i], 0xdedede ).setDepth (999);
+            rematch_btn.on ('pointerdown', function() {
 
-                btn.on ('pointerdown', function() {
+                this.isDown();
 
-                    this.change (0x00ffff);
+                _this.playSound('clicka');
 
-                    _this.playSound('clicka');
+                if ( _this.isSinglePlayer ) {
 
-                    switch ( this.id ) {
-                        case 'but0' : 
+                    _this.resetGame();
 
-                            if ( _this.isSinglePlayer ) {
-
-                                _this.resetGame();
-
-                            }else {
-                                
-                                socket.emit ('rematchRequest');
-
-                                if ( _this.isPrompted ) _this.clearPrompt();
-
-                                setTimeout ( function () {
-                                    _this.showPrompt ('Waiting for other player..', '', false, 0.05 );
-                                }, 200 );
-                            
-                            }
-                            
-                        break;
-                        case 'but1' : 
-                            //..
-                            _this.leaveGame();
-                        break;
-                        default:
-                    }
+                }else {
                     
-                });
-                btn.on ('pointerover', function() {
-                    this.change ();
-                });
-                btn.on ('pointerup', function() {
-                    this.reset();
-                });
-                btn.on ('pointerout', function() {
-                    this.reset();
-                });
+                    socket.emit ('rematchRequest');
 
-                this.buttonPanel.push (btn);
-            }
+                    if ( _this.isPrompted ) _this.clearPrompt();
+
+                    setTimeout ( function () {
+                        _this.showPrompt ('Waiting for other player..', '', false, 'sml' );
+                    }, 200 );
+                
+                }
+
+                
+            });
+            rematch_btn.on ('pointerover', function() {
+                this.isHovered ();
+            });
+            rematch_btn.on ('pointerup', function() {
+                this.reset();
+            });
+            rematch_btn.on ('pointerout', function() {
+                this.reset();
+            });
+
+
+            //cancel_btn
+            var quit_btn = new MyButton (this, 'quit', btxb + btw/2, bty + bth/2, btw, bth, 9, 'prompt_btns2');
+
+            quit_btn.on ('pointerdown', function() {
+
+                this.isDown();
+
+                _this.playSound('clicka');
+
+                _this.leaveGame();
+
+            });
+            quit_btn.on ('pointerover', function() {
+                this.isHovered ();
+            });
+            quit_btn.on ('pointerup', function() {
+                this.reset();
+            });
+            quit_btn.on ('pointerout', function() {
+                this.reset();
+            });
+
+
+            this.buttonPanel = [ rematch_btn, quit_btn];
+
 
         },
         showResignScreen : function () {
 
-            this.showPrompt ( 'Are you sure you want to resign?', '', true, 0.04 );
+            this.showPrompt ( 'Are you sure you want to resign?', '', true, 'med' );
 
-            var buts = [ '✔ Confirm', '✘ Cancel'];
-
-            var bW = config.width * 0.2
-                bH = config.height * 0.065,
-                bS = bW * 0.05,
-                bT = buts.length * ( bW + bS ) - bS
-                bX =  ( config.width - bT )/2 + (bW/2),
-                bY =  config.height * 0.51 + (bH/2);
+            var btw = Math.floor ( 191 * _gameW/1280 ),
+                bth = Math.floor ( 54 * _gameH/720 ),
+                btxa = Math.floor ( 379 * _gameW/1280 ) ,
+                btxb = Math.floor ( 595 * _gameW/1280 ) ,
+                bty = Math.floor ( 393 * _gameH/720 );
 
             var _this = this;
+            
+            //confirm_btn 
+            var confirm_btn = new MyButton (this, 'confirm', btxa + btw/2, bty + bth/2, btw, bth, 0, 'prompt_btns2');
 
-            for ( var i = 0; i< buts.length; i++) {
-                var btn = new MyButton ( this, 'but' + i, bX + i*(bW + bS), bY, bW, bH, buts[i], 0xdedede ).setDepth(999);
+            confirm_btn.on ('pointerdown', function() {
 
-                btn.on ('pointerdown', function() {
-
-                    this.change (0x00ffff);
-
-                    _this.playSound('clicka');
-                    
-                    switch ( this.id ) {
-                        case 'but0' : 
+                this.isDown();
+                _this.playSound('clicka');
 
 
-                        _this.clearPrompt();
-                        _this.playerResign = true;
+                _this.clearPrompt();
+                _this.playerResign = true;
 
-                        if ( _this.isSinglePlayer ) {
-                            _this.endGame ('oppo');
-                        }else {
-                            socket.emit ('playerResign');
-                        }
-                            
-                        break;
-                        case 'but1' : 
-                            _this.clearPrompt();
-                        break;
-                        default:
-                    }
-                    
-                });
-                btn.on ('pointerover', function() {
-                    this.change ();
-                });
-                btn.on ('pointerup', function() {
-                    this.reset();
-                });
-                btn.on ('pointerout', function() {
-                    this.reset();
-                });
+                if ( _this.isSinglePlayer ) {
+                    _this.endGame ('oppo');
+                }else {
+                    socket.emit ('playerResign');
+                }
+                
+            
+            });
+            confirm_btn.on ('pointerover', function() {
+                this.isHovered ();
+            });
+            confirm_btn.on ('pointerup', function() {
+                this.reset();
+            });
+            confirm_btn.on ('pointerout', function() {
+                this.reset();
+            });
 
-                this.buttonPanel.push (btn);
-            }
+
+            //cancel_btn
+            var cancel_btn = new MyButton (this, 'cancel', btxb + btw/2, bty + bth/2, btw, bth, 3, 'prompt_btns2');
+
+            cancel_btn.on ('pointerdown', function() {
+
+                this.isDown();
+                _this.playSound('clicka');
+                _this.clearPrompt();
+
+            });
+            cancel_btn.on ('pointerover', function() {
+                this.isHovered ();
+            });
+            cancel_btn.on ('pointerup', function() {
+                this.reset();
+            });
+            cancel_btn.on ('pointerout', function() {
+                this.reset();
+            });
+
+            this.buttonPanel = [ confirm_btn, cancel_btn];
 
         },
         showRevealScreen : function () {
 
-            this.showPrompt ( 'Are you sure you want to reveal your pieces?', '', true, 0.04 );
+            this.showPrompt ( 'Are you sure you want to reveal your pieces?', '', true, 'med' );
 
-            var buts = [ '✔ Confirm', '✘ Cancel'];
-
-            var bW = config.width * 0.2
-                bH = config.height * 0.065,
-                bS = bW * 0.05,
-                bT = buts.length * ( bW + bS ) - bS
-                bX =  ( config.width - bT )/2 + (bW/2),
-                bY =  config.height * 0.51 + (bH/2);
+            var btw = Math.floor ( 191 * _gameW/1280 ),
+                bth = Math.floor ( 54 * _gameH/720 ),
+                btxa = Math.floor ( 379 * _gameW/1280 ) ,
+                btxb = Math.floor ( 595 * _gameW/1280 ) ,
+                bty = Math.floor ( 393 * _gameH/720 );
 
             var _this = this;
+            
+            //confirm_btn 
+            var confirm_btn = new MyButton (this, 'confirm', btxa + btw/2, bty + bth/2, btw, bth, 0, 'prompt_btns2');
 
-            for ( var i = 0; i< buts.length; i++) {
-                var btn = new MyButton ( this, 'but' + i, bX + i*(bW + bS), bY, bW, bH, buts[i], 0xdedede ).setDepth(999);
+            confirm_btn.on ('pointerdown', function() {
 
-                btn.on ('pointerdown', function() {
+                this.isDown();
+                _this.playSound('clicka');
 
-                    this.change (0x00ffff);
-
-                    _this.playSound('clicka');
-
-                    switch ( this.id ) {
-                        case 'but0' : 
-
-                            _this.clearPrompt();
+                _this.clearPrompt();
                             
-                            _this.button[2].disabled();
-                            _this.button[2].removeInteractive();
-        
-                            setTimeout ( function () {
-                                _this.playSound('bleep', 0.4);
-                                _this.plyrInd['self'].updateStatus();
-                            }, 300); 
+                _this.button[2].deactivate();
 
-                            if ( !_this.isSinglePlayer ) socket.emit ('piecesReveal');
+                setTimeout ( function () {
+                    _this.playSound('bleep', 0.4);
+                    _this.plyrInd['self'].updateStatus();
+                }, 300); 
 
-                        break;
-                        case 'but1' : 
-                            _this.clearPrompt();
-                                
-                        break;
-                        default:
-                    }
-                    
-                });
-                btn.on ('pointerover', function() {
-                    this.change ();
-                });
-                btn.on ('pointerup', function() {
-                    this.reset();
-                });
-                btn.on ('pointerout', function() {
-                    this.reset();
-                });
+                if ( !_this.isSinglePlayer ) socket.emit ('piecesReveal');
+                
+            
+            });
+            confirm_btn.on ('pointerover', function() {
+                this.isHovered ();
+            });
+            confirm_btn.on ('pointerup', function() {
+                this.reset();
+            });
+            confirm_btn.on ('pointerout', function() {
+                this.reset();
+            });
 
-                this.buttonPanel.push (btn);
-            }
+
+            //cancel_btn
+            var cancel_btn = new MyButton (this, 'cancel', btxb + btw/2, bty + bth/2, btw, bth, 3, 'prompt_btns2');
+
+            cancel_btn.on ('pointerdown', function() {
+
+                this.isDown();
+                _this.playSound('clicka');
+                _this.clearPrompt();
+
+            });
+            cancel_btn.on ('pointerover', function() {
+                this.isHovered ();
+            });
+            cancel_btn.on ('pointerup', function() {
+                this.reset();
+            });
+            cancel_btn.on ('pointerout', function() {
+                this.reset();
+            });
+
+            this.buttonPanel = [ confirm_btn, cancel_btn];
+
+
 
         },
         showDrawScreen : function () {
 
-            this.showPrompt ( 'Are you sure you want to offer a draw?', '', true, 0.04 );
+            this.showPrompt ( 'Are you sure you want to propose a draw?', '', true, 'med' );
 
-            var buts = [ '✔ Confirm', '✘ Cancel'];
+            var btw = Math.floor ( 191 * _gameW/1280 ),
+                bth = Math.floor ( 54 * _gameH/720 ),
+                btxa = Math.floor ( 379 * _gameW/1280 ) ,
+                btxb = Math.floor ( 595 * _gameW/1280 ) ,
+                bty = Math.floor ( 393 * _gameH/720 );
 
-            var bW = config.width * 0.2
-                bH = config.height * 0.065,
-                bS = bW * 0.05,
-                bT = buts.length * ( bW + bS ) - bS
-                bX =  ( config.width - bT )/2 + (bW/2),
-                bY =  config.height * 0.51 + (bH/2);
-                
             var _this = this;
+            
+            //confirm_btn 
+            var confirm_btn = new MyButton (this, 'confirm', btxa + btw/2, bty + bth/2, btw, bth, 0, 'prompt_btns2');
 
-            for ( var i = 0; i< buts.length; i++) {
-                var btn = new MyButton ( this, 'but' + i, bX + i*(bW + bS), bY, bW, bH, buts[i], 0xdedede ).setDepth (999);
+            confirm_btn.on ('pointerdown', function() {
 
-                btn.on ('pointerdown', function() {
+                this.isDown();
+                _this.playSound('clicka');
 
-                    this.change (0x0ffff);
+                _this.button[0].deactivate();
+                _this.proposedDrawAction ();
+                
+            
+            });
+            confirm_btn.on ('pointerover', function() {
+                this.isHovered ();
+            });
+            confirm_btn.on ('pointerup', function() {
+                this.reset();
+            });
+            confirm_btn.on ('pointerout', function() {
+                this.reset();
+            });
 
-                    _this.playSound('clicka');
 
-                    switch ( this.id ) {
-                        case 'but0' : 
+            //cancel_btn
+            var cancel_btn = new MyButton (this, 'cancel', btxb + btw/2, bty + bth/2, btw, bth, 3, 'prompt_btns2');
 
-                            _this.button[0].disabled();
-                            _this.button[0].removeInteractive();
-                            _this.proposedDrawAction ();
+            cancel_btn.on ('pointerdown', function() {
+
+                this.isDown();
+                _this.playSound('clicka');
+                _this.clearPrompt();
+
+            });
+            cancel_btn.on ('pointerover', function() {
+                this.isHovered ();
+            });
+            cancel_btn.on ('pointerup', function() {
+                this.reset();
+            });
+            cancel_btn.on ('pointerout', function() {
+                this.reset();
+            });
+
+            this.buttonPanel = [ confirm_btn, cancel_btn];
 
 
-                        break;
-                        case 'but1' : 
-                            _this.clearPrompt();
-                        break;
-                        default:
-                    }
-                    
-                });
-                btn.on ('pointerover', function() {
-                    this.change ();
-                });
-                btn.on ('pointerup', function() {
-                    this.reset();
-                });
-                btn.on ('pointerout', function() {
-                    this.reset();
-                });
-
-                this.buttonPanel.push (btn);
-            }
-
+         
+         
         },
         showDrawResponseScreen :  function () {
 
-            this.showPrompt ( 'Opponent has offered a draw?', '', true, 0.04 );
+            this.showPrompt ( 'Opponent has offered a draw?', '', true, 'med' );
             
-            var buts = [ '✔ Accept', '✘ Decline'];
+            var btw = Math.floor ( 191 * _gameW/1280 ),
+                bth = Math.floor ( 54 * _gameH/720 ),
+                btxa = Math.floor ( 379 * _gameW/1280 ) ,
+                btxb = Math.floor ( 595 * _gameW/1280 ) ,
+                bty = Math.floor ( 393 * _gameH/720 );
 
-            var bW = config.width * 0.2
-                bH = config.height * 0.065,
-                bS = bW * 0.05,
-                bT = buts.length * ( bW + bS ) - bS
-                bX =  ( config.width - bT )/2 + (bW/2),
-                bY =  config.height * 0.51 + (bH/2);
-                
             var _this = this;
+            
+            //confirm_btn 
+            var confirm_btn = new MyButton (this, 'confirm', btxa + btw/2, bty + bth/2, btw, bth, 0, 'prompt_btns2');
 
-            for ( var i = 0; i< buts.length; i++) {
-                var btn = new MyButton ( this, 'but' + i, bX + i*(bW + bS), bY, bW, bH, buts[i], 0xdedede ).setDepth (999);
+            confirm_btn.on ('pointerdown', function() {
 
-                btn.on ('pointerdown', function() {
+                this.isDown();
+                _this.playSound('clicka');
+                _this.clearPrompt();
 
-                    this.change (0x0ffff);
 
-                    _this.playSound('clicka');
-
-                    var accepted = this.id == 'but0' ? true : false;
+                var accepted = this.id == 'but0' ? true : false;
                     
-                    socket.emit ('playerDrawResponse', accepted );
+                socket.emit ('playerDrawResponse', true );
+                
+            });
+            confirm_btn.on ('pointerover', function() {
+                this.isHovered ();
+            });
+            confirm_btn.on ('pointerup', function() {
+                this.reset();
+            });
+            confirm_btn.on ('pointerout', function() {
+                this.reset();
+            });
 
-                });
-                btn.on ('pointerover', function() {
-                    this.change ();
-                });
-                btn.on ('pointerup', function() {
-                    this.reset();
-                });
-                btn.on ('pointerout', function() {
-                    this.reset();
-                });
 
-                this.buttonPanel.push (btn);
-            }
+            //cancel_btn
+            var cancel_btn = new MyButton (this, 'cancel', btxb + btw/2, bty + bth/2, btw, bth, 3, 'prompt_btns2');
+
+            cancel_btn.on ('pointerdown', function() {
+
+                this.isDown();
+                _this.playSound('clicka');
+                _this.clearPrompt();
+
+                socket.emit ('playerDrawResponse', false );
+
+            });
+            cancel_btn.on ('pointerover', function() {
+                this.isHovered ();
+            });
+            cancel_btn.on ('pointerup', function() {
+                this.reset();
+            });
+            cancel_btn.on ('pointerout', function() {
+                this.reset();
+            });
+
+            this.buttonPanel = [ confirm_btn, cancel_btn];
+
 
         },
         showNotification : function ( txt ) {
 
             this.isNotified = true;
 
-            this.showPrompt ( '⚠ ' + txt, '', false, 0.04 );
+            this.showPrompt ( '⚠ ' + txt, '', false, 'sml' );
 
             var _this = this;
 
@@ -3936,7 +3620,7 @@ window.onload = function () {
 
             if ( this.timeIsTicking ) this.stopTimer ();
 
-            this.showPrompt ('Waiting for opponent\'s response..', '', false, 0.04 );
+            this.showPrompt ('Waiting for opponent\'s response..', '', false, 'sml' );
 
             if ( this.isSinglePlayer ) {
 
@@ -3983,51 +3667,61 @@ window.onload = function () {
         },
         showLeaveScreen : function () {
 
-            this.showPrompt ( 'Are you sure you want to leave the game?', '', true, 0.04 );
+            this.showPrompt ( 'Are you sure you want to leave the game?', '', true, 'med' );
 
-            var buts = [ '✔ Confirm', '✘ Cancel'];
-
-            var bW = config.width * 0.2
-                bH = config.height * 0.065,
-                bS = bW * 0.05,
-                bT = buts.length * ( bW + bS ) - bS
-                bX =  ( config.width - bT )/2 + (bW/2),
-                bY =  config.height * 0.51 + (bH/2);
+            var btw = Math.floor ( 191 * _gameW/1280 ),
+                bth = Math.floor ( 54 * _gameH/720 ),
+                btxa = Math.floor ( 379 * _gameW/1280 ) ,
+                btxb = Math.floor ( 595 * _gameW/1280 ) ,
+                bty = Math.floor ( 393 * _gameH/720 );
 
             var _this = this;
+            
+            //confirm_btn 
+            var confirm_btn = new MyButton (this, 'confirm', btxa + btw/2, bty + bth/2, btw, bth, 0, 'prompt_btns2');
 
-            for ( var i = 0; i< buts.length; i++) {
-                var btn = new MyButton ( this, 'but' + i, bX + i*(bW + bS), bY, bW, bH, buts[i], 0xdedede ).setDepth (999);
+            confirm_btn.on ('pointerdown', function() {
 
-                btn.on ('pointerdown', function() {
-                    this.change (0x00ffff);
+                this.isDown();
+                _this.playSound('clicka');
 
-                    _this.playSound('clicka');
+                _this.clearPrompt();
+                _this.leaveGame();
+            });
+            confirm_btn.on ('pointerover', function() {
+                this.isHovered ();
+            });
+            confirm_btn.on ('pointerup', function() {
+                this.reset();
+            });
+            confirm_btn.on ('pointerout', function() {
+                this.reset();
+            });
 
-                    switch ( this.id ) {
-                        case 'but0' : 
-                            _this.clearPrompt();
-                            _this.leaveGame();
-                        break;
-                        case 'but1' : 
-                            _this.clearPrompt();
-                        break;
-                        default:
-                    }
-                    
-                });
-                btn.on ('pointerover', function() {
-                    this.change ();
-                });
-                btn.on ('pointerup', function() {
-                    this.reset();
-                });
-                btn.on ('pointerout', function() {
-                    this.reset();
-                });
 
-                this.buttonPanel.push (btn);
-            }
+            //cancel_btn
+            var cancel_btn = new MyButton (this, 'cancel', btxb + btw/2, bty + bth/2, btw, bth, 3, 'prompt_btns2');
+
+            cancel_btn.on ('pointerdown', function() {
+
+                this.isDown();
+                _this.playSound('clicka');
+                _this.clearPrompt();
+
+            });
+            cancel_btn.on ('pointerover', function() {
+                this.isHovered ();
+            });
+            cancel_btn.on ('pointerup', function() {
+                this.reset();
+            });
+            cancel_btn.on ('pointerout', function() {
+                this.reset();
+            });
+
+            this.buttonPanel = [ confirm_btn, cancel_btn];
+
+
 
         },
         setOppoRanks : function ( pieces ) {
@@ -4242,19 +3936,24 @@ window.onload = function () {
             this.post = post;
             this.cnt = cnt;
             this.activated = false;
-            this.origin = plyr == 'self' ? 'bot' : 'top';
+        
             this.isDestroyed = false;
-            this.bgColor = type == 0 ? 0xffffff : 0x000000;
+            //this.bgColor = type == 0 ? 0xffffff : 0x000000;
             this.isFlipped = false;
+            this.origin = plyr == 'self' ? 'bot' : 'top';
+            this.rot = plyr == 'self' ? 0 : 180;
 
-            this.shape = scene.add.graphics ( { fillStyle: { color: this.bgColor, alpha: 1 }, lineStyle: { width : 1, color : 0x6c6c6c } } );
-            this.shape.fillRoundedRect ( -width/2, -height/2, width, height, height * 0.1);
-            this.shape.strokeRoundedRect ( -width/2, -height/2, width, height, height * 0.1);
+            //this.shape = scene.add.graphics ( { fillStyle: { color: this.bgColor, alpha: 1 }, lineStyle: { width : 1, color : 0x6c6c6c } } );
+            //this.shape.fillRoundedRect ( -width/2, -height/2, width, height, height * 0.1);
+            //this.shape.strokeRoundedRect ( -width/2, -height/2, width, height, height * 0.1);
+
+            this.imgBg = scene.add.image ( 0, 0, 'piece', type ).setScale(_gameW/1280).setRotation ( this.rot * Math.PI/180);
 
             var txtConfig = { 
-                fontFamily: 'Trebuchet MS', 
+                fontFamily: 'Arial', 
                 fontSize: Math.floor(height * 0.21), 
-                color: type == 0 ? '#000' : '#fff' 
+                color: type == 0 ? '#000' : '#fff',
+               // fontStyle : 'bold' 
             };
 
             var top = -height/2,
@@ -4264,38 +3963,33 @@ window.onload = function () {
 
             var indx = type == 0 ? 15 : 16;
 
-            this.image = scene.add.image ( 0, top + height * 0.4, 'thumbs', indx ).setScale ( imgSize/50 )
+            this.image = scene.add.image ( 0, top + height*0.4, 'thumbs', indx ).setScale(_gameW/1280);
 
-            this.txt = scene.add.text ( 0, top + height * 0.8, '···', txtConfig ).setOrigin(0.5);
+            this.txt = scene.add.text ( 0, top + height * 0.78, '', txtConfig ).setOrigin(0.5);
 
-            this.add ([this.shape, this.image, this.txt]);
+            this.add ([this.imgBg, this.image, this.txt]);
 
             scene.children.add ( this );
             
         },
 
         change : function ( clr ) {
-
-            this.shape.clear();
-            this.shape.fillStyle( clr, 1);
-            this.shape.fillRoundedRect ( -this.width/2, -this.height/2, this.width, this.height, this.height*0.1);
-            this.shape.strokeRoundedRect ( -this.width/2, -this.height/2, this.width, this.height, this.height*0.1);
-            
+            //console.log ( 'gp tinamawag', clr )
         },
         activate : function () {
 
-            var clr = this.type == 0 ? 0xd5d5d5 : 0x2a2a2a;
+            var clr = this.type == 0 ? 2 : 3;
 
-            this.change ( clr );
+            this.imgBg.setFrame ( clr )
 
             this.activated = true;
 
         },
         reset : function () {
 
-            var clr = this.type == 0 ? 0xffffff : 0x000000;
+            var clr = this.type == 0 ? 0 : 1;
 
-            this.change ( clr );
+            this.imgBg.setFrame ( clr )
 
             this.activated = false;
         },
@@ -4387,10 +4081,10 @@ window.onload = function () {
 
         initialize:
 
-        function MyButton ( scene, id, x, y, width, height, text, bgColor = 0x3c3c3c  )
+        function MyButton ( scene, id, x, y, width, height, frame, btnType )
         {
 
-            Phaser.GameObjects.Container.call(this, scene)
+            Phaser.GameObjects.Container.call(this, scene);
 
             this.setPosition(x, y).setSize(width, height).setInteractive();
 
@@ -4400,136 +4094,42 @@ window.onload = function () {
             this.width = width;
             this.height = height;
             this.isClicked = false;
-            this.bgColor = bgColor;
-            this.txtClr = '#0a0a0a';
+            this.frame = frame;
             this.isDisabled = false;
             
-            this.roundCorners = this.height *0.2;
-
-            this.shape = scene.add.graphics ( { fillStyle: { color: bgColor, alpha: 1 }, lineStyle: { width : 1, color : 0x6c6c6c } } );
-            this.shape.fillRoundedRect ( -width/2, -height/2, width, height, this.roundCorners);
-            this.shape.strokeRoundedRect ( -width/2, -height/2, width, height, this.roundCorners);
-
-            var txtConfig = { 
-                fontFamily: 'Trebuchet MS', 
-                fontStyle : 'bold',
-                fontSize: Math.floor(height * 0.38 ), 
-                color: '#000' 
-            };
-
-            this.text = scene.add.text ( 0, 0, text, txtConfig ).setOrigin(0.5);
-
+            this.img = scene.add.image (0,0, btnType, frame ).setScale(_gameW/1280);
+           
             //add to container...
-            this.add ([this.shape, this.text]);
+            this.add ([this.img]);
 
             scene.children.add ( this );
 
         },
 
-        change : function ( clr = 0xb3d9ff, txtClr = '#0a0a0a' ) {
-
-            this.shape.clear();
-            this.shape.fillStyle( clr, 1);
-            this.shape.fillRoundedRect ( -this.width/2, -this.height/2, this.width, this.height, this.roundCorners);
-            this.shape.strokeRoundedRect ( -this.width/2, -this.height/2, this.width, this.height, this.roundCorners);
-
-            this.text.setColor ( txtClr );
-            
+        isDown : function () {
+            this.img.setFrame ( this.frame + 2 );
         },
-        disabled : function () {
+        isHovered : function () {
+            this.img.setFrame ( this.frame + 1 );
+        },
+        deactivate : function () {
             
+            
+            
+            this.reset();
+
+            this.alpha = 0.5;
+            
+            this.disableInteractive();
+
             this.isDisabled = true;
 
-            this.shape.clear();
-            this.shape.fillStyle( 0xdedede, 1);
-            this.shape.lineStyle ( 1, 0x9a9a9a );
-            this.shape.fillRoundedRect ( -this.width/2, -this.height/2, this.width, this.height, this.roundCorners);
-            this.shape.strokeRoundedRect ( -this.width/2, -this.height/2, this.width, this.height, this.roundCorners);
-
-            this.text.setColor ('#6a6a6a');
-        },
-
-        reset : function () {
-
-            this.shape.clear();
-            this.shape.fillStyle( this.bgColor, 1);
-            this.shape.fillRoundedRect ( -this.width/2, -this.height/2, this.width, this.height, this.roundCorners);
-            this.shape.strokeRoundedRect ( -this.width/2, -this.height/2, this.width, this.height, this.roundCorners);
-
-            this.text.setColor ( this.txtClr );
-
-        },
-        
-    
-        
-    });
-
-    //..Controls...
-    var Controls =  new Phaser.Class({
-
-        Extends: Phaser.GameObjects.Container,
-
-        initialize:
-
-        function Controls ( scene, id, x, y, rad, txt, icon, bgColor = 0x3c3c3c  )
-        {
-
-            Phaser.GameObjects.Container.call(this, scene)
-
-            this.setPosition(x, y).setSize(rad * 2, rad * 2).setInteractive();
-
-            scene.children.add ( this );
-
-            this.id = id;
-            this.x = x;
-            this.y = y;
-            this.rad = rad;
-            this.bgColor = bgColor;
-            this.txt = txt;
-            this.state = false;        
-            this.shape = scene.add.graphics ( { fillStyle: { color: bgColor, alpha: 1 }, lineStyle: { width : 1, color : 0x6c6c6c } } );
-            this.shape.fillCircle ( 0, 0, rad );
-            this.shape.strokeCircle ( 0, 0, rad );
-
-            var imgSize = rad * 2 * 0.7;
-
-            this.image = scene.add.image ( 0, 0, 'thumbs', icon + 25 ).setScale ( imgSize/50 )
-
-            this.up = scene.add.graphics();
-
-            //add to container...
-            this.add ([this.shape, this.up, this.image ]);
-
-        },
-        change : function ( clr ) {
-
-            this.shape.clear();
-            this.shape.fillStyle( clr, 1);        
-            this.shape.fillCircle ( 0, 0, this.rad );
-
-            this.shape.strokeCircle ( 0, 0, this.rad );
-
         },
         reset : function () {
 
-            this.shape.clear();
-            this.shape.fillStyle( this.bgColor, 1);
-            this.shape.fillCircle ( 0, 0, this.rad );
-            this.shape.strokeCircle ( 0, 0, this.rad );
-            
+            this.img.setFrame ( this.frame );
         },
-        toggle : function () {
-
-            this.state = !this.state;
-            
-            if ( !this.state ) {
-                this.up.clear();
-            }else {
-                this.up.clear();
-                this.up.fillStyle( 0xff6600, 0.5 );        
-                this.up.fillCircle ( 0, 0, this.rad * 0.85 );
-            }
-        }
+        
     
         
     });
@@ -4541,7 +4141,7 @@ window.onload = function () {
 
         initialize:
 
-        function PlayerIndicator ( scene, id, x, y, width, height, name, max, bgColor = 0xf5f5f5 )
+        function PlayerIndicator ( scene, id, x, y, width, height, name, max )
         {
             Phaser.GameObjects.Container.call(this, scene)
 
@@ -4558,75 +4158,83 @@ window.onload = function () {
             this.winCount = 0;
             this.maxTime = 0;
             this.scene = scene;
-            this.bgColor = bgColor
+            //this.bgColor = '0xf5f5f5'
 
-            this.shape = scene.add.graphics ( { fillStyle: { color: bgColor,  alpha: 1 }, lineStyle : { color: 0xa4a4a4, width:1 } });
+            this.bg = scene.add.image (0, 0, 'indicatorbg', 0 ).setScale(_gameW/1280);
 
-            this.shape.fillRoundedRect ( -width/2, -height/2, width, height, height * 0.15);
-            this.shape.strokeRoundedRect ( -width/2, -height/2, width, height, height * 0.15);
-        
-
+            
             //players name...
             var top = -height/2, 
                 left = -width/2;
 
-            var txtConfig = { 
-                fontFamily: 'Trebuchet MS', 
-                fontSize: Math.floor( height * 0.38 ), 
-                fontStyle: 'bold',
-                color: '#3a3a3a' 
+            this.avatar = scene.add.image ( left + width *0.065, 0, 'thumbs', 18 ).setScale ( _gameW/1280 );
+
+            //name text...
+            var nameConfig = { 
+                fontFamily: 'Impact', 
+                fontSize: Math.floor(height * 0.35), 
+                color: '#5e5e5e' 
             };
 
-            var tX = left + (width * 0.13),
-                tY = top + (height * 0.11); 
+            var tX = left + (width * 0.13 ),
+                tY = top + (height * 0.17); 
 
-            this.text = scene.add.text ( tX, tY, name, txtConfig ).setOrigin(0);
+            this.nameTxt = scene.add.text ( tX, tY, name, nameConfig ).setOrigin(0);
 
-            var bW = width * 0.025,
-                bS = bW * 0.2,
-                sX = left + (width * 0.13),
-                sY = top + (height * 0.53); 
-                
 
-            var winTxtConfig = { color : '#ff6600', fontSize : height * 0.28, fontFamily : 'Trebuchet MS' };
-
-            this.winTxt = scene.add.text ( sX, sY, '✪ Wins: 0', winTxtConfig );
-            
-            //timer
-            var timertxtConfig = {
-                fontSize : height * 0.38,
-                fontFamily : 'Trebuchet MS',
-                fontStyle : 'bold',
-                color : '#6c6c6c'
+            //win text...
+            var winConfig = { 
+                fontFamily: 'Impact', 
+                fontSize: Math.floor(height * 0.28), 
+                color: '#746a62' 
             };
-            this.timertxt = scene.add.text (left + width *0.93, top + height * 0.82, '', timertxtConfig ).setOrigin(1);
 
-            //caption
-            var captionConfig = {
-                fontSize : height * 0.25,
-                fontFamily : 'Trebuchet MS',
-                fontStyle : "bold",
-                color : '#6c6c6c'
+            var tXa = left + (width * 0.13 ),
+                tYa = top + (height * 0.55); 
+
+            this.winTxt = scene.add.text ( tXa, tYa, '✪ Wins: 0', winConfig ).setOrigin(0);
+
+            //mode text...
+            var modeConfig = { 
+                fontFamily: 'Impact', 
+                fontSize: Math.floor(height * 0.26),  
+                color: '#5e5e5e' 
             };
-            this.caption = scene.add.text (left + width *0.93, top + height * 0.41, '', captionConfig ).setOrigin(1);
 
-            //avatar
-            var imgSize = height * 0.75;
-            this.image = scene.add.image ( left + width * 0.07, 0, 'thumbs', 18 ).setScale ( imgSize/50 ).setVisible(true);
+            var tXb = left + (width * 0.93),
+                tYb = top + (height * 0.16); 
+
+            this.caption = scene.add.text ( tXb, tYb, '· Preparation', modeConfig ).setOrigin(1, 0);
 
 
-            this.bar = scene.add.graphics();
+            //mode text...
+            var timerConfig = { 
+                fontFamily: 'Impact', 
+                fontSize: Math.floor(height * 0.35), 
+                color: '#746a62' 
+            };
 
-            this.add ([  this.shape, this.text, this.winTxt, this.timertxt, this.caption, this.bar, this.image ]); // add elements to this container..
+            var tXb = left + (width * 0.93),
+                tYb = top + (height * 0.47); 
 
+            this.timertxt = scene.add.text ( tXb, tYb, '00:00:00', timerConfig ).setOrigin(1, 0);
+
+            var rW = width * 0.02,
+                rH = height * 0.645,
+                rX = left + width *0.942,
+                rY = top + height *0.2;
+
+            this.bar = scene.add.rectangle (rX, rY, rW, rH, 0x3a3a3a, 0.5 ).setOrigin (0);
+
+            this.add ([ this.bg, this.avatar, this.nameTxt, this.winTxt, this.caption, this.timertxt, this.bar ]); // add elements to this container..
 
             scene.children.add ( this ); //add to scene...
-            
+
         },
 
         forceEnd : function () {
 
-            this.bar.clear();
+            this.bar.setFillStyle( 0x3a3a3a, 0.5 );
 
             this.timertxt.text = "00:00:00";
 
@@ -4639,31 +4247,38 @@ window.onload = function () {
 
             this.timertxt.setText ( '00:00:' + fin );
             
-            var oH = this.height * 0.6,
-                bH = oH * time/this.maxTime,
-                bW = this.width * 0.015;
+            var oH = this.height * 0.645,
+                bH = oH * time/this.maxTime;
         
-            var top = -this.height/2,
-                left = -this.width/2;
+            var clr = time > 5 ? 0xf26c4f : 0xff0033;
 
-            this.bar.clear();
-            //this.bar.fillStyle ( 0xcccccc, 1);
-            //this.bar.fillRect ( left + this.width * 0.94, top + this.height * 0.8 - oH, bW, oH );
-            
-            this.bar.fillStyle ( time > 5 ? 0x00ff00 : 0xff0033, 1);
-            this.bar.fillRect ( left + this.width * 0.94, top + this.height * 0.8 - bH, bW, bH );
+            var top = -(this.height/2);
+
+            this.bar.setVisible(true).setFillStyle ( clr , 1 );
+            this.bar.height = bH;
+            this.bar.y = (top + this.height *0.2) + (oH - bH);
 
         },
         offTimer :  function ( caption ) {
             
-            this.bar.destroy();
+            this.bar.setVisible(false);
 
             this.timertxt.setVisible ( false );
 
-            this.caption.setPosition ( this.width * 0.46, -this.height * 0.08 );
+            this.scene.tweens.add ({
+                targets : this.caption,
+                x : this.width * 0.465,
+                duration : 500,
+                ease : 'Power2'
+            });
 
-            this.caption.text = caption; //'· Your Turn';
+            this.setCaption ( caption );
 
+            
+
+        },
+        setCaption : function ( txt ) {
+            this.caption.text = txt;
         },
         setTimer : function ( maxTime, caption ) {
 
@@ -4681,9 +4296,9 @@ window.onload = function () {
             var top = -this.height/2,
                 left = -this.width/2;
 
-            this.bar.fillStyle ( 0x00ff33, 1);
+            //this.bar.fillStyle ( 0x00ff33, 1);
 
-            this.bar.fillRect ( left + this.width * 0.94, top + this.height * 0.8 - bH, bW, bH );
+            //this.bar.fillRect ( left + this.width * 0.94, top + this.height * 0.8 - bH, bW, bH );
 
         },
         clearTimer : function () {
@@ -4692,7 +4307,7 @@ window.onload = function () {
 
             this.caption.text = '';
 
-            this.bar.clear();
+            this.bar.setVisible(false);
 
             this.change ( this.bgColor );
 
@@ -4706,12 +4321,12 @@ window.onload = function () {
         },
         updateStatus : function () {
 
-            this.image.setFrame( 17 )
+            this.avatar.setFrame( 17 )
 
             this.scene.tweens.add ({
                 targets : this.image,
-                scaleX : 0.2,
-                scaleY : 0.2,
+                scaleX : (_gameW/1280 * 0.2),
+                scaleY : (_gameW/1280 * 0.2),
                 duration : 100,
                 ease : 'Power2',
                 yoyo : true
@@ -4723,24 +4338,20 @@ window.onload = function () {
             
             this.clearTimer();
             
-            this.change ( this.bgColor );
+            this.bg.setFrame (1);
 
-            this.image.setFrame ( 18 );
+            this.avatar.setFrame ( 18 );
             
         },
         ready : function () {
 
-            this.change ( 0x66ffcc );
+            this.bg.setFrame (1);
 
             this.caption.text = '· Ready';
 
         },
         change : function ( clr ) {
-
-            this.shape.clear();
-            this.shape.fillStyle  ( clr, 1 );
-            this.shape.fillRoundedRect ( -this.width/2, -this.height/2, this.width, this.height, this.height * 0.15);
-            this.shape.strokeRoundedRect ( -this.width/2, -this.height/2, this.width, this.height, this.height * 0.15);
+            this.bg.setFrame (1);
         },
 
     });
