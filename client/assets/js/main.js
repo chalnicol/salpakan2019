@@ -4034,10 +4034,8 @@ window.onload = function () {
             this.post = post;
             this.dir = dir;
             
-            this.shape = scene.add.graphics ( { fillStyle: { color: 0x00cc00, alpha: 0.4 }, lineStyle: { width : 2, color : 0xdedede } } );
-            this.shape.fillRect ( -width/2, -height/2, width, height);
-            this.shape.strokeRect ( -width/2, -height/2, width, height);
-            
+            this.rect = scene.add.rectangle ( 0, 0, width, height, 0x00cc00, 0.4 );
+
             var imgFrame = 0;
 
             if ( dir == 'up' ) {
@@ -4052,7 +4050,7 @@ window.onload = function () {
                 imgFrame = 24
             }
             
-            this.image = scene.add.image ( 0, 0, 'thumbs', imgFrame ).setScale( width*0.4/50).setAlpha(0);
+            this.image = scene.add.image ( 0, 0, 'thumbs', imgFrame ).setScale( _gameW/1280 ).setAlpha(0);
             
             scene.tweens.add ({
                 targets : this.image,
@@ -4064,7 +4062,7 @@ window.onload = function () {
             });
 
             //add to container...
-            this.add ([this.shape, this.image]);
+            this.add ([this.rect, this.image]);
 
             scene.children.add ( this );
 
