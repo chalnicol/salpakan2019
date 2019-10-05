@@ -144,7 +144,7 @@ window.onload = function () {
 
             //....
             this.load.image('pairing_placement', 'client/assets/images/intro/pairing_placement.png');
-            this.load.spritesheet('keys', 'client/assets/images/intro/keyboard.png', { frameWidth: 106, frameHeight: 83 });
+            this.load.spritesheet('keys', 'client/assets/images/intro/keyboard_2.png', { frameWidth: 110, frameHeight: 85 });
 
             //...
             this.load.image('prompt', 'client/assets/images/intro/prompt.png');
