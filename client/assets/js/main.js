@@ -166,7 +166,7 @@ window.onload = function () {
             //this.load.spritesheet('main_btns', 'client/assets/images/proper/main_btns.png', { frameWidth: 89, frameHeight: 48 });
             this.load.spritesheet('main_btns', 'client/assets/images/proper/main_btns2.png', { frameWidth: 70, frameHeight: 70 });
             this.load.spritesheet('cont_btns', 'client/assets/images/proper/cont_btns.png', { frameWidth: 71, frameHeight: 71 });
-            this.load.spritesheet('indicatorbg', 'client/assets/images/proper/indicator_placement.png', { frameWidth: 557, frameHeight: 71 });
+            this.load.spritesheet('indicatorbg', 'client/assets/images/proper/indicator.png', { frameWidth: 557, frameHeight: 71 });
             this.load.spritesheet('prompt_btns2', 'client/assets/images/proper/prompt_btns.png', { frameWidth: 197, frameHeight: 62 });
             this.load.spritesheet('emojis', 'client/assets/images/proper/emojis.png', { frameWidth: 100, frameHeight: 100 });
             
