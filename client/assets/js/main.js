@@ -135,11 +135,13 @@ window.onload = function () {
             this.load.image('title', 'client/assets/images/intro/title.png');
             this.load.image('star', 'client/assets/images/intro/star.png');
             this.load.image('select', 'client/assets/images/intro/select.png');
-            this.load.image('shade', 'client/assets/images/intro/shade.png');
+            //this.load.image('shade', 'client/assets/images/intro/shade.png');
             this.load.image('avatar_placement', 'client/assets/images/intro/avatar_placement.png');
 
            
+            this.load.spritesheet('radio', 'client/assets/images/intro/radio_btns.png', { frameWidth: 45, frameHeight: 45 });
             this.load.spritesheet('start', 'client/assets/images/intro/start_btn.png', { frameWidth: 528, frameHeight: 93 });
+
             this.load.spritesheet('thumbs', 'client/assets/images/thumbs.png', { frameWidth: 50, frameHeight: 50 });
 
             //....
@@ -161,18 +163,19 @@ window.onload = function () {
             this.load.image('prompt_big', 'client/assets/images/proper/prompt_big.png');
             this.load.image('prompt_small', 'client/assets/images/proper/prompt_small.png');
             this.load.image('commence', 'client/assets/images/proper/commence.png');
-            
+            this.load.image('commence_w', 'client/assets/images/proper/commence_w.png');
+
             this.load.spritesheet('piece', 'client/assets/images/proper/pieces.png', { frameWidth: 112, frameHeight: 62 });
             //this.load.spritesheet('main_btns', 'client/assets/images/proper/main_btns.png', { frameWidth: 89, frameHeight: 48 });
-            this.load.spritesheet('main_btns', 'client/assets/images/proper/main_btns2.png', { frameWidth: 70, frameHeight: 70 });
-            this.load.spritesheet('cont_btns', 'client/assets/images/proper/cont_btns.png', { frameWidth: 71, frameHeight: 71 });
+            //this.load.spritesheet('main_btns', 'client/assets/images/proper/main_btns2.png', { frameWidth: 70, frameHeight: 70 });
+            this.load.spritesheet('cont_btns', 'client/assets/images/proper/cont_btns.png', { frameWidth: 45, frameHeight: 45 });
             this.load.spritesheet('indicatorbg', 'client/assets/images/proper/indicator.png', { frameWidth: 557, frameHeight: 71 });
             this.load.spritesheet('prompt_btns2', 'client/assets/images/proper/prompt_btns.png', { frameWidth: 197, frameHeight: 62 });
             this.load.spritesheet('emojis', 'client/assets/images/proper/emojis.png', { frameWidth: 100, frameHeight: 100 });
             
 
 
-            var txtH = Math.floor ( 16 * _gameH/720 );
+            var txtH = Math.floor ( 20 * _gameH/720 );
 
             var txtConfig = { 
                 color : '#3a3a3a', 
@@ -211,11 +214,11 @@ window.onload = function () {
 
             this.initSound ();
 
+            this.initSocketIOListeners();
+            
             this.initGameInterface ();
 
-            this.initGameSelect ();
-
-            this.initSocketIOListeners();
+            
 
             //this.createPlayButton();
 
@@ -315,10 +318,13 @@ window.onload = function () {
 
             var playerName = this.add.text ( _gameW*0.075, _gameH*0.042, username.value, { color : '#7f6868', fontFamily : 'Impact', fontSize: _gameH*0.035 } ).setOrigin(0);
     
-            this.playersID = this.add.text ( _gameW*0.075, _gameH*0.087, "Pairing ID : ---", { color : '#eb6d10', fontFamily : 'Impact', fontSize: _gameH*0.025 } ).setOrigin(0);
+            this.playersID = this.add.text ( _gameW*0.075, _gameH*0.087, "Pairing ID : ---", { color : '#b78d8d', fontFamily : 'Impact', fontSize: _gameH*0.025 } ).setOrigin(0);
     
             this.playersOnlineTxt = this.add.text ( _gameW*0.033, _gameH*0.145, "Players Online : -", { color : '#b5a9a0', fontFamily : 'Impact', fontSize: _gameH*0.025 } ).setOrigin(0);
             
+
+            //stars...
+
             var strSize = _gameW * 0.052, strCount = 5;
             
             var xSpacing = _gameW * 0.008,
@@ -326,7 +332,7 @@ window.onload = function () {
 
             for ( var i = 0; i < strCount; i++ ) {
 
-                var image4 = this.add.image ( _gameW*0.078, _gameH*0.302, 'star' ).setOrigin ( 0 ).setScale(_gameW/1280).setAlpha (0);
+                var image4 = this.add.image ( _gameW*0.078, _gameH*0.29, 'star' ).setOrigin ( 0 ).setScale(_gameW/1280).setAlpha (0);
 
                 this.tweens.add ({
                     targets : image4,
@@ -339,115 +345,168 @@ window.onload = function () {
                 
             }   
 
+            //select....
+            var select_img = this.add.image ( _gameW, 0, 'select' ).setOrigin ( 0 ).setScale(_gameW/1280);
+            
+            var _this = this;
+
+            this.tweens.add ({
+                targets : select_img,
+                x : 0,
+                ease : 'Power2',
+                duration : 300,
+                onComplete : function () {
+                    _this.showSelect();
+                }
+            });
+
         },
-        initGameSelect : function () {
+        showSelect : function () {
 
             var _this = this;
 
-            var btxa = Math.floor ( 365 * _gameW/1280 ),
-                btxb = Math.floor ( 658 * _gameW/1280 ),
-                bty =  Math.floor ( 388 * _gameH/720 ),
-                bts = Math.floor ( 41 * _gameW/1280 );
+            var btxa = Math.floor ( 360 * _gameW/1280 ),
+                btxb = Math.floor ( 665 * _gameW/1280 ),
+                bty =  Math.floor ( 385 * _gameH/720 ),
+                bts = Math.floor ( 45 * _gameW/1280 );
                 
-            var shade1 = this.add.image ( btxa + (bts/2), bty + (bts/2), 'shade' ).setOrigin (0,0.5).setAlpha(0).setScale(_gameW/1280);
-            var shade2 = this.add.image ( btxb + (bts/2), bty + (bts/2), 'shade' ).setOrigin (0,0.5).setAlpha(0).setScale(_gameW/1280);
-    
-            var select_img = this.add.image (0, 0, 'select' ).setOrigin ( 0 ).setAlpha(0).setScale(_gameW/1280);
-    
-            var dot1 = this.add.image ( btxa + (bts/2), bty + (bts/2), 'thumbs', 19 ).setOrigin ( 0.5 ).setAlpha(0).setScale(_gameW/1280);
-            var dot2 = this.add.image ( btxb + (bts/2), bty + (bts/2), 'thumbs', 19 ).setOrigin ( 0.5 ).setAlpha(0).setScale(_gameW/1280);
-    
             var textNameConfig = { 
-                color:'#b4b4b4', 
-                fontSize: _gameW * 0.016,
+                color:'#5e5e5e', 
+                fontSize: bts * 0.48,
                 fontFamily : 'Impact'
             };
     
-            var textName = this.add.text ( _gameW *0.519, _gameH*0.680, "◉ No Timer", textNameConfig ).setOrigin(0).setAlpha(0);
+            var textName = this.add.text ( _gameW *0.525, _gameH*0.685, "◉ No Timer", { color : '#6a6a6a', fontSize : bts * 0.42, fontFamily : 'Impact'} ).setOrigin(0);
     
-            this.tweens.add ({
-                targets : [select_img, textName, dot1,dot2,shade1,shade2],
-                alpha : 1,
-                duration : 500,
-                delay : 2000,
-                ease : 'Power3',
-              
-            });
-            
-            setTimeout (function () {
-                _this.music.play ('move');
-            }, 2000)
-            
+            var btw = Math.floor ( 260 * _gameW/1280 ),
+                btsp = bts * 0.1;
 
+            var textArr = ['vs Computer', 'vs Random Opponent' , 'vs Online Friend'];
 
-            
+            var sizeRad = 45 * (_gameW/1280);
 
-            var btw = Math.floor ( 275 * _gameW/1280 ),
-                btsp = Math.ceil ( 7 * _gameH/720 );
+            this.radios = [];
+
+            this.under = [];
+
 
             for ( var i = 0; i<3; i++ ) {
 
-                var rectDiv = this.add.rectangle ( btxa, bty + i * ( bts + btsp ) , btw, bts, 0xdedede, 0 ).setOrigin(0).setData ('id', i).setInteractive();
+                var xa = btxa,
+                    ya = bty + i * ( bts + btsp );
+
+                var rectDiv = this.add.rectangle ( xa, ya, btw, bts, 0xdedede, 0 ).setOrigin(0).setData ('id', i).setInteractive();
             
                 rectDiv.on('pointerdown', function () {
 
+                    var curGame = _this.gameData.game;
+                    _this.radios [curGame].setFrame (0);
+                    _this.under [curGame].setAlpha (0);
+
                     var data1 = this.getData('id');
 
-                    shade1.y = this.y + (bts/2);
+                    _this.radios[data1].setFrame (1);
 
-                    dot1.y = this.y + (bts/2);
-
-                    dot1.setScale (0);
-
-                    _this.music.play ('clickc');
+                    //_this.under[data1].setAlpha (1);
+                    _this.under[data1].width = 0;
 
                     _this.tweens.add ({
-                        targets : dot1,
-                        scaleX : _gameW/1280,
-                        scaleY : _gameW/1280,
-                        duration : 300,
-                        ease : 'Bounce'
+                        targets : _this.under[data1],
+                        alpha : 1,
+                        width : btw * 0.87,
+                        ease : 'Power2',
+                        duration : 150
                     });
 
                     _this.gameData.game = data1;
 
-
+                    _this.music.play ('clickc');
+                    
                 });
+
+
+            
+                var frame = i==0 ? 1 : 0;
+
+                var under_rect = this.add.rectangle (  xa + sizeRad/2, ya + sizeRad/2, btw * 0.87, bts * 0.7, 0xcccccc, 1 ).setOrigin (0, 0.5).setAlpha(frame);
+
+                var radion_btns = this.add.image ( xa + sizeRad/2, ya + sizeRad/2, 'radio', frame ).setScale ( _gameW/1280 ).setAlpha(1);
+
+                var txt_btns = this.add.text ( xa + sizeRad*1.2, ya + sizeRad/2, textArr[i], textNameConfig).setOrigin (0, 0.5).setAlpha(1);
+
+                this.radios.push (radion_btns);
+
+                this.under.push (under_rect);
+
 
             }
 
+            var textArra = ['Classic', 'Blitz'];
+
             for ( var i = 0; i<2; i++ ) {
                 
+
+                var xb = btxb,
+                    yb = bty + i * ( bts + btsp );
+
                 var rectDivb = this.add.rectangle ( btxb, bty + i * ( bts + btsp ) , btw, bts, 0xdedede, 0 ).setOrigin(0).setData ('id', i).setInteractive();
 
                 rectDivb.on('pointerdown', function () {
 
+                    var curGameb = _this.gameData.type;
+                    _this.radios [curGameb + 3].setFrame (0);
+                    _this.under [curGameb + 3].setAlpha (0);
+
                     var data2 = this.getData('id');
                 
-                    shade2.y = this.y + (bts/2);
-
-                    dot2.y = this.y + (bts/2);
-
-                    dot2.setScale (0);
-
-                    _this.music.play ('clickc');
+                    _this.under[data2 + 3 ].width = 0;
 
                     _this.tweens.add ({
-                        targets : dot2,
-                        scaleX : _gameW/1280,
-                        scaleY : _gameW/1280,
-                        duration : 300,
-                        ease : 'Bounce'
+                        targets : _this.under[data2 + 3],
+                        alpha : 1,
+                        width : btw * 0.87,
+                        ease : 'Power2',
+                        duration : 150
                     });
-
 
                     textName.text = data2 == 0 ? '◉ No Timer' : '◉ 30 secs prep, 15 secs turn';
 
+                    _this.radios [data2 + 3].setFrame (1);
+
+                    _this.music.play ('clickc');
+
                     _this.gameData.type = data2;
+                    
 
                 });
 
+
+                var frameb = i==0 ? 1 : 0;
+
+                var under_recta = this.add.rectangle (  xb + sizeRad/2, yb + sizeRad/2, btw * 0.87, bts * 0.7, 0xcccccc, 1 ).setOrigin (0, 0.5).setAlpha(frameb);
+
+                var radion_btnsa = this.add.image ( xb + sizeRad/2, yb + sizeRad/2, 'radio', frameb ).setScale ( _gameW/1280 ).setAlpha(1);
+
+                var txt_btnsa = this.add.text ( xb + sizeRad*1.2, yb + sizeRad/2, textArra[i], textNameConfig).setOrigin (0, 0.5).setAlpha(1);
+
+                this.radios.push ( radion_btnsa );
+
+                this.under.push (under_recta);
+
             }
+
+                
+            setTimeout (function () {
+                _this.showStartBtn ();
+            }, 2000)
+            
+            
+        },
+        showStartBtn : function () {
+
+            var _this = this;
+
+            this.music.play ('move');
 
             var bh = Math.floor(523 * _gameH/720);
 
@@ -458,7 +517,6 @@ window.onload = function () {
                 y :  _gameH*0.864,
                 alpha : 1,
                 duration : 400,
-                delay : 2000,
                 easeParams : [ 1, 0.5 ],
                 ease : 'Quad.easeOut'
             });
@@ -475,9 +533,7 @@ window.onload = function () {
             });
             start_btn.on ('pointerdown', function () {
 
-
-                this.setFrame (2);
-
+                //this.setFrame (2);
                 _this.music.play ('clicka');
 
                 var toSendData = {
@@ -487,16 +543,13 @@ window.onload = function () {
                 }
 
                 if ( _this.gameData.game == 0) {
+
                     socket.emit ('enterGame', toSendData );
-
                     //_this.scene.add('Connect', Connect, true,{err : 0});
-
                 }else if ( _this.gameData.game == 1 ) {
                     
                     socket.emit ('enterGame', toSendData );
-
                      _this.showPromptScreen ( 'connect' );
-
                     //_this.scene.add('Pair', Pair, true);
                 }else {
 
@@ -507,7 +560,6 @@ window.onload = function () {
 
             });
 
-            
         },
         createFakeData : function ( len ) {
             
@@ -885,7 +937,6 @@ window.onload = function () {
 
     });
 
-
     var SceneA = new Phaser.Class({
 
         Extends: Phaser.Scene,
@@ -896,14 +947,14 @@ window.onload = function () {
         {
             Phaser.Scene.call(this, { key: 'sceneA' });
         },
-
+        
         init: function (data) {
 
             //console.log ( data );
 
             this.grid = [];
             this.blinker = [];
-            this.button = [];
+            this.buttonElements = [];
             this.buttonPanel = [];
             this.controls = [];
 
@@ -1259,7 +1310,7 @@ window.onload = function () {
         },
         createControlPanel : function () {
 
-            this.panel = this.add.image ( 0, 0, 'panel' ).setScale(_gameW/1280 ).setOrigin(0);
+            //this.panel = this.add.image ( 0, 0, 'panel' ).setScale(_gameW/1280 ).setOrigin(0);
 
         },
         createGrid : function () {
@@ -1270,7 +1321,7 @@ window.onload = function () {
 
             var btw = Math.floor ( 125 * _gameW/1280 ),
                 bth = Math.floor ( 74 * _gameH/720 ),
-                btx = Math.floor ( 21 * _gameW/1280 ),
+                btx = Math.floor ( 78 * _gameW/1280 ),
                 bty = Math.floor ( 99 * _gameH/720 );
 
             var strke = Math.floor ( 4 * _gameW/1280);
@@ -1306,8 +1357,8 @@ window.onload = function () {
 
             var btw = Math.floor ( 553 * _gameW/1280 ),
                 bth = Math.floor ( 67 * _gameH/720 ),
-                btxa = Math.floor ( 21 * _gameW/1280 ),
-                btxb = Math.floor ( 595 * _gameW/1280 ),
+                btxa = Math.floor ( 78 * _gameW/1280 ),
+                btxb = Math.floor ( 651 * _gameW/1280 ),
                 bty = Math.floor ( 18 * _gameH/720 );
 
             var self = new PlayerIndicator (this, 'self', btxa + btw/2, bty + bth/2, btw, bth, this.player['self'].name, 5 );
@@ -1334,49 +1385,53 @@ window.onload = function () {
             if ( !proper ) {
                 buts = ['preset', 'random', 'ready'];
             }else {
-                buts = ['proposedraw', 'resign', 'showpieces'];
+                buts = ['draw', 'resign', 'reveal'];
             }
 
-            var btw = Math.floor ( 66 * _gameW/1280 ),
-                bth = Math.floor ( 66 * _gameH/720 ),
-                btx = Math.floor ( 1192 * _gameW/1280 ) ,
-                bty = Math.floor ( 465 * _gameH/720 ),
-                bts = Math.floor ( 15 * _gameH/720 );
+            var btz = Math.floor ( 60 * _gameW/1280 ),
+                bth = Math.floor ( 40 * _gameH/720 ),
+                btx = _gameW - btz,
+                bty = Math.floor ( 500 * _gameH/720 ),
+                bts = bth * 0.08
 
             var _this = this;
 
             for ( var i = 0; i < buts.length; i++ ) {
 
-                var xs = btx + (btw/2),
-                    ys =  bty + (i*(bth + bts)) + (bth/2);
+                var xs = btx,
+                    ys =  bty + (i*(bth + bts));
 
                 var frame = !proper ? i*3 : (i*3)+9;
                 
-                var but = new MyButton ( this, buts[i], xs, ys, btw, bth, frame, 'main_btns' ).setAlpha(0).setScale(0.1);
 
+                //var but = new MyButton ( this, buts[i], xs, ys, btw, bth, frame, 'main_btns' ).setAlpha(0).setScale(0.1);
+
+                var but = this.add.rectangle ( xs + btz, ys, btz, bth, 0x0a0a0a, 0.5 ).setOrigin (0).setData('id', buts[i] ).setInteractive();
+
+                var texta = this.add.text ( xs + (btz *1.5), ys + bth/2, buts[i], { color : '#ffc600', fontSize : bth * 0.25, fontFamily : 'Poppins' }).setOrigin (0.5);
+              
                 but.on('pointerover', function () {
-                    this.isHovered ();
+                    this.setFillStyle ( 0x0a0a0a, 1 );
                 });
                 but.on('pointerout',  function () {
-                    this.reset();
+                    this.setFillStyle ( 0x0a0a0a, 0.5 );
                 });
                 but.on('pointerup',  function () {
-                    this.reset()
+                    this.setFillStyle ( 0x0a0a0a, 0.5 );
                 });
                 but.on('pointerdown', function () {
 
-                    
                     if ( _this.isEmoji ) _this.toggleEmojis ();
 
                     if ( _this.elimScreenShown ) _this.toggleElimPiecesScreen();
 
-                    switch (this.id) {
+                    switch (this.getData('id')) {
 
                         case 'preset' :
 
                             if ( _this.isTimed && _this.timerCount >= ( _this.maxPrepTime - 1) ) return;
 
-                            this.isDown();
+                            //this.isDown();
 
                             _this.playSound('clicka');
 
@@ -1394,7 +1449,7 @@ window.onload = function () {
 
                             if ( _this.isTimed && _this.timerCount >= (_this.maxPrepTime - 1) ) return;
 
-                            this.isDown();
+                            //this.isDown();
 
                             _this.playSound('clicka');
 
@@ -1410,7 +1465,7 @@ window.onload = function () {
 
 
                             //..
-                            this.isDown();
+                            //this.isDown();
 
                             this.disableInteractive();
 
@@ -1426,13 +1481,13 @@ window.onload = function () {
 
                             if ( _this.isPrompted ) {
                                 
-                                this.isDown();
+                                //this.isDown();
 
                                 _this.playSound ('error');
 
                             }else {
 
-                                this.isDown();
+                                //this.isDown();
                                 
                                 _this.playSound('clicka');
 
@@ -1443,19 +1498,19 @@ window.onload = function () {
                             
 
                         break;
-                        case 'proposedraw' :
+                        case 'draw' :
                             //..
                             if ( _this.isTimed && _this.timerCount >= ( _this.maxBlitzTime - 1) ) return;
 
                             if ( _this.isPrompted ) {
 
-                                this.isDown();
+                                //this.isDown();
 
                                 _this.playSound ('error');
 
                             }else {
 
-                                this.isDown();
+                                //this.isDown();
                                 
                                 _this.playSound('clicka');
 
@@ -1474,19 +1529,19 @@ window.onload = function () {
                             }
                             
                         break;
-                        case 'showpieces' :
+                        case 'reveal' :
                             //..
                             if ( _this.isTimed && _this.timerCount >= ( _this.maxBlitzTime - 1) ) return;
 
                             if ( _this.isPrompted ) {
 
-                                this.isDown();
+                                //this.isDown();
 
                                 _this.playSound ('error');
 
                            }else {
 
-                                this.isDown();  
+                                //this.isDown();  
 
                                 _this.playSound('clicka');
 
@@ -1506,60 +1561,68 @@ window.onload = function () {
                     
                 this.tweens.add ({
                     targets : but,
-                    scaleX : 1,
-                    scaleY : 1,
-                    alpha : 1,
-                    duration : 300,
-                    ease : 'Bounce',
-                    easeParams : [ 0.5, 1],
-                    delay : 500
+                    x : xs,
+                    duration : 200,
+                    ease : 'Power2',
+                    delay : (i * 100) + 1000,
                 });
 
-                this.button.push ( but );
+                this.tweens.add ({
+                    targets : texta,
+                    x : xs + btz/2,
+                    duration : 200,
+                    ease : 'Power2',
+                    delay : (i * 100) + 1000,
+                });
 
+                this.buttonElements.push ( but );
+                this.buttonElements.push ( texta );
+                
             }
 
         },
         createGameControls: function () {
 
-            
             var buts = ['elims', 'music', 'sound', 'emoji', 'close'];
             
-            var btw = Math.floor ( 63 * _gameW/1280 ),
-                bth = Math.floor ( 63 * _gameH/720 ),
-                btx = Math.floor ( 1193 * _gameW/1280 ) ,
-                bty = Math.floor ( 34 * _gameH/720 ),
-                bts = Math.floor ( 8 * _gameH/720 );
+            var btz = Math.floor ( 50 * _gameW/1280 ),
+                btx = _gameW - btz,
+                bty = Math.floor ( 105 * _gameH/720 ),
+                bts = btz * 0.08;
 
             var _this = this;
 
             for ( var i = 0; i < buts.length; i++ ) {
 
-                var xs = btx + (btw/2),
-                    ys =  bty + (i*(bth + bts)) + (bth/2);
+                var xs = btx,
+                    ys =  bty + (i*(btz + bts));
 
                 //var frame = !proper ? i*3 : (i*3)+6;
                 
-                var but = new MyButton ( this, buts[i], xs, ys, btw, bth, i*3, 'cont_btns' ).setAlpha(0).setScale(0);
+                //var but = new MyButton ( this, buts[i], xs, ys, btw, bth, i, 'cont_btns' ).setAlpha(0).setScale(0);
+
+                var but = this.add.rectangle ( xs + btz, ys, btz, btz, 0x0a0a0a, 0.5 ).setOrigin (0).setData('id', buts[i] ).setInteractive();
+
+                var img = this.add.image ( xs + (btz *1.5), ys + btz/2, 'cont_btns', i ).setScale (_gameW/1280);
 
                 but.on('pointerover', function () {
-                    this.isHovered ();
+                    this.setFillStyle ( 0x0a0a0a, 1 );
                 });
                 but.on('pointerout',  function () {
-                    this.reset();
+                    this.setFillStyle ( 0x0a0a0a, 0.5 );
                 });
                 but.on('pointerup',  function () {
-                    this.reset()
+                    this.setFillStyle ( 0x0a0a0a, 0.5 );
                 });
                 but.on('pointerdown', function () {
 
-                    this.isDown();
-                    
+                    this.setFillStyle ( 0x3a3a3a, 1 );
+                   
                     //if ( _this.isEmoji ) _this.toggleEmojis ();
 
                     //if ( _this.elimScreenShown ) _this.toggleElimPiecesScreen();
 
-                    switch (this.id) {
+                    switch (this.getData ('id')) {
 
                         case 'elims' :
 
@@ -1646,21 +1709,24 @@ window.onload = function () {
                     
                 this.tweens.add ({
                     targets : but,
-                    scaleX : 1,
-                    scaleY : 1,
-                    alpha : 1,
-                    duration : 500,
-                    ease : 'Bounce',
-                    easeParams : [ 0.5, 1],
+                    x : xs,
+                    duration : 200,
+                    ease : 'Power2',
+                    delay : (i * 100) + 1000,
+                });
+
+                this.tweens.add ({
+                    targets : img,
+                    x : xs + btz/2,
+                    duration : 200,
+                    ease : 'Power2',
                     delay : (i * 100) + 1000,
                 });
 
                 this.controls.push ( but );
 
             }
-
-            
-           
+            //...
 
         },
         showControlPanel : function ( show = true ) {
@@ -2639,10 +2705,10 @@ window.onload = function () {
 
             var _this = this;
 
-            if ( _this.button.length > 0 ) {
+            if ( _this.buttonElements.length > 0 ) {
 
                 this.tweens.add ({
-                    targets : this.button,
+                    targets : this.buttonElements,
                     alpha : 0,
                     duration : 400,
                     ease : 'Quad.easeOut',
@@ -2651,7 +2717,7 @@ window.onload = function () {
                     }
                 });
 
-                this.button = [];
+                this.buttonElements = [];
             }
             
         },   
@@ -3105,20 +3171,21 @@ window.onload = function () {
             var comx = Math.floor ( 587 * _gameW/1280 ),
                 comy = Math.floor ( 388 * _gameH/720 );
 
-            var commence_img = this.add.image (comx, comy, 'commence').setScale( _gameW/1280 * 0.5 );
+
+            var commence_w = this.add.image (_gameW/2, _gameH * 0.55, 'commence_w').setScale( _gameW/1280 );
+
+            var commence_img = this.add.image (_gameW/2, _gameH * 0.55, 'commence').setScale( _gameW/1280 );
 
             this.tweens.add ({
                 targets : commence_img,
-                scaleX : _gameW/1280,
-                scaleY : _gameW/1280,
-                rotation : 2,
-                ease : 'Power2',
-                yoyo : true,
-                duration : 500,
+                rotation : '+=3',
+                ease : 'Quad.easeOut',
+                //yoyo : true,
+                duration : 1000,
                 repeat : 2
             })
 
-            this.commenceElements = [ commence_img ];
+            this.commenceElements = [ commence_img, commence_w ];
 
             var txtsize = Math.floor ( 115 * _gameH/720 );
 
@@ -3127,8 +3194,8 @@ window.onload = function () {
                 fontSize : txtsize,
                 fontFamily : 'Impact',
             };
-            this.commenceText = this.add.text ( comx, comy, '3', txtConfig).setOrigin(0.5);
-
+            this.commenceText = this.add.text ( _gameW/2, _gameH * 0.55, '3', txtConfig).setOrigin(0.5);
+            this.commenceText.setStroke('#d5d5d5', 3 );
 
             //start commence timer..
 
@@ -3173,7 +3240,7 @@ window.onload = function () {
             }
 
         },
-        showPrompt : function ( text, caption = '', withButtons = false, tSize = 'med' ) {
+        showPrompt : function ( text, caption = '', withButtons = false, tSize = 'med' ) { 
 
             this.isPrompted = true;
 
@@ -3198,9 +3265,9 @@ window.onload = function () {
                                 
             }
         
-            var imgBg = this.add.image ( 0,0, img).setOrigin (0).setScale(_gameW/1280);
+            var imgBg = this.add.image ( 0,0, img ).setOrigin (0).setScale(_gameW/1280);
         
-            var txtx = Math.floor (587 * _gameW/1280),
+            var txtx = _gameW/2,
                 txtya = Math.floor (306 * _gameH/720),
                 txtyb = Math.floor (360 * _gameH/720);
 
@@ -3951,10 +4018,12 @@ window.onload = function () {
             this.imgBg = scene.add.image ( 0, 0, 'piece', type ).setScale(_gameW/1280).setRotation ( this.rot * Math.PI/180);
 
             var txtConfig = { 
-                fontFamily: 'Arial', 
-                fontSize: Math.floor(height * 0.21), 
-                color: type == 0 ? '#000' : '#fff',
-               // fontStyle : 'bold' 
+                
+                //color : 'gray',
+                color: type == 0 ? 'black' : 'white',
+                fontFamily: 'Poppins', 
+                fontSize: Math.floor(height * 0.2), 
+                //fontStyle : 'bold' 
             };
 
             var top = -height/2,
@@ -3966,7 +4035,7 @@ window.onload = function () {
 
             this.image = scene.add.image ( 0, top + height*0.4, 'thumbs', indx ).setScale(_gameW/1280);
 
-            this.txt = scene.add.text ( 0, top + height * 0.78, '', txtConfig ).setOrigin(0.5);
+            this.txt = scene.add.text ( 0, top + height * 0.8, '', txtConfig ).setOrigin(0.5);
 
             this.add ([this.imgBg, this.image, this.txt]);
 

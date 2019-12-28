@@ -17,17 +17,17 @@
 	<link rel="shortcut icon" href="client/assets/images/sv_icon.ico">
 	<link rel="apple-touch-icon" href="client/assets/images/sv_icon.png">
 
-	<!-- <link href="https://fonts.googleapis.com/css?family=Libre+Franklin:900&display=swap" rel="stylesheet"> -->
-
-	
 	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
 
 	<script src="/socket.io/socket.io.js"></script>
 
-	<script src="client/assets/js/phaser/dist/phaser.min.js"></script>
+	<script src="//cdn.jsdelivr.net/npm/phaser@3.21.0/dist/phaser.min.js"></script>
+	
 	<script src="client/assets/js/main.js"></script>
 	
 	<style>
+
+		@import url('https://fonts.googleapis.com/css?family=Poppins&display=swap');
 
 		@font-face {
 			font-family: 'Impact';
@@ -48,13 +48,14 @@
 			height: 100%;
 			max-height: 100%;
 			overflow-y: auto;
+			font-family: 'Poppins';
 		}
 
 		#game_login {
 
 			width:90%;
 			height : auto;
-			max-width: 320px;
+			max-width: 350px;
 			margin:auto;
 			padding : 15px;
 			border : 1px solid #fff;
