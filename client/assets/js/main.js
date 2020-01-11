@@ -3333,8 +3333,13 @@ window.onload = function () {
             
             var btw = Math.floor ( 191 * _gameW/1280 ),
                 bth = Math.floor ( 54 * _gameH/720 ),
-                btxa = Math.floor ( 379 * _gameW/1280 ) ,
-                btxb = Math.floor ( 595 * _gameW/1280 ) ,
+
+                bts = btw * 0.05,
+                btxa = _gameW/2 - (btw + bts),
+                btxb = _gameW/2 + (bts),
+
+                //btxa = Math.floor ( 379 * _gameW/1280 ) ,
+                //btxb = Math.floor ( 595 * _gameW/1280 ) ,
                 bty = Math.floor ( 393 * _gameH/720 );
 
             var _this = this;
@@ -3410,8 +3415,12 @@ window.onload = function () {
 
             var btw = Math.floor ( 191 * _gameW/1280 ),
                 bth = Math.floor ( 54 * _gameH/720 ),
-                btxa = Math.floor ( 379 * _gameW/1280 ) ,
-                btxb = Math.floor ( 595 * _gameW/1280 ) ,
+
+                bts = btw * 0.05,
+                btxa = _gameW/2 - (btw + bts),
+                btxb = _gameW/2 + (bts),
+                //btxa = Math.floor ( 379 * _gameW/1280 ) ,
+                //btxb = Math.floor ( 595 * _gameW/1280 ) ,
                 bty = Math.floor ( 393 * _gameH/720 );
 
             var _this = this;
@@ -3476,8 +3485,11 @@ window.onload = function () {
 
             var btw = Math.floor ( 191 * _gameW/1280 ),
                 bth = Math.floor ( 54 * _gameH/720 ),
-                btxa = Math.floor ( 379 * _gameW/1280 ) ,
-                btxb = Math.floor ( 595 * _gameW/1280 ) ,
+                bts = btw * 0.05,
+                btxa = _gameW/2 - (btw + bts),
+                btxb = _gameW/2 + (bts),
+                //btxa = Math.floor ( 379 * _gameW/1280 ) ,
+                //btxb = Math.floor ( 595 * _gameW/1280 ) ,
                 bty = Math.floor ( 393 * _gameH/720 );
 
             var _this = this;
@@ -3545,8 +3557,11 @@ window.onload = function () {
 
             var btw = Math.floor ( 191 * _gameW/1280 ),
                 bth = Math.floor ( 54 * _gameH/720 ),
-                btxa = Math.floor ( 379 * _gameW/1280 ) ,
-                btxb = Math.floor ( 595 * _gameW/1280 ) ,
+                bts = btw * 0.05,
+                btxa = _gameW/2 - (btw + bts),
+                btxb = _gameW/2 + (bts),
+                //btxa = Math.floor ( 379 * _gameW/1280 ) ,
+                //btxb = Math.floor ( 595 * _gameW/1280 ) ,
                 bty = Math.floor ( 393 * _gameH/720 );
 
             var _this = this;
@@ -3607,8 +3622,12 @@ window.onload = function () {
             
             var btw = Math.floor ( 191 * _gameW/1280 ),
                 bth = Math.floor ( 54 * _gameH/720 ),
-                btxa = Math.floor ( 379 * _gameW/1280 ) ,
-                btxb = Math.floor ( 595 * _gameW/1280 ) ,
+
+                bts = btw * 0.05,
+                btxa = _gameW/2 - (btw + bts),
+                btxb = _gameW/2 + (bts),
+                //btxa = Math.floor ( 379 * _gameW/1280 ) ,
+                //btxb = Math.floor ( 595 * _gameW/1280 ) ,
                 bty = Math.floor ( 393 * _gameH/720 );
 
             var _this = this;
@@ -3746,9 +3765,11 @@ window.onload = function () {
 
             var btw = Math.floor ( 191 * _gameW/1280 ),
                 bth = Math.floor ( 54 * _gameH/720 ),
-                btxa = Math.floor ( 379 * _gameW/1280 ) ,
-                btxb = Math.floor ( 595 * _gameW/1280 ) ,
+                bts = btw * 0.05,
+                btxa = _gameW/2 - (btw + bts),
+                btxb = _gameW/2 + (bts),
                 bty = Math.floor ( 393 * _gameH/720 );
+                
 
             var _this = this;
             
