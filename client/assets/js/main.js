@@ -793,29 +793,37 @@ window.onload = function () {
 
             var window = this.add.image (0, 0, 'pairing_placement' ).setOrigin ( 0 ).setScale(_gameW/1280);
 
-            var cX = Math.floor ( 803 * _gameW/1280 ),
-                cY = Math.floor ( 70 * _gameH/720 ),
+            var cX = Math.floor ( 797 * _gameW/1280 ),
+                cY = Math.floor ( 80 * _gameH/720 ),
                 cS = Math.floor ( 23 * _gameW/1280 );
 
-            var circ = this.add.circle ( cX, cY, cS, 0x3a3a3a, 0 ).setOrigin(0).setInteractive();
+            var circ = this.add.circle ( cX, cY, cS, 0x3a3a3a, 1 ).setAlpha(0.1).setOrigin(0).setInteractive();
 
+
+            circ.on('pointerover', function () {
+                this.setAlpha (0.3);
+            });
+
+            circ.on('pointerout', function () {
+                this.setAlpha(0.1);
+            }); 
+            
             circ.on('pointerdown', function () {
                 _this.music.play('clicka');
                 _this.removeConnectScreen();
             });
 
-            var txtH = Math.floor ( 50 * _gameH/720 );
+            var txtH = Math.floor ( 60 * _gameH/720 );
             var txtConfig = { 
                 color:'#4e4e4e', 
                 fontSize: txtH, 
                 fontFamily:'Impact', 
             };
 
+            var txtX = Math.floor ( 780 * _gameW/1280 ),
+                txtY = Math.floor ( 180 * _gameH/720 );
 
-            var txtX = Math.floor ( 788 * _gameW/1280 ),
-                txtY = Math.floor ( 230 * _gameH/720 );
-
-            var txt = this.add.text (txtX, txtY, '0', txtConfig ).setOrigin (1);
+            var txt = this.add.text (txtX, txtY, '0', txtConfig ).setOrigin (1, 0);
 
             this.screenElements = [ rectBg, window, circ, txt ]
 
@@ -825,8 +833,9 @@ window.onload = function () {
                 xH = Math.floor ( 83 * _gameW/1280 ),
                 xSp = Math.floor ( 3 * _gameW/1280 ),
 
-                xStart =  (_gameW - ((3 * (xW + xSp)) - xSp))/2,
-                yStart =  Math.floor ( 248 * _gameW/1280 );
+                //xStart =  (_gameW - ((3 * (xW + xSp)) - xSp))/2,
+                xStart =  Math.floor (474 * _gameW/1280 ),
+                yStart =  Math.floor ( 265 * _gameW/1280 );
 
             for ( var i = 0; i < 12; i++ ) {
 
