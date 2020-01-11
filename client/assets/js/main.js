@@ -1390,13 +1390,21 @@ window.onload = function () {
             var buts = [];
             
             if ( !proper ) {
-                buts = ['preset', 'random', 'ready'];
+                buts = [
+                    { id : 'preset', symbol : 'ℙ' },
+                    { id : 'random', symbol : 'ℝ' }, 
+                    { id : 'ready', symbol : '☑' }
+                ];
             }else {
-                buts = ['draw', 'resign', 'reveal'];
+                buts = [
+                    { id : 'draw', symbol : 'ⅅ' },
+                    { id : 'resign', symbol : 'ℝ' }, 
+                    { id : 'reveal', symbol : '❖' }
+                ];
             }
 
             var btz = Math.floor ( 60 * _gameW/1280 ),
-                bth = Math.floor ( 40 * _gameH/720 ),
+                bth = Math.floor ( 50 * _gameH/720 ),
                 btx = _gameW - btz,
                 bty = Math.floor ( 500 * _gameH/720 ),
                 bts = bth * 0.08
@@ -1413,10 +1421,12 @@ window.onload = function () {
 
                 //var but = new MyButton ( this, buts[i], xs, ys, btw, bth, frame, 'main_btns' ).setAlpha(0).setScale(0.1);
 
-                var but = this.add.rectangle ( xs + btz, ys, btz, bth, 0x0a0a0a, 0.5 ).setOrigin (0).setData('id', buts[i] ).setInteractive();
+                var but = this.add.rectangle ( xs + btz, ys, btz, bth, 0x0a0a0a, 0.5 ).setOrigin (0).setData('id', buts[i].id ).setInteractive();
 
-                var texta = this.add.text ( xs + (btz *1.5), ys + bth/2, buts[i], { color : '#ffc600', fontSize : bth * 0.25, fontFamily : 'Poppins' }).setOrigin (0.5);
+                var texta = this.add.text ( xs + (btz *1.5), ys + bth*0.7, buts[i].id , { color : '#ffc600', fontSize : bth * 0.24, fontFamily : 'Poppins' }).setOrigin (0.5);
               
+                var textb = this.add.text ( xs + (btz *1.5), ys + bth*0.35, buts[i].symbol , { color : '#ffc600', fontSize : bth * 0.4, fontFamily : 'Poppins' }).setOrigin (0.5);
+
                 but.on('pointerover', function () {
                     this.setFillStyle ( 0x0a0a0a, 1 );
                 });
@@ -1575,7 +1585,7 @@ window.onload = function () {
                 });
 
                 this.tweens.add ({
-                    targets : texta,
+                    targets : [texta, textb],
                     x : xs + btz/2,
                     duration : 200,
                     ease : 'Power2',
@@ -1584,7 +1594,8 @@ window.onload = function () {
 
                 this.buttonElements.push ( but );
                 this.buttonElements.push ( texta );
-                
+                this.buttonElements.push ( textb );
+
             }
 
         },
@@ -2067,8 +2078,10 @@ window.onload = function () {
                 var stw = this.pieceDimensions.width,
                     sth = this.pieceDimensions.height;
 
-                var stxa = Math.floor ( 58 * _gameW/1280 ),
-                    stxb = Math.floor ( 631 * _gameW/1280 ),
+                var stxa = Math.floor ( 115 * _gameW/1280 ),
+                    stxb = Math.floor ( 685 * _gameW/1280 ),
+                    //stxa = Math.floor ( 58 * _gameW/1280 ),
+                    //stxb = Math.floor ( 631 * _gameW/1280 ),
                     spx = Math.floor ( 10 * _gameW/1280 ),
                     spy = Math.floor ( 10 * _gameH/720 )
                     sty = Math.floor ( 206 * _gameH/720 );
@@ -2088,9 +2101,8 @@ window.onload = function () {
                         gp.x = stxa + (yp*( stw + spx )) + stw/2;
                         gp.y = sty + (xp*( sth + spy )) + sth/2;
 
-                        gp.setVisible(true).setDepth (1000);
+                        gp.setVisible(true).setDepth (1000).removeInteractive();
                         gp.reset();
-                        
                         /*
                         this.tweens.add ({
                             targets : gp,
@@ -2112,7 +2124,7 @@ window.onload = function () {
                             gp.x = stxb + (ypa*( stw + spx )) + stw/2;
                             gp.y = sty + (xpa*( sth + spy )) + sth/2;
     
-                        gp.setVisible (true).setDepth (1000);
+                        gp.setVisible (true).setDepth (1000).removeInteractive();
                         gp.reset();
 
                         /*
@@ -4082,6 +4094,8 @@ window.onload = function () {
 
             this.activated = true;
 
+            //this.setInteractive (true);
+
         },
         reset : function () {
 
@@ -4090,10 +4104,17 @@ window.onload = function () {
             this.imgBg.setFrame ( clr )
 
             this.activated = false;
+
+            //this.setInteractive (false);
+
         },
         flip: function () {
 
-            var ranks = ['General','General','General','General','General','Colonel','Lt. Colonel','Major', 'Captain', '1st Lt.','2nd Lt.','Sergeant','Private','Flag','Spy'];
+            var ranks = [
+                'General','General','General','General','General',
+                'Colonel','Lt. Colonel','Major', 'Captain', '1st Lt.',
+                '2nd Lt.','Sergeant','Private','Flag','Spy'
+            ];
 
             if ( this.rnk > 0 ) {
                 
