@@ -797,23 +797,21 @@ window.onload = function () {
                 cY = Math.floor ( 80 * _gameH/720 ),
                 cS = Math.floor ( 23 * _gameW/1280 );
 
-            var circ = this.add.circle ( cX, cY, cS, 0x3a3a3a, 1 ).setAlpha(0.1).setOrigin(0).setInteractive();
+            var circ = this.add.circle ( cX, cY, cS, 0xc3c3c3, 1 ).setAlpha(0.1).setOrigin(0).setInteractive();
 
 
             circ.on('pointerover', function () {
-                this.setAlpha (0.3);
+                this.setAlpha (0.5);
             });
-
             circ.on('pointerout', function () {
                 this.setAlpha(0.1);
             }); 
-            
             circ.on('pointerdown', function () {
                 _this.music.play('clicka');
                 _this.removeConnectScreen();
             });
 
-            var txtH = Math.floor ( 60 * _gameH/720 );
+            var txtH = Math.floor ( 56 * _gameH/720 );
             var txtConfig = { 
                 color:'#4e4e4e', 
                 fontSize: txtH, 
@@ -821,7 +819,7 @@ window.onload = function () {
             };
 
             var txtX = Math.floor ( 780 * _gameW/1280 ),
-                txtY = Math.floor ( 180 * _gameH/720 );
+                txtY = Math.floor ( 182 * _gameH/720 );
 
             var txt = this.add.text (txtX, txtY, '0', txtConfig ).setOrigin (1, 0);
 
@@ -834,7 +832,7 @@ window.onload = function () {
                 xSp = Math.floor ( 3 * _gameW/1280 ),
 
                 //xStart =  (_gameW - ((3 * (xW + xSp)) - xSp))/2,
-                xStart =  Math.floor (474 * _gameW/1280 ),
+                xStart =  Math.floor ( 470 * _gameW/1280 ),
                 yStart =  Math.floor ( 265 * _gameW/1280 );
 
             for ( var i = 0; i < 12; i++ ) {
