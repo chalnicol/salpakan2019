@@ -832,7 +832,7 @@ window.onload = function () {
                 xSp = Math.floor ( 3 * _gameW/1280 ),
 
                 //xStart =  (_gameW - ((3 * (xW + xSp)) - xSp))/2,
-                xStart =  Math.floor ( 470 * _gameW/1280 ),
+                xStart =  Math.floor ( 471 * _gameW/1280 ),
                 yStart =  Math.floor ( 265 * _gameW/1280 );
 
             for ( var i = 0; i < 12; i++ ) {
