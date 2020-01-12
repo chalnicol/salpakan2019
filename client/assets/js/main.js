@@ -1964,13 +1964,9 @@ window.onload = function () {
 
             this.isEmoji = !this.isEmoji;
 
-
-            //this.controls[3].toggle();
-
             if ( this.isEmoji ) {
 
                 this.emojiSCreen = this.add.image (0,0,'send_emoji').setOrigin(0).setScale(_gameW/1280 );
-
 
                 var bts = Math.floor ( 55 * _gameW/1280 ),
                     btx = Math.floor ( 800 * _gameW/1280 ),
