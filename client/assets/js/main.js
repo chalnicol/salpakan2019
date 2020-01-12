@@ -1423,7 +1423,7 @@ window.onload = function () {
 
                 var but = this.add.rectangle ( xs + btz, ys, btz, bth, 0x0a0a0a, 0.5 ).setOrigin (0).setData('id', buts[i].id ).setInteractive();
 
-                var texta = this.add.text ( xs + (btz *1.5), ys + bth*0.7, buts[i].id , { color : '#ffc600', fontSize : bth * 0.24, fontFamily : 'Poppins' }).setOrigin (0.5);
+                var texta = this.add.text ( xs + (btz *1.5), ys + bth*0.7, buts[i].id , { color : '#ffc600', fontSize : bth * 0.22, fontFamily : 'Poppins' }).setOrigin (0.5);
               
                 var textb = this.add.text ( xs + (btz *1.5), ys + bth*0.35, buts[i].symbol , { color : '#ffc600', fontSize : bth * 0.4, fontFamily : 'Poppins' }).setOrigin (0.5);
 
@@ -2064,17 +2064,6 @@ window.onload = function () {
                 
                this.elimScreen = this.add.image (_gameW/2, _gameH/2, 'elim_field').setScale(_gameW/1280);
 
-                /* var pW = this.pieceDimensions.width,
-                    pH = this.pieceDimensions.height,
-                    pSx = pW * 0.1,
-                    pSy = pH * 0.15,
-                    pT = 4 * ( pW + pSx ) - pSx,
-                    pXa = ( ( config.width/2 ) - pT )/2 + (pW/2),
-                    pXb = config.width/2 + pXa;
-                    pY = config.height * 0.25;
-                */
-
-
                 var stw = this.pieceDimensions.width,
                     sth = this.pieceDimensions.height;
 
@@ -2082,8 +2071,8 @@ window.onload = function () {
                     stxb = Math.floor ( 685 * _gameW/1280 ),
                     //stxa = Math.floor ( 58 * _gameW/1280 ),
                     //stxb = Math.floor ( 631 * _gameW/1280 ),
-                    spx = Math.floor ( 10 * _gameW/1280 ),
-                    spy = Math.floor ( 10 * _gameH/720 )
+                    spx = Math.floor ( 5 * _gameW/1280 ),
+                    spy = spx,
                     sty = Math.floor ( 206 * _gameH/720 );
 
 
