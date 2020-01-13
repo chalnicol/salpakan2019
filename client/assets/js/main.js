@@ -1393,7 +1393,7 @@ window.onload = function () {
                 buts = [
                     { id : 'preset', symbol : 'ℙ' },
                     { id : 'random', symbol : 'ℝ' }, 
-                    { id : 'ready', symbol : '☑' }
+                    { id : 'ready', symbol : '✺' }
                 ];
             }else {
                 buts = [
