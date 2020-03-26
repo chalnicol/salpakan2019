@@ -146,7 +146,7 @@ window.onload = function () {
 
             //....
             this.load.image('pairing_placement', 'client/assets/images/intro/pairing_placement.png');
-            this.load.spritesheet('keys', 'client/assets/images/intro/keyboard_2.png', { frameWidth: 110, frameHeight: 85 });
+            this.load.spritesheet('keys', 'client/assets/images/intro/keyboardBtns.png', { frameWidth: 85, frameHeight: 85 });
 
             //...
             this.load.image('prompt', 'client/assets/images/intro/prompt.png');
@@ -789,13 +789,13 @@ window.onload = function () {
             this.screenElements = [];
             
 
-            var rectBg = this.add.rectangle ( 0, 0, _gameW, _gameH, 0x000000, 0.65 ).setOrigin(0).setInteractive();
+            var rectBg = this.add.rectangle ( 0, 0, _gameW, _gameH, 0x000000, 0.8 ).setOrigin(0).setInteractive();
 
             var window = this.add.image (0, 0, 'pairing_placement' ).setOrigin ( 0 ).setScale(_gameW/1280);
 
             var cX = Math.floor ( 797 * _gameW/1280 ),
-                cY = Math.floor ( 80 * _gameH/720 ),
-                cS = Math.floor ( 23 * _gameW/1280 );
+                cY = Math.floor ( 106 * _gameH/720 ),
+                cS = Math.floor ( 15 * _gameW/1280 );
 
             var circ = this.add.circle ( cX, cY, cS, 0xc3c3c3, 1 ).setAlpha(0.1).setOrigin(0).setInteractive();
 
@@ -827,36 +827,45 @@ window.onload = function () {
 
             var inputCount = 0, maxInput = 6;
 
-            var xW = Math.floor ( 106 * _gameW/1280 ),
+            var xW = Math.floor ( 105 * _gameW/1280 ),
                 xH = Math.floor ( 83 * _gameW/1280 ),
                 xSp = Math.floor ( 3 * _gameW/1280 ),
 
-                //xStart =  (_gameW - ((3 * (xW + xSp)) - xSp))/2,
-                xStart =  Math.floor ( 471 * _gameW/1280 ),
-                yStart =  Math.floor ( 265 * _gameW/1280 );
+                xStart =  ((_gameW - ((3 * (xW + xSp)) - xSp))/2) + xW/2,
+                //xStart =  Math.floor ( 482 * _gameW/1280 ),
+                yStart =  Math.floor ( 305 * _gameW/1280 );
+
+            var keysVal = [ '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', 'clr', 'ok' ];
 
             for ( var i = 0; i < 12; i++ ) {
 
                 var ix = Math.floor ( i/3 ), iy = i%3;
 
-                var keys = this.add.image ( xStart + iy * (xW + xSp), yStart + ix *( xH + xSp ), 'keys' ).setScale(_gameW/1280).setOrigin ( 0 ).setFrame(i).setData('frame', i).setInteractive();
+                var xs = xStart + iy * (xW + xSp),
+                    ys = yStart + ix *( xH + xSp );
+
+                var keys = this.add.image ( xs, ys, 'keys' ).setScale(_gameW/1280).setData('id', i).setInteractive();
 
                 keys.on('pointerover', function () {
-                    this.setFrame ( this.getData('frame') + 12 );
+                    //this.setFrame (2);
                 });
                 keys.on('pointerout', function () {
-                    this.setFrame ( this.getData('frame') );
+                    this.setFrame ( 0 );
+                });
+                keys.on('pointerup', function () {
+                    this.setFrame ( 0 );
                 });
                 keys.on('pointerdown', function () {
                 
+                   this.setFrame ( 1 );
 
-                    var data = this.getData('frame');
+                    var data = this.getData('id');
 
                     if ( data < 10 ) {
 
                         if ( inputCount < maxInput ) {
 
-                            this.setFrame ( data + 12 );
+                            //this.setFrame ( data + 12 );
 
                             if ( inputCount == 0 ) txt.text = '';
 
@@ -911,7 +920,14 @@ window.onload = function () {
                 
                 });
 
+                //add texts..
+                var txts = this.add.text ( xs, ys, keysVal[i], { color : '#4b4b4b', fontSize: xH * 0.4, fontFamily : 'Impact' }).setOrigin(0.5);
+
                 this.screenElements.push ( keys );
+
+                this.screenElements.push ( txts );
+
+
             }
 
 
