@@ -847,17 +847,17 @@ window.onload = function () {
                 var keys = this.add.image ( xs, ys, 'keys' ).setScale(_gameW/1280).setData('id', i).setInteractive();
 
                 keys.on('pointerover', function () {
-                    //this.setFrame (2);
+                    this.setFrame (1);
                 });
                 keys.on('pointerout', function () {
-                    this.setFrame ( 0 );
+                    this.setFrame (0);
                 });
                 keys.on('pointerup', function () {
-                    this.setFrame ( 0 );
+                    this.setFrame (0);
                 });
                 keys.on('pointerdown', function () {
                 
-                   this.setFrame ( 1 );
+                   this.setFrame (2);
 
                     var data = this.getData('id');
 
@@ -921,7 +921,7 @@ window.onload = function () {
                 });
 
                 //add texts..
-                var txts = this.add.text ( xs, ys, keysVal[i], { color : '#4b4b4b', fontSize: xH * 0.4, fontFamily : 'Impact' }).setOrigin(0.5);
+                var txts = this.add.text ( xs, ys, keysVal[i], { color : '#3a3a3a', fontSize: xH * 0.4, fontFamily : 'Impact' }).setOrigin(0.5);
 
                 this.screenElements.push ( keys );
 
