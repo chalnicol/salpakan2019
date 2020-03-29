@@ -793,15 +793,15 @@ window.onload = function () {
 
             var window = this.add.image (0, 0, 'pairing_placement' ).setOrigin ( 0 ).setScale(_gameW/1280);
 
-            var cX = Math.floor ( 797 * _gameW/1280 ),
-                cY = Math.floor ( 106 * _gameH/720 ),
+            var cX = Math.floor ( 793 * _gameW/1280 ),
+                cY = Math.floor ( 107 * _gameH/720 ),
                 cS = Math.floor ( 15 * _gameW/1280 );
 
             var circ = this.add.circle ( cX, cY, cS, 0xc3c3c3, 1 ).setAlpha(0.1).setOrigin(0).setInteractive();
 
 
             circ.on('pointerover', function () {
-                this.setAlpha (0.5);
+                this.setAlpha (0.2);
             });
             circ.on('pointerout', function () {
                 this.setAlpha(0.1);
@@ -1982,11 +1982,11 @@ window.onload = function () {
 
             if ( this.isEmoji ) {
 
-                this.emojiSCreen = this.add.image (0,0,'send_emoji').setOrigin(0).setScale(_gameW/1280 );
+                this.emojiSCreen = this.add.image (0,0,'send_emoji').setOrigin(0).setScale(_gameW/1280 ).setDepth (9999);
 
-                var bts = Math.floor ( 55 * _gameW/1280 ),
-                    btx = Math.floor ( 800 * _gameW/1280 ),
-                    bty = Math.floor ( 167 * _gameH/720 );
+                var bts = Math.floor ( 70 * _gameW/1280 ),
+                    btx = Math.floor ( 760 * _gameW/1280 ),
+                    bty = Math.floor ( 170 * _gameH/720 );
                     
                 var emojiCount = 24;
 
@@ -2041,7 +2041,7 @@ window.onload = function () {
                     this.clickables.push ( clicks );
 
 
-                    var emoji = this.add.image ( xpos , ypos, 'emojis', i ).setScale(_gameW/1280 * 0.5 ).setDepth (9999);
+                    var emoji = this.add.image ( xpos , ypos, 'emojis', i ).setScale(_gameW/1280 * 0.7 ).setDepth (9999);
 
                     this.myEmojis.push ( emoji );
 
@@ -2079,7 +2079,7 @@ window.onload = function () {
                 var stw = this.pieceDimensions.width,
                     sth = this.pieceDimensions.height;
 
-                var stxa = Math.floor ( 115 * _gameW/1280 ),
+                var stxa = Math.floor ( 130 * _gameW/1280 ),
                     stxb = Math.floor ( 685 * _gameW/1280 ),
                     //stxa = Math.floor ( 58 * _gameW/1280 ),
                     //stxb = Math.floor ( 631 * _gameW/1280 ),
