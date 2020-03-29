@@ -797,14 +797,14 @@ window.onload = function () {
                 cY = Math.floor ( 107 * _gameH/720 ),
                 cS = Math.floor ( 15 * _gameW/1280 );
 
-            var circ = this.add.circle ( cX, cY, cS, 0xc3c3c3, 1 ).setAlpha(0.1).setOrigin(0).setInteractive();
+            var circ = this.add.circle ( cX, cY, cS, 0x3a3a3a, 0.1 ).setOrigin(0).setInteractive();
 
 
             circ.on('pointerover', function () {
-                this.setAlpha (0.2);
+                //this.setAlpha (0.2);
             });
             circ.on('pointerout', function () {
-                this.setAlpha(0.1);
+                //this.setAlpha(0.1);
             }); 
             circ.on('pointerdown', function () {
                 _this.music.play('clicka');
