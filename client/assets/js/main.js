@@ -1,5 +1,7 @@
 
-/*  Author : Charlou E. Nicolas */
+/*  
+//Author : Charlou E. Nicolas 
+*/
 
 window.onload = function () {
 
@@ -135,7 +137,6 @@ window.onload = function () {
             this.load.image('title', 'client/assets/images/intro/title.png');
             this.load.image('star', 'client/assets/images/intro/star.png');
             this.load.image('select', 'client/assets/images/intro/select.png');
-            //this.load.image('shade', 'client/assets/images/intro/shade.png');
             this.load.image('avatar_placement', 'client/assets/images/intro/avatar_placement.png');
 
            
@@ -153,10 +154,8 @@ window.onload = function () {
             this.load.image('invite', 'client/assets/images/intro/invite.png');
             this.load.spritesheet('prompt_btns', 'client/assets/images/intro/prompt_btns.png', { frameWidth: 224, frameHeight: 58 });
 
-
             //..
             this.load.image('bg2', 'client/assets/images/proper/bg.png');
-            this.load.image('panel', 'client/assets/images/proper/control_panel.png');
             this.load.image('elim_field', 'client/assets/images/proper/elim_field.png');
             this.load.image('send_emoji', 'client/assets/images/proper/send_emoji.png');
             
@@ -166,14 +165,11 @@ window.onload = function () {
             this.load.image('commence_w', 'client/assets/images/proper/commence_w.png');
 
             this.load.spritesheet('piece', 'client/assets/images/proper/pieces.png', { frameWidth: 112, frameHeight: 62 });
-            //this.load.spritesheet('main_btns', 'client/assets/images/proper/main_btns.png', { frameWidth: 89, frameHeight: 48 });
-            //this.load.spritesheet('main_btns', 'client/assets/images/proper/main_btns2.png', { frameWidth: 70, frameHeight: 70 });
             this.load.spritesheet('cont_btns', 'client/assets/images/proper/cont_btns.png', { frameWidth: 45, frameHeight: 45 });
             this.load.spritesheet('indicatorbg', 'client/assets/images/proper/indicator.png', { frameWidth: 557, frameHeight: 71 });
             this.load.spritesheet('prompt_btns2', 'client/assets/images/proper/prompt_btns.png', { frameWidth: 197, frameHeight: 62 });
             this.load.spritesheet('emojis', 'client/assets/images/proper/emojis.png', { frameWidth: 100, frameHeight: 100 });
             
-
 
             var txtH = Math.floor ( 20 * _gameH/720 );
 
@@ -1064,6 +1060,9 @@ window.onload = function () {
 
             this.createGameControls();
 
+            this.createElimPiecesScreen ();
+
+            this.createSendEmojiScreen ();
 
             setTimeout ( function () {
                 
@@ -1080,7 +1079,7 @@ window.onload = function () {
 
                 //console.log ( data );
 
-                _this.clearPrompt();
+                _this.removePrompt();
 
                 _this.setOppoRanks ( data.oppoPieces );
 
@@ -1117,7 +1116,7 @@ window.onload = function () {
             });
             socket.on ('showEmoji', function ( data ) {
 
-                if ( _this.emojiShown ) _this.removeEmojis();
+                _this.showSendEmojiScreen (false);
 
                 _this.playSound('message');
 
@@ -1218,7 +1217,7 @@ window.onload = function () {
             });
             socket.on ('opponentLeft', function ( data ) {
 
-                if ( _this.isPrompted ) _this.clearPrompt();
+                if ( _this.isPrompted ) _this.removePrompt();
 
                 clearInterval (_this.timer);
 
@@ -1234,7 +1233,7 @@ window.onload = function () {
             });
             socket.on("resetGame", function () {
 			
-                if ( _this.isPrompted ) _this.clearPrompt ();
+                if ( _this.isPrompted ) _this.removePrompt ();
 
                 setTimeout (function () {
                     _this.resetGame();
@@ -1283,6 +1282,9 @@ window.onload = function () {
         createGameData : function () {
             this.gameData ['self'] = { 'pieces' : [] };
             this.gameData ['oppo'] = { 'pieces' : [] };
+
+            this.elimCountera = 0;
+            this.elimCounterb = 0;
         },
         createPlayers : function () 
         {
@@ -1651,22 +1653,16 @@ window.onload = function () {
                 but.on('pointerdown', function () {
 
                     this.setFillStyle ( 0x3a3a3a, 1 );
-                   
-                    //if ( _this.isEmoji ) _this.toggleEmojis ();
-
-                    //if ( _this.elimScreenShown ) _this.toggleElimPiecesScreen();
+                    
+                    _this.playSound('clicka');
 
                     switch (this.getData ('id')) {
 
                         case 'elims' :
 
-                            if ( _this.isEmoji ) _this.toggleEmojis ();
-
-                            _this.playSound('clicka');
+                            _this.showElimPiecesScreen();
                             
-                            _this.toggleElimPiecesScreen();
-                            
-                        break;
+                            break;
 
                         case 'music' :
 
@@ -1676,65 +1672,29 @@ window.onload = function () {
                                 _this.bgmusic.resume();
                             }
                             
-                            _this.playSound('clicka');
-
-
-                        break;
+                            break;
                        
                         case 'sound' :
                           
-                        
                             _this.soundOff = !_this.soundOff;
 
-                            _this.playSound('clicka');
-
-
-                        break;
+                            break;
                         case 'emoji' :
+                           
+                            _this.showSendEmojiScreen ();
 
-                            if ( _this.elimScreenShown )  _this.toggleElimPiecesScreen();
+                            break;
 
-                            _this.playSound('clicka');
-
-                            _this.toggleEmojis ();
-
-                            
-
-                        break;
                         case 'close' :
                             
                             if ( _this.gamePhase != 'end' ) {
-
-                                if ( _this.isPrompted ) {
-
-                                    _this.playSound('error');
-
-                                }else {
-
-                                    if ( _this.elimScreenShown ) _this.toggleElimPiecesScreen();
-
-                                    if ( _this.instructionsShown ) _this.removeInstructions();
-
-                                    _this.playSound('clicka');
-
-                                    setTimeout ( function () {                        
-                                        _this.showLeaveScreen();
-                                    }, 100);
-
-                                }
-
+                                _this.showLeaveScreen();
                             }else{
-
-                                
-                                _this.playSound('clicka');
-
                                 _this.leaveGame ();
-
                             }
 
-                        break;
+                            break;
                        
-                        
                         default :
                     }
 
@@ -1976,191 +1936,174 @@ window.onload = function () {
             }
 
         },
-        toggleEmojis : function () {
+        createSendEmojiScreen : function () {
 
-            this.isEmoji = !this.isEmoji;
+            var _this = this;
 
-            if ( this.isEmoji ) {
+            this.emojiSCreen = this.add.container ( 0, _gameH ).setSize ( _gameW, _gameH ).setDepth (9999);
 
-                this.emojiSCreen = this.add.image (0,0,'send_emoji').setOrigin(0).setScale(_gameW/1280 ).setDepth (9999);
+            var bgClick = this.add.rectangle ( 0,0, _gameW, _gameH ).setOrigin (0).setInteractive ();
 
-                var bts = Math.floor ( 70 * _gameW/1280 ),
-                    btx = Math.floor ( 760 * _gameW/1280 ),
-                    bty = Math.floor ( 170 * _gameH/720 );
+            bgClick.on ('pointerdown', function () {
+                _this.showSendEmojiScreen( false );
+            });
+
+            var emojiWindow = this.add.image (0,0,'send_emoji').setOrigin(0).setScale(_gameW/1280 );
+            
+            this.emojiSCreen.add ([ bgClick, emojiWindow ]);
+
+            var bts = Math.floor ( 70 * _gameW/1280 ),
+                btx = Math.floor ( 760 * _gameW/1280 ),
+                bty = Math.floor ( 164 * _gameH/720 );
+                
+            var emojiCount = 24;
+
+            for ( var i = 0; i< emojiCount; i++ ) {
+
+                var xp = Math.floor ( i/6 ), yp = i%6;
+
+                var xpos = btx + ( yp * bts ) + bts/2,
+                    ypos = bty + ( xp * bts ) + bts/2;
+
+                var clicks = this.add.rectangle ( xpos, ypos, bts, bts, 0x0a0a0a, 0 );
+                
+                clicks.setInteractive().setDepth (9999).setData('count', i);
+
+                clicks.on('pointerover', function () {
+                    this.setFillStyle ( 0xffffff, 0.3 );
+
+                });
+                clicks.on('pointerout', function () {
+                    this.setFillStyle ( 0xffffff, 0 );
+                });
+                clicks.on('pointerdown', function () {
                     
-                var emojiCount = 24;
-
-
-                var _this = this;
-
-                this.myEmojis = [];
-
-                this.clickables = [];
-
-                for ( var i = 0; i< emojiCount; i++ ) {
-
-                    var xp = Math.floor ( i/6 ), yp = i%6;
-
-                    var xpos = btx + ( yp * bts ) + bts/2,
-                        ypos = bty + ( xp * bts ) + bts/2;
-
-                    var clicks = this.add.rectangle ( xpos, ypos, bts, bts, 0x0a0a0a, 0 );
+                
+                    _this.showSendEmojiScreen (false);
                     
-                    clicks.setInteractive().setDepth (9999).setData('count', i);
+                    _this.playSound('message');
 
-                    clicks.on('pointerover', function () {
-                        this.setFillStyle ( 0xffffff, 0.3 );
+                    _this.removeEmojis();
 
-                    });
-                    clicks.on('pointerout', function () {
-                        this.setFillStyle ( 0xffffff, 0 );
-                    });
-                    clicks.on('pointerdown', function () {
-                        
-                    
-                        if ( _this.isSinglePlayer ) {
+                    if ( _this.isSinglePlayer ) {
 
-                            if ( _this.emojiShown ) _this.removeEmojis();
+                        _this.showSentEmojis ( this.getData('count') );
 
-                            _this.showSentEmojis ( this.getData('count') );
+                        _this.autoRespond();
 
-                            _this.autoRespond();
+                    }else {
 
-                        }else {
+                        socket.emit ( 'playerSendEmoji', this.getData('count') );
 
-                            socket.emit ( 'playerSendEmoji', this.getData('count') );
+                    }
 
-                        }
-    
-                        _this.playSound('message');
+                });
+                
+                var emoji = this.add.image ( xpos , ypos, 'emojis', i ).setScale(_gameW/1280 * 0.7 ).setDepth (9999);
 
-                        _this.toggleEmojis();
-
-                    });
-                    
-                    this.clickables.push ( clicks );
-
-
-                    var emoji = this.add.image ( xpos , ypos, 'emojis', i ).setScale(_gameW/1280 * 0.7 ).setDepth (9999);
-
-                    this.myEmojis.push ( emoji );
-
-                }
-
-            }else {
-
-                this.emojiSCreen.destroy();
-
-                for ( var i = 0; i< this.myEmojis.length ; i++ ) {
-
-                    this.myEmojis[i].destroy();
-    
-                    this.clickables[i].destroy();
-                }
-    
-                this.myEmojis = [];
-    
-                this.clickables = [];
-
+                this.emojiSCreen.add ( clicks );
+                this.emojiSCreen.add ( emoji );
+                
             }
 
         },
-        toggleElimPiecesScreen : function () {
+        showSendEmojiScreen : function ( show = true) {
 
-            this.elimScreenShown = !this.elimScreenShown;
-            
-            //this.controls[0].toggle();
-            var duration_all = 500;
-
-            if ( this.elimScreenShown ) {
-                
-               this.elimScreen = this.add.image (_gameW/2, _gameH/2, 'elim_field').setScale(_gameW/1280);
-
-                var stw = this.pieceDimensions.width,
-                    sth = this.pieceDimensions.height;
-
-                var stxa = Math.floor ( 130 * _gameW/1280 ),
-                    stxb = Math.floor ( 685 * _gameW/1280 ),
-                    //stxa = Math.floor ( 58 * _gameW/1280 ),
-                    //stxb = Math.floor ( 631 * _gameW/1280 ),
-                    spx = Math.floor ( 5 * _gameW/1280 ),
-                    spy = spx,
-                    sty = Math.floor ( 206 * _gameH/720 );
-
-
-                var countera = 0, counterb = 0;
-
-                for ( var i in this.elimPieces ) {
-                
-                    var gp = this.gamePiece [ this.elimPieces[i] ];
-
-                    if ( gp.plyr == 'self' ) {
-
-                        var xp = Math.floor ( countera/4 ), 
-                            yp = countera%4;
-
-                        gp.x = stxa + (yp*( stw + spx )) + stw/2;
-                        gp.y = sty + (xp*( sth + spy )) + sth/2;
-
-                        gp.setVisible(true).setDepth (1000).removeInteractive();
-                        gp.reset();
-                        /*
-                        this.tweens.add ({
-                            targets : gp,
-                            x : pXa + xp * ( pW + pSx ),
-                            duration : duration_all,
-                            ease : 'Power2'
-                        });
-                        */
-
-                        countera ++;
-                        
-                    }
-
-                    if ( gp.plyr == 'oppo' ) {
-
-                        var xpa = Math.floor ( counterb/4 ), 
-                            ypa = counterb%4;
-
-                            gp.x = stxb + (ypa*( stw + spx )) + stw/2;
-                            gp.y = sty + (xpa*( sth + spy )) + sth/2;
-    
-                        gp.setVisible (true).setDepth (1000).removeInteractive();
-                        gp.reset();
-
-                        /*
-                        this.tweens.add ({
-                            targets : gp,
-                            x : pXb + xpa * ( pW + pSx ),
-                            duration : duration_all,
-                            ease : 'Power2'
-                        });
-                        */
-                
-                        counterb ++;
-                        
-                    }
-                    
-                } 
-
+            if ( !show ) {
+                this.emojiSCreen.y = _gameH 
             }else {
-
-                //destroy elements..
-                this.elimScreen.destroy();
-
-                for ( var i in this.gamePiece ) {
-                    if ( this.gamePiece[i].isDestroyed ) {
-                        this.gamePiece[i].setVisible (false);
-                    }
-                }
-               
+                //this.elimScreen.y = 0;
+                this.tweens.add ({
+                    targets : this.emojiSCreen,
+                    y : 0,
+                    duration : 300,
+                    easeParams : [0, 1.5],
+                    ease : 'Elastic'
+                });
             }
             
+        },
+        createElimPiecesScreen : function () {
 
+            var _this = this;
+
+            this.elimScreen = this.add.container (0, _gameH).setSize(_gameW, _gameH).setDepth(9999);
+            
+            var screenWindow = this.add.image (_gameW/2, _gameH/2, 'elim_field').setScale(_gameW/1280).setInteractive();
+
+            screenWindow.on ('pointerdown', function () {
+                _this.showElimPiecesScreen (false);
+            });
+
+            this.elimScreen.add ( screenWindow );
+            
+            //this.elimScreen.y = _gameH;
+
+ 
+        },
+        showElimPiecesScreen : function ( show = true ) {
+
+            if ( !show ) {
+                this.elimScreen.y = _gameH 
+            }else {
+                //this.elimScreen.y = 0;
+                this.tweens.add ({
+                    targets : this.elimScreen,
+                    y : 0,
+                    duration : 300,
+                    easeParams : [0, 1.5],
+                    ease : 'Elastic'
+                });
+            }
+
+            //this.elimScreen.setVisible (show);
+
+            
+        },
+        positionElimPieces : function ( ids ) {
+
+            var stxa = Math.floor ( 130 * _gameW/1280 ),
+                stxb = Math.floor ( 685 * _gameW/1280 ),
+
+                spx = Math.floor ( 5 * _gameW/1280 ),
+                spy = spx,
+                sty = Math.floor ( 206 * _gameH/720 );
+
+            var gp = this.gamePiece [ ids ];
+
+            var str = (gp.plyr == "self") ? stxa : stxb;
+
+            var counter = ( gp.plyr == "self" ) ? this.elimCountera : this.elimCounterb;
+
+            if ( gp.plyr == "self" ) {
+                this.elimCountera++;
+            }else {
+                this.elimCounterb++;
+            }
+
+            gp.setVisible (false);
+
+            this.elimScreen.add ( gp );
+
+            var xp = Math.floor ( counter/4 ), 
+                yp = counter%4;
+
+            setTimeout ( function () {
+
+                gp.x = str + (yp*( gp.width + spx )) + gp.width/2;
+                gp.y = sty + (xp*( gp.height + spy )) + gp.height/2;
+
+                gp.setVisible (true).removeInteractive();
+                gp.reset();
+
+            }, 400 );
+
+
+                
         },
         showSentEmojis : function ( frame, plyr = 'self' ) {
 
-            this.emojiShown = true;
+            this.sendEmojisShown = true;
 
             var max = 3;
 
@@ -2174,18 +2117,15 @@ window.onload = function () {
                 x = 0,
                 y = config.height * 0.924 - ( h* this.messages.length);
 
-            this.msgelements = [];
+            this.shownEmojiScreen = this.add.container ( 0,0).setSize (_gameW,_gameH).setDepth (999);
 
             for ( var i=0; i < this.messages.length; i++) {
 
                 var xp = w/2, yp =  y + i*h + ( h/2 );
 
-                var rect = this.add.rectangle ( xp, yp, w, h, 0x0a0a0a, 0.6 ).setDepth(9999);
-
-                this.msgelements.push ( rect );
+                var rect = this.add.rectangle ( xp, yp, w, h, 0x0a0a0a, 0.6 );
 
                 //players..
-
                 var tx = w *0.1;
 
                 var tmpPlyr = this.messages[i].plyr;
@@ -2197,49 +2137,50 @@ window.onload = function () {
                     fontStyle:'bold' 
                 };
 
-                var text = this.add.text ( tx, yp, this.player[tmpPlyr].name + " :", txtConfig ).setDepth(9999).setOrigin(0,0.5);
-
-                this.msgelements.push ( text );
-
+                var text = this.add.text ( tx, yp, this.player[tmpPlyr].name + " :", txtConfig ).setOrigin(0,0.5);
 
                 //images...
-
                 var tmpFrame = this.messages[i].frame;
 
                 var imgsize = h * 0.9, sp = imgsize * 0.15;
 
-                var emoji = this.add.image ( tx + text.width + (imgsize/2), yp, 'emojis', tmpFrame ).setScale( _gameW/1280 * 0.4 ).setDepth (9999);
+                var emoji = this.add.image ( tx + text.width + (imgsize/2), yp, 'emojis', tmpFrame ).setScale( _gameW/1280 * 0.4 );
 
-                this.msgelements.push ( emoji );
+               
+                this.shownEmojiScreen.add ( rect );
+                this.shownEmojiScreen.add ( text );
+                this.shownEmojiScreen.add ( emoji );
+                
 
             }
 
             var _this = this;
-            this.removeShownEmojis = setTimeout ( function () {
+
+            this.emojiTimer = setTimeout ( function () {
                 _this.removeEmojis();
             }, 2000 );
-
 
         },
         removeEmojis : function () {
             
-            this.emojiShown = false; 
+            if ( !this.sendEmojisShown ) return;
 
-            clearTimeout ( this.removeShownEmojis );
+            this.sendEmojisShown = false;
 
-            for ( var i in this.msgelements ) {
-                this.msgelements[i].destroy();
-            }
+            clearTimeout (this.emojiTimer);
 
-            this.msgelements = [];
+            this.shownEmojiScreen.destroy();
 
         },
         autoRespond: function () {
 
             var _this = this;
-            setTimeout ( function () {
 
-                if ( _this.emojiShown ) _this.removeEmojis();
+            clearTimeout( this.autoRespondTimeout );
+
+            this.autoRespondTimeout = setTimeout ( function () {
+
+                _this.removeEmojis();
                 
                 _this.playSound ('message');
                 
@@ -2420,6 +2361,7 @@ window.onload = function () {
                     this.grid[postArr[counter] + 45].resident = gp.id;
                     
                     this.tweens.add ({
+
                         targets : this.gamePiece[i],
                         x : this.grid [ postArr [counter] + 45].x,
                         y : this.grid [ postArr [counter] + 45].y,
@@ -2530,16 +2472,17 @@ window.onload = function () {
                 case 0 : 
 
                     movingPiece.isDestroyed = true;
-                    movingPiece.setVisible(false);
+                    //movingPiece.setVisible(false);
 
                     residentPiece.isDestroyed = true;
-                    residentPiece.setVisible(false);
+                    //residentPiece.setVisible(false);
                     
                     destPost.resident = '';
                     destPost.residentPlayer = '';
 
-                    this.elimPieces.push ( movingPiece.id );
-                    this.elimPieces.push ( residentPiece.id );
+                  
+                    //this.elimPieces.push ( movingPiece.id );
+                    //this.elimPieces.push ( residentPiece.id );
                     
                     //delete this.gamePiece[ this.activePiece];;
                     //delete this.gamePiece[ destPost.resident ];
@@ -2548,6 +2491,9 @@ window.onload = function () {
                     this.createAnim ( destPost.x + destPost.width *0.25, destPost.y, 1 );
 
                     this.playSound ('clashdraw', 0.5 );
+
+                    this.positionElimPieces ( movingPiece.id );
+                    this.positionElimPieces ( residentPiece.id );
 
                 break;
                 case 1 : 
@@ -2558,9 +2504,9 @@ window.onload = function () {
                     movingPiece.post = post;
 
                     residentPiece.isDestroyed = true;
-                    residentPiece.setVisible(false);
+                    //residentPiece.setVisible(false);
 
-                    this.elimPieces.push ( residentPiece.id );
+                    //this.elimPieces.push ( residentPiece.id );
 
                     this.pieceRemoved = residentPiece.id;
 
@@ -2568,16 +2514,18 @@ window.onload = function () {
 
                     this.playSound ( residentPiece.plyr == 'self' ? 'clashlost' : 'clashwon', 0.5 );
 
+                    this.positionElimPieces ( residentPiece.id );
+
 
                 break;
                 case 2 : 
 
                     movingPiece.isDestroyed = true;
-                    movingPiece.setVisible(false);
+                    //movingPiece.setVisible(false);
 
                     this.pieceRemoved = movingPiece.id;
 
-                    this.elimPieces.push ( movingPiece.id );
+                    //this.elimPieces.push ( movingPiece.id );
 
                     this.tweens.add ({
                         targets : residentPiece,
@@ -2591,6 +2539,9 @@ window.onload = function () {
                     this.createAnim ( destPost.x, destPost.y, movingPiece.type );
                     
                     this.playSound ( movingPiece.plyr == 'self' ? 'clashlost' : 'clashwon', 0.5 );
+
+                    this.positionElimPieces ( movingPiece.id );
+
 
                 break;
 
@@ -2910,7 +2861,7 @@ window.onload = function () {
 
             if ( this.instructionsShown ) this.removeInstructions();
 
-            if ( this.isPrompted ) this.clearPrompt();
+            if ( this.isPrompted ) this.removePrompt();
 
             this.plyrInd['self'].clearTimer();
             this.plyrInd['oppo'].clearTimer();
@@ -3073,7 +3024,7 @@ window.onload = function () {
             
             var _this = this;
             
-            if ( this.isPrompted ) this.clearPrompt();
+            if ( this.isPrompted ) this.removePrompt();
 
             setTimeout ( function () {
 
@@ -3264,13 +3215,9 @@ window.onload = function () {
 
             this.isPrompted = true;
 
-            this.promptElements = [];
+            this.promptScreen = this.add.container (0,0).setDepth(999);
 
-            var img = !withButtons ? 'prompt_small' : 'prompt_big';
-
-            var txtsize = 0;
-
-            switch ( tSize ) {
+           /*  switch ( tSize ) {
                 case 'sml' :
                     txtsize = Math.floor (24 * _gameH/720);
                     break;
@@ -3283,15 +3230,48 @@ window.onload = function () {
                 default :   
                     xtsize = Math.floor (15 * _gameH/720)
                                 
-            }
+            } */
         
-            var imgBg = this.add.image ( 0,0, img ).setOrigin (0).setScale(_gameW/1280);
+            var imgBg = this.add.image ( 0,0, 'prompt_small' ).setOrigin (0).setScale(_gameW/1280);
         
             var txtx = _gameW/2,
-                txtya = Math.floor (306 * _gameH/720),
-                txtyb = Math.floor (360 * _gameH/720);
+                txty = Math.floor (258 * _gameH/720);
 
-            if ( !withButtons ) txtya =  Math.floor (  258  * _gameH/720 );
+             // main text...
+            var txtConfig = {
+                color : '#ffffff',
+                fontSize : txtsize = Math.floor (24 * _gameH/720),
+                fontFamily : "Impact"
+            }; 
+            var promptTxt = this.add.text ( txtx, txty, text, txtConfig).setOrigin(0.5);
+
+            this.promptScreen.add ([ imgBg, promptTxt]);
+
+        },
+        showPromptBig : function ( text, caption = '', tSize = 'sm', dataArr = [] ) {
+
+            var txtsize = 0;
+
+            switch ( tSize ) {
+                case 'sm' :
+                    txtsize = Math.floor (32 * _gameH/720);
+                    break;
+                case 'xl' :
+                    txtsize = Math.floor (52 * _gameH/720);
+                break;
+                default :   
+                     
+            }
+    
+            this.isPrompted = true;
+
+            this.promptScreen = this.add.container (0,_gameH).setDepth(999);
+
+            var imgBg = this.add.image ( 0,0, 'prompt_big' ).setOrigin (0).setScale(_gameW/1280).setInteractive();
+        
+            var txtx = _gameW/2,
+                txtya = Math.floor (323 * _gameH/720), // main..
+                txtyb = Math.floor (370 * _gameH/720); // caption..
 
              // main text...
             var txtConfig = {
@@ -3305,12 +3285,58 @@ window.onload = function () {
              // caption text...
             var captionTxtConfig = {
                 color : '#cafb05',
-                fontSize : txtsize * 0.35,
-                fontFamily : "Impact"
+                fontSize : txtsize * 0.4,
+                fontFamily : "Poppins"
             };
             var captionTxt = this.add.text ( txtx, txtyb, caption, captionTxtConfig ).setOrigin(0.5);
 
-            this.promptElements = [ imgBg, promptTxt, captionTxt ];
+            this.promptScreen.add ([imgBg, promptTxt, captionTxt]);
+
+
+            var btw = Math.floor ( 197 * _gameW/1280 ),
+                bth = Math.floor ( 62 * _gameH/720 ),
+                bts = btw * 0.1,
+                btx = (_gameW - (btw * 2))/2 + btw/2,
+                bty = Math.floor ( 430 * _gameH/720 );
+                
+            var _this = this;
+            
+            for ( var i = 0; i < dataArr.length; i++ ) {
+
+                var btn = this.add.image ( btx + i * (btw + bts), bty, 'prompt_btns2', dataArr[i].frame ).setScale (_gameW/1280).setData ( dataArr[i] ).setInteractive();
+                
+                btn.on ('pointerdown', function() {
+                    _this.playSound('clicka');
+                    _this.promptBtnsClick ( this.getData('id') );
+                });
+                btn.on ('pointerover', function() {
+                    this.setFrame ( this.getData('frame') + 1 );
+                });
+                btn.on ('pointerup', function() {
+                    this.setFrame ( this.getData('frame') );
+                });
+                btn.on ('pointerout', function() {
+                    this.setFrame ( this.getData('frame'));
+                });
+
+                _this.promptScreen.add ( btn );
+
+            }
+
+            this.tweens.add ({
+                targets : this.promptScreen,
+                y : 0,
+                duration : 300,
+                easeParams : [0, 1.5],
+                ease : 'Elastic'
+            });
+            //....
+        },
+        showLeaveScreen : function () {
+
+            var btnsData = [{ id : 'leave', frame : 0}, { id : 'cancel', frame : 2} ];
+
+            this.showPromptBig ( 'Are you sure you want to leave the game?', '', 'sm', btnsData );
 
         },
         showEndScreen : function () {
@@ -3341,360 +3367,41 @@ window.onload = function () {
                     txt = 'Game is a draw.';
             }
             
-            this.showPrompt ( txt, captionTxt, true, 'lrg' );
-
             
-            var btw = Math.floor ( 191 * _gameW/1280 ),
-                bth = Math.floor ( 54 * _gameH/720 ),
+            var btnsData = [{ id : 'rematch', frame : 4}, { id : 'quit', frame : 6} ];
 
-                bts = btw * 0.05,
-                btxa = _gameW/2 - (btw + bts),
-                btxb = _gameW/2 + (bts),
-
-                //btxa = Math.floor ( 379 * _gameW/1280 ) ,
-                //btxb = Math.floor ( 595 * _gameW/1280 ) ,
-                bty = Math.floor ( 393 * _gameH/720 );
-
-            var _this = this;
-            
-            //confirm_btn 
-            var rematch_btn = new MyButton (this, 'rematch', btxa + btw/2, bty + bth/2, btw, bth, 6, 'prompt_btns2');
-
-            rematch_btn.on ('pointerdown', function() {
-
-                this.isDown();
-
-                _this.playSound('clicka');
-
-                if ( _this.isSinglePlayer ) {
-
-                    _this.resetGame();
-
-                }else {
-                    
-                    socket.emit ('rematchRequest');
-
-                    if ( _this.isPrompted ) _this.clearPrompt();
-
-                    setTimeout ( function () {
-                        _this.showPrompt ('Waiting for other player..', '', false, 'sml' );
-                    }, 200 );
-                
-                }
-
-                
-            });
-            rematch_btn.on ('pointerover', function() {
-                this.isHovered ();
-            });
-            rematch_btn.on ('pointerup', function() {
-                this.reset();
-            });
-            rematch_btn.on ('pointerout', function() {
-                this.reset();
-            });
+            this.showPromptBig ( txt, captionTxt, 'xl', btnsData );
 
 
-            //cancel_btn
-            var quit_btn = new MyButton (this, 'quit', btxb + btw/2, bty + bth/2, btw, bth, 9, 'prompt_btns2');
-
-            quit_btn.on ('pointerdown', function() {
-
-                this.isDown();
-
-                _this.playSound('clicka');
-
-                _this.leaveGame();
-
-            });
-            quit_btn.on ('pointerover', function() {
-                this.isHovered ();
-            });
-            quit_btn.on ('pointerup', function() {
-                this.reset();
-            });
-            quit_btn.on ('pointerout', function() {
-                this.reset();
-            });
-
-
-            this.buttonPanel = [ rematch_btn, quit_btn];
-
+        
 
         },
         showResignScreen : function () {
 
-            this.showPrompt ( 'Are you sure you want to resign?', '', true, 'med' );
+            var btnsData = [{ id : 'resign', frame : 0}, { id : 'cancel', frame : 2} ];
 
-            var btw = Math.floor ( 191 * _gameW/1280 ),
-                bth = Math.floor ( 54 * _gameH/720 ),
-
-                bts = btw * 0.05,
-                btxa = _gameW/2 - (btw + bts),
-                btxb = _gameW/2 + (bts),
-                //btxa = Math.floor ( 379 * _gameW/1280 ) ,
-                //btxb = Math.floor ( 595 * _gameW/1280 ) ,
-                bty = Math.floor ( 393 * _gameH/720 );
-
-            var _this = this;
-            
-            //confirm_btn 
-            var confirm_btn = new MyButton (this, 'confirm', btxa + btw/2, bty + bth/2, btw, bth, 0, 'prompt_btns2');
-
-            confirm_btn.on ('pointerdown', function() {
-
-                this.isDown();
-                _this.playSound('clicka');
-
-
-                _this.clearPrompt();
-                _this.playerResign = true;
-
-                if ( _this.isSinglePlayer ) {
-                    _this.endGame ('oppo');
-                }else {
-                    socket.emit ('playerResign');
-                }
-                
-            
-            });
-            confirm_btn.on ('pointerover', function() {
-                this.isHovered ();
-            });
-            confirm_btn.on ('pointerup', function() {
-                this.reset();
-            });
-            confirm_btn.on ('pointerout', function() {
-                this.reset();
-            });
-
-
-            //cancel_btn
-            var cancel_btn = new MyButton (this, 'cancel', btxb + btw/2, bty + bth/2, btw, bth, 3, 'prompt_btns2');
-
-            cancel_btn.on ('pointerdown', function() {
-
-                this.isDown();
-                _this.playSound('clicka');
-                _this.clearPrompt();
-
-            });
-            cancel_btn.on ('pointerover', function() {
-                this.isHovered ();
-            });
-            cancel_btn.on ('pointerup', function() {
-                this.reset();
-            });
-            cancel_btn.on ('pointerout', function() {
-                this.reset();
-            });
-
-            this.buttonPanel = [ confirm_btn, cancel_btn];
+            this.showPromptBig ( 'Are you sure you want to resign?', '', 'sm', btnsData );
 
         },
         showRevealScreen : function () {
 
-            this.showPrompt ( 'Are you sure you want to reveal your pieces?', '', true, 'med' );
+            var btnsData = [{ id : 'reveal', frame : 0}, { id : 'cancel', frame : 2} ];
 
-            var btw = Math.floor ( 191 * _gameW/1280 ),
-                bth = Math.floor ( 54 * _gameH/720 ),
-                bts = btw * 0.05,
-                btxa = _gameW/2 - (btw + bts),
-                btxb = _gameW/2 + (bts),
-                //btxa = Math.floor ( 379 * _gameW/1280 ) ,
-                //btxb = Math.floor ( 595 * _gameW/1280 ) ,
-                bty = Math.floor ( 393 * _gameH/720 );
-
-            var _this = this;
-            
-            //confirm_btn 
-            var confirm_btn = new MyButton (this, 'confirm', btxa + btw/2, bty + bth/2, btw, bth, 0, 'prompt_btns2');
-
-            confirm_btn.on ('pointerdown', function() {
-
-                this.isDown();
-                _this.playSound('clicka');
-
-                _this.clearPrompt();
-                            
-                _this.button[2].deactivate();
-
-                setTimeout ( function () {
-                    _this.playSound('bleep', 0.4);
-                    _this.plyrInd['self'].updateStatus();
-                }, 300); 
-
-                if ( !_this.isSinglePlayer ) socket.emit ('piecesReveal');
-                
-            
-            });
-            confirm_btn.on ('pointerover', function() {
-                this.isHovered ();
-            });
-            confirm_btn.on ('pointerup', function() {
-                this.reset();
-            });
-            confirm_btn.on ('pointerout', function() {
-                this.reset();
-            });
-
-
-            //cancel_btn
-            var cancel_btn = new MyButton (this, 'cancel', btxb + btw/2, bty + bth/2, btw, bth, 3, 'prompt_btns2');
-
-            cancel_btn.on ('pointerdown', function() {
-
-                this.isDown();
-                _this.playSound('clicka');
-                _this.clearPrompt();
-
-            });
-            cancel_btn.on ('pointerover', function() {
-                this.isHovered ();
-            });
-            cancel_btn.on ('pointerup', function() {
-                this.reset();
-            });
-            cancel_btn.on ('pointerout', function() {
-                this.reset();
-            });
-
-            this.buttonPanel = [ confirm_btn, cancel_btn];
-
-
+            this.showPromptBig ( 'Are you sure you want to reveal your pieces?', '', 'sm', btnsData );
 
         },
         showDrawScreen : function () {
 
-            this.showPrompt ( 'Are you sure you want to propose a draw?', '', true, 'med' );
+            var btnsData = [{ id : 'proposedraw', frame : 0}, { id : 'cancel', frame : 2} ];
 
-            var btw = Math.floor ( 191 * _gameW/1280 ),
-                bth = Math.floor ( 54 * _gameH/720 ),
-                bts = btw * 0.05,
-                btxa = _gameW/2 - (btw + bts),
-                btxb = _gameW/2 + (bts),
-                //btxa = Math.floor ( 379 * _gameW/1280 ) ,
-                //btxb = Math.floor ( 595 * _gameW/1280 ) ,
-                bty = Math.floor ( 393 * _gameH/720 );
+            this.showPromptBig ( 'Are you sure you want to propose a draw?', '', 'sm', btnsData );
 
-            var _this = this;
-            
-            //confirm_btn 
-            var confirm_btn = new MyButton (this, 'confirm', btxa + btw/2, bty + bth/2, btw, bth, 0, 'prompt_btns2');
-
-            confirm_btn.on ('pointerdown', function() {
-
-                this.isDown();
-                _this.playSound('clicka');
-
-                _this.button[0].deactivate();
-                _this.proposedDrawAction ();
-                
-            
-            });
-            confirm_btn.on ('pointerover', function() {
-                this.isHovered ();
-            });
-            confirm_btn.on ('pointerup', function() {
-                this.reset();
-            });
-            confirm_btn.on ('pointerout', function() {
-                this.reset();
-            });
-
-
-            //cancel_btn
-            var cancel_btn = new MyButton (this, 'cancel', btxb + btw/2, bty + bth/2, btw, bth, 3, 'prompt_btns2');
-
-            cancel_btn.on ('pointerdown', function() {
-
-                this.isDown();
-                _this.playSound('clicka');
-                _this.clearPrompt();
-
-            });
-            cancel_btn.on ('pointerover', function() {
-                this.isHovered ();
-            });
-            cancel_btn.on ('pointerup', function() {
-                this.reset();
-            });
-            cancel_btn.on ('pointerout', function() {
-                this.reset();
-            });
-
-            this.buttonPanel = [ confirm_btn, cancel_btn];
-
-
-         
-         
         },
         showDrawResponseScreen :  function () {
 
-            this.showPrompt ( 'Opponent has offered a draw?', '', true, 'med' );
-            
-            var btw = Math.floor ( 191 * _gameW/1280 ),
-                bth = Math.floor ( 54 * _gameH/720 ),
+            var btnsData = [{ id : 'acceptdraw', frame : 8}, { id : 'rejectdraw', frame : 10} ];
 
-                bts = btw * 0.05,
-                btxa = _gameW/2 - (btw + bts),
-                btxb = _gameW/2 + (bts),
-                //btxa = Math.floor ( 379 * _gameW/1280 ) ,
-                //btxb = Math.floor ( 595 * _gameW/1280 ) ,
-                bty = Math.floor ( 393 * _gameH/720 );
-
-            var _this = this;
-            
-            //confirm_btn 
-            var confirm_btn = new MyButton (this, 'confirm', btxa + btw/2, bty + bth/2, btw, bth, 0, 'prompt_btns2');
-
-            confirm_btn.on ('pointerdown', function() {
-
-                this.isDown();
-                _this.playSound('clicka');
-                _this.clearPrompt();
-
-
-                var accepted = this.id == 'but0' ? true : false;
-                    
-                socket.emit ('playerDrawResponse', true );
-                
-            });
-            confirm_btn.on ('pointerover', function() {
-                this.isHovered ();
-            });
-            confirm_btn.on ('pointerup', function() {
-                this.reset();
-            });
-            confirm_btn.on ('pointerout', function() {
-                this.reset();
-            });
-
-
-            //cancel_btn
-            var cancel_btn = new MyButton (this, 'cancel', btxb + btw/2, bty + bth/2, btw, bth, 3, 'prompt_btns2');
-
-            cancel_btn.on ('pointerdown', function() {
-
-                this.isDown();
-                _this.playSound('clicka');
-                _this.clearPrompt();
-
-                socket.emit ('playerDrawResponse', false );
-
-            });
-            cancel_btn.on ('pointerover', function() {
-                this.isHovered ();
-            });
-            cancel_btn.on ('pointerup', function() {
-                this.reset();
-            });
-            cancel_btn.on ('pointerout', function() {
-                this.reset();
-            });
-
-            this.buttonPanel = [ confirm_btn, cancel_btn];
-
+            this.showPromptBig ( 'Opponent has offered a draw?', '', 'sm', btnsData );
 
         },
         showNotification : function ( txt ) {
@@ -3716,18 +3423,18 @@ window.onload = function () {
 
             this.isNotified = false;
 
-            if ( this.isPrompted ) this.clearPrompt ();
+            if ( this.isPrompted ) this.removePrompt ();
 
         },
         proposedDrawAction : function () {
 
             var _this = this;
 
-            this.clearPrompt();
+            this.removePrompt();
 
             if ( this.timeIsTicking ) this.stopTimer ();
 
-            this.showPrompt ('Waiting for opponent\'s response..', '', false, 'sml' );
+            this.showPrompt ("Waiting for opponent's response..", '', false, 'sml' );
 
             if ( this.isSinglePlayer ) {
 
@@ -3745,7 +3452,7 @@ window.onload = function () {
 
             var _this = this;
 
-            this.clearPrompt ();
+            this.removePrompt ();
 
             var decision = Math.floor ( Math.random() * 10 );
 
@@ -3772,66 +3479,100 @@ window.onload = function () {
             }, 200 )
 
         },
-        showLeaveScreen : function () {
+        promptBtnsClick : function (id) {
 
-            this.showPrompt ( 'Are you sure you want to leave the game?', '', true, 'med' );
-
-            var btw = Math.floor ( 191 * _gameW/1280 ),
-                bth = Math.floor ( 54 * _gameH/720 ),
-                bts = btw * 0.05,
-                btxa = _gameW/2 - (btw + bts),
-                btxb = _gameW/2 + (bts),
-                bty = Math.floor ( 393 * _gameH/720 );
-                
-
+            //console.log ('click', id );
             var _this = this;
-            
-            //confirm_btn 
-            var confirm_btn = new MyButton (this, 'confirm', btxa + btw/2, bty + bth/2, btw, bth, 0, 'prompt_btns2');
 
-            confirm_btn.on ('pointerdown', function() {
+            switch ( id ) {
 
-                this.isDown();
-                _this.playSound('clicka');
+                case 'acceptdraw' :
+                    this.removePrompt();
 
-                _this.clearPrompt();
-                _this.leaveGame();
-            });
-            confirm_btn.on ('pointerover', function() {
-                this.isHovered ();
-            });
-            confirm_btn.on ('pointerup', function() {
-                this.reset();
-            });
-            confirm_btn.on ('pointerout', function() {
-                this.reset();
-            });
+                    socket.emit ('playerDrawResponse', true );
+                    break;
+                case 'rejectdraw' :
+                    this.removePrompt();
 
+                    socket.emit ('playerDrawResponse', false );
+                    break;
 
-            //cancel_btn
-            var cancel_btn = new MyButton (this, 'cancel', btxb + btw/2, bty + bth/2, btw, bth, 3, 'prompt_btns2');
+                case 'proposedraw' :
 
-            cancel_btn.on ('pointerdown', function() {
+                    this.playSound('clicka');
 
-                this.isDown();
-                _this.playSound('clicka');
-                _this.clearPrompt();
+                    //this.button[0].deactivate();
+    
+                    this.proposedDrawAction ();
 
-            });
-            cancel_btn.on ('pointerover', function() {
-                this.isHovered ();
-            });
-            cancel_btn.on ('pointerup', function() {
-                this.reset();
-            });
-            cancel_btn.on ('pointerout', function() {
-                this.reset();
-            });
+                    break;
 
-            this.buttonPanel = [ confirm_btn, cancel_btn];
+                case 'reveal' : 
 
+                    this.removePrompt();
+                                
+                    //this.button[2].deactivate();
 
+                    setTimeout ( function () {
+                        _this.playSound('bleep', 0.4);
+                        _this.plyrInd['self'].updateStatus();
+                    }, 300); 
 
+                    if ( !this.isSinglePlayer ) socket.emit ('piecesReveal');
+                
+                    break;
+
+                case 'resign' :
+
+                    this.removePrompt();
+
+                    this.playerResign = true;
+    
+                    if ( this.isSinglePlayer ) {
+                        this.endGame ('oppo');
+                    }else {
+                        socket.emit ('playerResign');
+                    }
+                
+                    break;
+
+                case 'rematch' : 
+                    //..
+                    if ( this.isSinglePlayer ) {
+
+                        this.resetGame();
+    
+                    }else {
+                        
+                        socket.emit ('rematchRequest');
+    
+                        if ( this.isPrompted ) this.removePrompt();
+    
+                        setTimeout ( function () {
+                            _this.showPrompt ('Waiting for other player..', '', false, 'sml' );
+                        }, 200 );
+                    
+                    }
+                    
+                    break;
+                case 'quit':
+
+                    _this.leaveGame();
+
+                    break;
+                case 'cancel' :
+
+                    this.removePrompt ();
+
+                    break;
+                case 'leave':
+                
+                    this.leaveGame();
+
+                    break;
+                default :
+                    //.. 
+            }
         },
         setOppoRanks : function ( pieces ) {
 
@@ -3849,7 +3590,10 @@ window.onload = function () {
         }, 
         resetGame : function () {
 
-            this.clearPrompt();
+            this.elimCountera = 0;
+            this.elimCounterb = 0;
+
+            this.removePrompt();
             this.removeGamePieces();
             this.removeBlinkers();
 
@@ -3894,17 +3638,9 @@ window.onload = function () {
             }, 500);
             
         },
-        clearPrompt: function () {
-
+        removePrompt: function () {
             this.isPrompted = false;
-
-            for ( var i in this.promptElements ) {
-                this.promptElements[i].destroy();
-            }
-            for ( var i in this.buttonPanel ) {
-                this.buttonPanel[i].destroy();
-            }
-
+            this.promptScreen.destroy ();
         },
         removeGamePieces : function () {
             for ( var i in this.gamePiece ) {
@@ -3999,12 +3735,10 @@ window.onload = function () {
             
             if ( this.timeIsTicking ) this.stopTimer ();
 
-            if ( this.emojiShown ) 
-                clearTimeout ( this.removeShownEmojis );
+            if ( this.sendEmojisShown ) clearTimeout (this.emojiTimer);
 
             if ( this.isNotified ) this.removeNotification ();
-                
-
+            
             socket.emit ('leaveGame');
             socket.removeAllListeners();
 
@@ -4012,7 +3746,6 @@ window.onload = function () {
 
             this.scene.start('Intro');
            
-
         },
         
     });
@@ -4105,8 +3838,6 @@ window.onload = function () {
             this.imgBg.setFrame ( clr )
 
             this.activated = false;
-
-            //this.setInteractive (false);
 
         },
         flip: function () {
