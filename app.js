@@ -714,6 +714,9 @@ io.on('connection', function(socket){
 });
 
 
+function cancelPairing () {
+	console.log ( 'this is called');
+}
 function getPair ( pcode, myID ) {
 
 	for ( var i in playerList ) {

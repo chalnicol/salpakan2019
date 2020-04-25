@@ -4456,7 +4456,7 @@ window.onload = function () {
             
             this.clearTimer();
             
-            this.bg.setFrame (1);
+            this.bg.setFrame (0);
 
             this.avatar.setFrame ( 18 );
             
