@@ -544,7 +544,7 @@ window.onload = function () {
 
                     socket.emit ('enterGame', toSendData );
 
-                    _this.showPromptScreen ( 'connect' );
+                    _this.showPromptScreen ( 'connect', '', false );
 
                     
                 }else if ( _this.gameData.game == 1 ) {
@@ -587,7 +587,7 @@ window.onload = function () {
             }
 
         },
-        showPromptScreen : function ( promptType, err='' ) {
+        showPromptScreen : function ( promptType, err='', hasBtn = true ) {
 
             var _this = this;
 
@@ -664,27 +664,30 @@ window.onload = function () {
 
             }        
 
-            var btn = this.add.image ( bx, by, 'prompt_btns', btn_fr ).setScale( _gameW/1280 ).setData({'frame': btn_fr, 'id' : btn_id}).setOrigin(0.5).setInteractive();
-    
-            btn.on('pointerover', function () {
-                this.setFrame ( this.getData('frame') + 1 );
-            });
-            btn.on('pointerout', function () {
-                this.setFrame ( this.getData('frame')  );
-            });
-            btn.on('pointerdown', function () {
-                
-                if ( _this.isSetGame ) return;
+            if ( hasBtn ) {
 
-                if ( this.getData('id') == 'cancel') socket.emit ('leaveGame');
+                var btn = this.add.image ( bx, by, 'prompt_btns', btn_fr ).setScale( _gameW/1280 ).setData({'frame': btn_fr, 'id' : btn_id}).setOrigin(0.5).setInteractive();
+        
+                btn.on('pointerover', function () {
+                    this.setFrame ( this.getData('frame') + 1 );
+                });
+                btn.on('pointerout', function () {
+                    this.setFrame ( this.getData('frame')  );
+                });
+                btn.on('pointerdown', function () {
+                    
+                    if ( _this.isSetGame ) return;
 
-                _this.music.play ('clicka');
+                    if ( this.getData('id') == 'cancel') socket.emit ('leaveGame');
 
-                _this.removePrompt ();
+                    _this.music.play ('clicka');
 
-            });
+                    _this.removePrompt ();
 
-            this.promptScreen.add (btn);
+                });
+                this.promptScreen.add (btn);
+
+            }
 
             this.tweens.add ({
                 targets : this.promptScreen,
@@ -3906,7 +3909,7 @@ window.onload = function () {
         },
         
     });
-    //..PlayerIndicator...
+
     var PlayerIndicator = new Phaser.Class({
 
         Extends: Phaser.GameObjects.Container,

@@ -682,9 +682,7 @@ io.on('connection', function(socket){
 
 			var plyr = playerList[socket.id];
 			
-			//console.log ( '\n <-- ' + plyr.username +' has left the game' );
-
-			leaveRoom ( socket.id );
+			if ( plyr.roomid != '' )  leaveRoom ( socket.id );
 
 		}
 
