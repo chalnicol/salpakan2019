@@ -155,7 +155,11 @@ window.onload = function () {
             this.load.image('invite', 'client/assets/images/intro/invite.png');
             this.load.spritesheet('prompt_btns', 'client/assets/images/intro/prompt_btns.png', { frameWidth: 224, frameHeight: 58 });
 
+            this.load.image('circ0', 'client/assets/images/waiting/circ0.png');
+            this.load.image('circ1', 'client/assets/images/waiting/circ1.png');
+            this.load.image('circ2', 'client/assets/images/waiting/circ2.png');
             //..
+
             this.load.image('bg2', 'client/assets/images/proper/bg.png');
             this.load.image('elim_field', 'client/assets/images/proper/elim_field.png');
             this.load.image('send_emoji', 'client/assets/images/proper/send_emoji.png');
@@ -544,7 +548,7 @@ window.onload = function () {
 
                     socket.emit ('enterGame', toSendData );
 
-                    //_this.showPromptScreen ( 'connect', '', false );
+                    _this.showWaitScreen ();
 
                     
                 }else if ( _this.gameData.game == 1 ) {
@@ -587,7 +591,81 @@ window.onload = function () {
             }
 
         },
-        showPromptScreen : function ( promptType, err='', hasBtn = true ) {
+        showWaitScreen : function () {
+
+            var _this = this;
+
+            this.isPrompted = true;
+
+            this.rectBg = this.add.rectangle ( 0, 0, _gameW, _gameH, 0x000000, 0.7 ).setOrigin(0).setInteractive();
+
+            this.promptScreen = this.add.container (0, _gameH/2).setDepth(999);
+
+            var window = this.add.image ( 0, 0, 'prompt' ).setOrigin ( 0 ).setScale( _gameW/1280 );
+
+            var yp = Math.floor ( 326 * _gameH/720 );
+
+           
+            var img0 = this.add.image ( _gameW/2, yp, 'circ0' ).setScale( _gameW/1280 ).setRotation ( Math.PI/180 * (Math.random() * 360) );
+
+            var img1 = this.add.image ( _gameW/2, yp, 'circ1' ).setScale( _gameW/1280 ).setRotation ( Math.PI/180 * (Math.random() * 360 ));;
+
+            var img2 = this.add.image ( _gameW/2, yp, 'circ2' ).setScale( _gameW/1280 ).setRotation ( Math.PI/180 * (Math.random() * 360) );;
+
+            var txtConfig = { 
+                color:'#dedede', 
+                fontSize: Math.floor ( 30 * _gameH/720 ),
+                fontFamily : 'Impact'
+            };
+
+            var rW = Math.floor ( 320 * _gameW/1280 ),
+                rH = Math.floor ( 45 * _gameH/720);
+
+            var rectF = this.add.rectangle ( _gameW/2, yp, rW, rH, 0x3a3a3a, 0.5 );
+
+            var txt = this.add.text ( _gameW/2, yp, 'Connecting..', txtConfig ).setOrigin(0.5);
+
+
+            this.promptScreen.add ([window, img0, img1, img2, rectF, txt ]);
+
+           
+            this.tweens.add ({
+                targets : img0,
+                duration : 3000,
+                rotation : '+=10',
+                repeat : -1,
+                yoyo : true,
+                ease : 'Quad.easeIn'
+            });
+            this.tweens.add ({
+                targets : img1,
+                duration : 3000,
+                rotation : '-=8',
+                repeat : -1,
+                yoyo : true,
+                ease : 'Quad.easeIn'
+            });
+            this.tweens.add ({
+                targets : img2,
+                duration : 3000,
+                rotation : '+=5',
+                repeat : -1,
+                yoyo : true,
+                ease : 'Quad.easeIn'
+            });
+
+            this.tweens.add ({
+                targets : this.promptScreen,
+                y : 0,
+                duration : 300,
+                easeParams : [0, 1.5],
+                ease : 'Elastic'
+            });
+
+
+
+        },
+        showPromptScreen : function ( promptType, err='' ) {
 
             var _this = this;
 
@@ -664,30 +742,26 @@ window.onload = function () {
 
             }        
 
-            if ( hasBtn ) {
+            var btn = this.add.image ( bx, by, 'prompt_btns', btn_fr ).setScale( _gameW/1280 ).setData({'frame': btn_fr, 'id' : btn_id}).setOrigin(0.5).setInteractive();
+    
+            btn.on('pointerover', function () {
+                this.setFrame ( this.getData('frame') + 1 );
+            });
+            btn.on('pointerout', function () {
+                this.setFrame ( this.getData('frame')  );
+            });
+            btn.on('pointerdown', function () {
+                
+                if ( _this.isSetGame ) return;
 
-                var btn = this.add.image ( bx, by, 'prompt_btns', btn_fr ).setScale( _gameW/1280 ).setData({'frame': btn_fr, 'id' : btn_id}).setOrigin(0.5).setInteractive();
-        
-                btn.on('pointerover', function () {
-                    this.setFrame ( this.getData('frame') + 1 );
-                });
-                btn.on('pointerout', function () {
-                    this.setFrame ( this.getData('frame')  );
-                });
-                btn.on('pointerdown', function () {
-                    
-                    if ( _this.isSetGame ) return;
+                if ( this.getData('id') == 'cancel') socket.emit ('leaveGame');
 
-                    if ( this.getData('id') == 'cancel') socket.emit ('leaveGame');
+                _this.music.play ('clicka');
 
-                    _this.music.play ('clicka');
+                _this.removePrompt ();
 
-                    _this.removePrompt ();
-
-                });
-                this.promptScreen.add (btn);
-
-            }
+            });
+            this.promptScreen.add (btn);
 
             this.tweens.add ({
                 targets : this.promptScreen,
