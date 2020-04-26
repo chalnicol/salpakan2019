@@ -544,7 +544,7 @@ window.onload = function () {
 
                     socket.emit ('enterGame', toSendData );
 
-                    _this.showPromptScreen ( 'connect', '', false );
+                    //_this.showPromptScreen ( 'connect', '', false );
 
                     
                 }else if ( _this.gameData.game == 1 ) {
