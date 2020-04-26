@@ -715,7 +715,7 @@ io.on('connection', function(socket){
 
 
 function cancelPairing () {
-	console.log ( 'this is called');
+	//console.log ( 'this is called');
 }
 function getPair ( pcode, myID ) {
 
@@ -732,7 +732,7 @@ function timeRanOut ( roomid ) {
 
 	var room = roomList[roomid];
 
-	console.log ( '\n --> End Time :', playerList [ room.playerIDs [room.turn] ].username );
+	//console.log ( '\n --> End Time :', playerList [ room.playerIDs [room.turn] ].username );
 
 	if ( !room.isGameOn ) {
 

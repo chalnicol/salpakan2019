@@ -164,14 +164,14 @@ window.onload = function () {
             this.load.image('commence', 'client/assets/images/proper/commence.png');
             this.load.image('commence_w', 'client/assets/images/proper/commence_w.png');
 
-            this.load.spritesheet('piece', 'client/assets/images/proper/pieces.png', { frameWidth: 112, frameHeight: 62 });
+            this.load.spritesheet('piece', 'client/assets/images/proper/pieces.png', { frameWidth: 125, frameHeight: 74 });
             this.load.spritesheet('cont_btns', 'client/assets/images/proper/cont_btns.png', { frameWidth: 45, frameHeight: 45 });
             this.load.spritesheet('indicatorbg', 'client/assets/images/proper/indicator.png', { frameWidth: 557, frameHeight: 71 });
             this.load.spritesheet('prompt_btns2', 'client/assets/images/proper/prompt_btns.png', { frameWidth: 197, frameHeight: 62 });
             this.load.spritesheet('emojis', 'client/assets/images/proper/emojis.png', { frameWidth: 100, frameHeight: 100 });
             
 
-            var txtH = Math.floor ( 20 * _gameH/720 );
+            var txtH = Math.floor ( 30 * _gameH/720 );
 
             var txtConfig = { 
                 color : '#3a3a3a', 
@@ -214,10 +214,6 @@ window.onload = function () {
             
             this.initGameInterface ();
 
-            
-
-            //this.createPlayButton();
-
             setTimeout ( function () {
                 socket.emit ('getInitData');
             }, 500 ); 
@@ -253,10 +249,9 @@ window.onload = function () {
                     err = 'Game does not exist anymore.';
                 }
 
-                setTimeout ( function () {
-                    _this.showPromptScreen ( 'error', err );
-                }, 100 );
+                _this.showPromptScreen ( 'error', err );
 
+            
             });
 
             socket.on ('sendInitData', function ( data ) {
@@ -269,9 +264,9 @@ window.onload = function () {
             });
 
             socket.on ('initGame', function ( data ) {
-                
-                _this.initGame (data);
-
+                setTimeout ( function () {
+                    _this.initGame (data);
+                }, 300 );
             });
             socket.on ('playersOnline', function ( data ) {
             
@@ -372,7 +367,7 @@ window.onload = function () {
                 fontFamily : 'Impact'
             };
     
-            var textName = this.add.text ( _gameW *0.525, _gameH*0.685, "◉ No Timer", { color : '#6a6a6a', fontSize : bts * 0.42, fontFamily : 'Impact'} ).setOrigin(0);
+            var textName = this.add.text ( _gameW *0.525, _gameH*0.685, "◉ No Timer", { color : '#6e4545', fontSize : bts * 0.42, fontFamily : 'Impact'} ).setOrigin(0);
     
             var btw = Math.floor ( 260 * _gameW/1280 ),
                 btsp = bts * 0.1;
@@ -396,7 +391,9 @@ window.onload = function () {
                 rectDiv.on('pointerdown', function () {
 
                     var curGame = _this.gameData.game;
+
                     _this.radios [curGame].setFrame (0);
+                    
                     _this.under [curGame].setAlpha (0);
 
                     var data1 = this.getData('id');
@@ -490,8 +487,7 @@ window.onload = function () {
                 this.under.push (under_recta);
 
             }
-
-                
+     
             setTimeout (function () {
                 _this.showStartBtn ();
             }, 2000)
@@ -533,18 +529,23 @@ window.onload = function () {
                 _this.music.play ('clicka');
 
                 var toSendData = {
-                    'isSinglePlayer' : _this.gameData.game == 0 ? true : false,
-                    'isChoosingOpponent' : _this.gameData.game == 2 ? true : false,
-                    'isTimed' : _this.gameData.type == 0 ? false : true
+                    'isSinglePlayer' : _this.gameData.game == 0,
+                    'isChoosingOpponent' : _this.gameData.game == 2,
+                    'isTimed' : _this.gameData.type == 1
                 }
 
-                if ( _this.gameData.game == 0) {
+
+                if ( _this.gameData.game == 0 ) {
 
                     socket.emit ('enterGame', toSendData );
-                    //_this.scene.add('Connect', Connect, true,{err : 0});
+
+                    _this.showPromptScreen ( 'connect' );
+
+                    
                 }else if ( _this.gameData.game == 1 ) {
                     
                     socket.emit ('enterGame', toSendData );
+                    
                      _this.showPromptScreen ( 'connect' );
                     //_this.scene.add('Pair', Pair, true);
                 }else {
@@ -587,9 +588,11 @@ window.onload = function () {
 
             this.isPrompted = true;
 
-            this.screenElements = [];
+            this.rectBg = this.add.rectangle ( 0, 0, _gameW, _gameH, 0x000000, 0.7 ).setOrigin(0).setInteractive();
 
-            var rectBg = this.add.rectangle ( 0, 0, _gameW, _gameH, 0x000000, 0.65 ).setOrigin(0).setInteractive();
+            this.promptScreen = this.add.container (0, _gameH/2).setDepth(999);
+
+            //476 x 225 
 
             var window = this.add.image ( 0, 0, 'prompt' ).setOrigin ( 0 ).setScale( _gameW/1280 );
 
@@ -600,108 +603,94 @@ window.onload = function () {
                 txty = _gameH * 0.385,
                 txtH = Math.floor ( 32 * _gameH/720 );
 
-            var _this = this;
-    
-            switch ( promptType ) {
-    
-                case 'connect':
-    
-                    var cancel_btn = this.add.image ( bx, by, 'prompt_btns', 0 ).setScale( _gameW/1280 ).setOrigin(0.5).setInteractive();
-    
-                    cancel_btn.on('pointerover', function () {
-                        this.setFrame ( 1 );
-                    });
-                    cancel_btn.on('pointerout', function () {
-                        this.setFrame ( 0 );
-                    });
-                
-                    cancel_btn.on('pointerdown', function () {
-                        
-                        socket.emit ('leaveGame');
-                        
-                        _this.music.play ('clicka');
+            var str = ( promptType == 'connect') ? 'Connecting..' : err ;
 
-                        _this.removePrompt ();
+            var txtConfig = { 
+                color:'#746a62', 
+                fontSize: txtH,
+                fontFamily : 'Impact'
+            };
 
-                    });
-    
-                    var txtConfig = { 
-                        color:'#746a62', 
-                        fontSize: txtH,
-                        fontFamily : 'Impact'
-                    };
+            var txt = this.add.text ( txtx, txty, str, txtConfig ).setOrigin(0.5);
 
-                    var txt = this.add.text ( txtx, txty, "Connecting..", txtConfig ).setOrigin(0.5);
+            this.promptScreen.add ([window, txt]);
+
+            var btn_id = "", frame = 0;
+
+            if ( promptType == 'connect')
+            {
+                var max = 5;
+
+                var bSize = Math.floor ( 25 * _gameW/1280 ),
+                    bSpace = Math.floor ( 3 * _gameW/1280 ),
+                    bTotal = max * ( bSize + bSpace ) - bSpace;
+                    cX = (_gameW - bTotal) /2,
+                    cY = _gameH * 0.45;
+
                     
-                    this.screenElements = [ rectBg, window, cancel_btn, txt ];
+                var duration = 500, delay = duration/max;
 
-                    var max = 5;
+                for ( var i=0; i<max; i++) {
 
-                    var bSize = Math.floor ( 25 * _gameW/1280 ),
-                        bSpace = Math.floor ( 3 * _gameW/1280 ),
-                        bTotal = max * ( bSize + bSpace ) - bSpace;
-                        cX = (_gameW - bTotal) /2,
-                        cY = _gameH * 0.45;
+                    var circ = this.add.circle ( cX + ( i*( bSize + bSpace) ) + (bSize/2), cY, bSize/2, 0x6c6c6c, 1 );
+            
+                    this.tweens.add ({
+                        targets : circ,
+                        scaleX : 0.5,
+                        scaleY : 0.5,
+                        duration : duration,
+                        ease : 'Power2',
+                        repeat : -1,
+                        yoyo : true,
+                        delay : i * delay,
+                    });
 
-                        
-                    var duration = 500, delay = duration/max;
+                    this.promptScreen.add (circ);
 
-                    for ( var i=0; i<max; i++) {
-
-                        var circ = this.add.circle ( cX + ( i*( bSize + bSpace) ) + (bSize/2), cY, bSize/2, 0x6c6c6c, 1 );
+                }
                 
-                        this.tweens.add ({
-                            targets : circ,
-                            scaleX : 0.5,
-                            scaleY : 0.5,
-                            duration : duration,
-                            ease : 'Power2',
-                            repeat : -1,
-                            yoyo : true,
-                            delay : i * delay,
-                        });
+                btn_id = 'cancel';
+                btn_fr = 0;
 
-                        this.screenElements.push (circ);
+            }else {
 
-                    }
+                btn_id = 'confirm';
+                btn_fr = 2;
 
-                    break;
+            }        
 
-                case 'error':
-                    
-                    var confirm_btn = this.add.image ( bx, by, 'prompt_btns', 2 ).setScale( _gameW/1280 ).setOrigin(0.5).setInteractive();
+            var btn = this.add.image ( bx, by, 'prompt_btns', btn_fr ).setScale( _gameW/1280 ).setData({'frame': btn_fr, 'id' : btn_id}).setOrigin(0.5).setInteractive();
     
-                    confirm_btn.on('pointerover', function () {
-                        this.setFrame ( 3 );
-                    });
-                    confirm_btn.on('pointerout', function () {
-                        this.setFrame ( 2 );
-                    });
-                    confirm_btn.on('pointerdown', function () {
-
-                        _this.music.play ('clicka');
-
-                        _this.removePrompt ();
-
-                    });
-
-                    var txtConfig = { 
-                        color:'#746a62', 
-                        fontSize: txtH,
-                        fontFamily : 'Impact'
-                    };
-
-                    var txt = this.add.text ( txtx, txty, err, txtConfig ).setOrigin(0.5);
-                    
-
-                    this.screenElements = [ rectBg, window, confirm_btn, txt ];
-                  
-    
-                    break;
-                default:
-                    //nothing to do..
+            btn.on('pointerover', function () {
+                this.setFrame ( this.getData('frame') + 1 );
+            });
+            btn.on('pointerout', function () {
+                this.setFrame ( this.getData('frame')  );
+            });
+        
+            btn.on('pointerdown', function () {
                 
-            }
+                if ( this.getData('id') == 'cancel') socket.emit ('leaveGame');
+
+                _this.music.play ('clicka');
+
+                _this.removePrompt ();
+
+            });
+
+
+            this.promptScreen.add (btn);
+
+            
+            this.tweens.add ({
+                targets : this.promptScreen,
+                y : 0,
+                duration : 300,
+                easeParams : [0, 1.5],
+                ease : 'Elastic'
+            });
+
+
 
         },
         showInviteScreen : function ( data ) {
@@ -710,13 +699,12 @@ window.onload = function () {
 
             this.isPrompted = true;
 
-            this.screenElements = [];
+            this.rectBg = this.add.rectangle ( 0, 0, _gameW, _gameH, 0x000000, 0.7 ).setOrigin(0).setInteractive();
 
-            var rectBg = this.add.rectangle ( 0, 0, _gameW, _gameH, 0x000000, 0.65 ).setOrigin(0).setInteractive();
+            this.promptScreen = this.add.container (0, _gameH/2).setDepth(999);
 
             var window = this.add.image ( 0, 0, 'invite' ).setScale(_gameW/1280).setOrigin ( 0 );
             
-
             var txtH = Math.floor ( 28 * _gameW/1280 ),
                 txtX = Math.floor ( 640 * _gameW/1280 ),
                 txtY = Math.floor ( 265 * _gameH/720 );
@@ -734,47 +722,58 @@ window.onload = function () {
             var textName = this.add.text ( txtX, txtY, str, textNameConfig ).setOrigin(0.5, 0);
 
 
-            var btnXa = Math.floor ( 413 * _gameW/1280 ),
-                btnXb = Math.floor ( 643 * _gameW/1280 ),
-                btnY = Math.floor ( 348 * _gameH/720 );
+            this.promptScreen.add ([ window, textName]);
 
-            var accept_btn = this.add.image ( btnXa, btnY, 'prompt_btns', 4 ).setScale( _gameW/1280 ).setOrigin(0).setInteractive();
+            var dataArr = [{ id : 'accept', frame : 4 }, { id : 'reject', frame : 6 } ];
 
-            accept_btn.on ('pointerover', function () {
-                this.setFrame  (5)
-            });
-            accept_btn.on ('pointerout', function () {
-                this.setFrame  (4)
+            var _this = this;
+            
+            var btw = Math.floor ( 224 * _gameW/1280 ),
+                bts = btw * 0.1,
+                btx = (_gameW - ((btw * 2) + bts))/2 + btw/2,
+                bty = Math.floor ( 360 * _gameH/720 );
+                
+            for ( var i = 0; i < dataArr.length; i++ ) {
+
+                var btn = this.add.image ( btx + i * (btw + bts), bty, 'prompt_btns', dataArr[i].frame ).setScale (_gameW/1280).setData ( dataArr[i] ).setInteractive();
+                
+                btn.on ('pointerdown', function() {
+                    //_this.playSound('clicka');
+                    //_this.promptBtnsClick ( this.getData('id') );
+                    socket.emit ( 'pairingResponse',  this.getData('id') == 'accept' );
+
+                    _this.music.play('clicka');
+
+                    _this.removePrompt ();
+
+
+                });
+                btn.on ('pointerover', function() {
+                    this.setFrame ( this.getData('frame') + 1 );
+                });
+                btn.on ('pointerup', function() {
+                    this.setFrame ( this.getData('frame') );
+                });
+                btn.on ('pointerout', function() {
+                    this.setFrame ( this.getData('frame'));
+                });
+
+                this.promptScreen.add ( btn );
+
+            }
+
+            this.tweens.add ({
+                targets : this.promptScreen,
+                y : 0,
+                duration : 300,
+                easeParams : [0, 1.5],
+                ease : 'Elastic'
             });
             
-            accept_btn.on('pointerdown', function () {
-               
-                socket.emit ( 'pairingResponse', true );
-
-                _this.music.play('clicka');
-
-                _this.removePrompt ();
-            });
-
-            var reject_btn = this.add.image ( btnXb, btnY, 'prompt_btns', 6 ).setScale( _gameW/1280 ).setOrigin(0).setInteractive();
-
-            reject_btn.on ('pointerover', function () {
-                this.setFrame  (7)
-            });
-            reject_btn.on ('pointerout', function () {
-                this.setFrame  (6)
-            });
-            reject_btn.on('pointerdown', function () {
-               
-                socket.emit ( 'pairingResponse', false );
-
-                _this.music.play('clicka');
-
-                _this.removePrompt ();
-            });
-
-            this.screenElements = [ rectBg, window, accept_btn, reject_btn, textName ];
             
+
+            
+
         },
         showConnectToFriendScreen : function () {
 
@@ -782,30 +781,26 @@ window.onload = function () {
             
             this.connectScreenShown = true;
 
-            this.screenElements = [];
-            
+            this.rectBg = this.add.rectangle ( 0, 0, _gameW, _gameH, 0x000000, 0.7 ).setOrigin(0).setInteractive();
 
-            var rectBg = this.add.rectangle ( 0, 0, _gameW, _gameH, 0x000000, 0.8 ).setOrigin(0).setInteractive();
+
+            this.connectScreen = this.add.container (0,_gameH).setDepth (999);
+
+            var rX = Math.floor ( 809 * _gameW/1280 ),
+                rY = Math.floor ( 122 * _gameH/720 ),
+                rz = Math.floor ( 62 * _gameW/1280 );
+
+            var rectUnder = this.add.rectangle ( rX, rY, rz, rz ).setInteractive();
+
+            rectUnder.on ('pointerdown', function () {
+                
+                _this.music.play ('clicka');
+                _this.removeConnectScreen ();
+
+            });
+
 
             var window = this.add.image (0, 0, 'pairing_placement' ).setOrigin ( 0 ).setScale(_gameW/1280);
-
-            var cX = Math.floor ( 793 * _gameW/1280 ),
-                cY = Math.floor ( 107 * _gameH/720 ),
-                cS = Math.floor ( 15 * _gameW/1280 );
-
-            var circ = this.add.circle ( cX, cY, cS, 0x3a3a3a, 0.1 ).setOrigin(0).setInteractive();
-
-
-            circ.on('pointerover', function () {
-                //this.setAlpha (0.2);
-            });
-            circ.on('pointerout', function () {
-                //this.setAlpha(0.1);
-            }); 
-            circ.on('pointerdown', function () {
-                _this.music.play('clicka');
-                _this.removeConnectScreen();
-            });
 
             var txtH = Math.floor ( 56 * _gameH/720 );
             var txtConfig = { 
@@ -819,7 +814,7 @@ window.onload = function () {
 
             var txt = this.add.text (txtX, txtY, '0', txtConfig ).setOrigin (1, 0);
 
-            this.screenElements = [ rectBg, window, circ, txt ]
+            this.connectScreen.add ([ rectUnder, window, txt ]);
 
             var inputCount = 0, maxInput = 6;
 
@@ -901,7 +896,7 @@ window.onload = function () {
 
                             _this.showPromptScreen ('connect');
 
-                            var isTimed = _this.gameData.type == 0 ? true : false;
+                            var isTimed = _this.gameData.type == 1;
 
                             socket.emit ('pair', { 'code' : txt.text, 'isTimed' : isTimed } );
 
@@ -919,30 +914,39 @@ window.onload = function () {
                 //add texts..
                 var txts = this.add.text ( xs, ys, keysVal[i], { color : '#3a3a3a', fontSize: xH * 0.4, fontFamily : 'Impact' }).setOrigin(0.5);
 
-                this.screenElements.push ( keys );
-
-                this.screenElements.push ( txts );
-
+                this.connectScreen.add ( [keys, txts] );
 
             }
+
+            this.tweens.add ({
+                targets : this.connectScreen,
+                y : 0,
+                duration : 300,
+                easeParams : [0, 1.5],
+                ease : 'Elastic'
+            });
+
 
 
         },
         removePrompt : function () {
 
-            for ( var i in this.screenElements) {
-                this.screenElements[i].destroy();
-            }
-
             this.isPrompted = false;
+            
+            this.promptScreen.destroy ();
+            
+            this.rectBg.destroy();
+
 
         },
         removeConnectScreen : function () {
 
             this.connectScreenShown = false;
 
-            this.removePrompt ();
+            this.connectScreen.destroy ();
 
+            this.rectBg.destroy();
+            
         },
         initGame : function ( data ) {
 
@@ -1091,7 +1095,7 @@ window.onload = function () {
                             
                             _this.playSound ('message');
 
-                            _this.showNotification ( 'Opponent declines. Game resumes.' );
+                            _this.showNotif ( 'Opponent declines. Game resumes.' );
                         }
                             
                         if ( _this.isTimed ) _this.startTimer ( _this.maxBlitzTime, _this.turn );
@@ -1227,7 +1231,7 @@ window.onload = function () {
                 _this.gamePhase = 'end';
 
                 setTimeout(() => {
-                    _this.showPrompt ('Opponent has left the game.', '', false, 'sml' );
+                    _this.showNotif ('Opponent has left the game.' );
                 }, 200);
                 
             });
@@ -1289,7 +1293,8 @@ window.onload = function () {
         createPlayers : function () 
         {
 
-            var oppNames = [ 'Rodrigo', 'Corazon', 'Emilio', 'Ramon', 'Fidel', 'Marlon', 'Ayesha', 'Albert', 'Muhammad', 'Ibrahim', 'Carlos' ];
+            var oppNames = ['Rodrigo', 'Benigno', 'Gloria','Joseph', 'Fidel', 'Corazon', 'Ferdinand',
+                            'Diosdado', 'Carlos',  'Ramon', 'Elpidio', 'Manuel R.', 'Sergio', 'Jose', 'Manuel Q.' ];
 
             var self_name = '', oppo_name = '', self_type = 0, oppo_type = 0; 
 
@@ -1355,9 +1360,8 @@ window.onload = function () {
 
                 var ix = Math.floor ( i/col ), iy = i%col;
 
-                var clr = ( i < 36 ) ?  0xff0000 : 0x1919e0;
+                var clr = ( i < 36 ) ?  0xff0000 : 0x0033cc;
 
-               
                 var xp = btx + ( iy * btw ),
                     yp = bty + ( ix * bth );
 
@@ -1557,7 +1561,7 @@ window.onload = function () {
 
                                     } else {
 
-                                        _this.showNotification ('You can only propose a draw on your turn.');
+                                        _this.showNotif ('You can only propose a draw on your turn.', 1500);
                                     }                
                                 
                                 }, 100);
@@ -1806,8 +1810,8 @@ window.onload = function () {
 
             var orgGrid = this.grid [ org ];
 
-            var orgW = orgGrid.width  * 0.9,
-                orgH = orgGrid.height  * 0.85;
+            var orgW = orgGrid.width,
+                orgH = orgGrid.height;
 
             this.pieceDimensions = { 'width' : orgW, 'height' : orgH };
 
@@ -1945,6 +1949,7 @@ window.onload = function () {
             var bgClick = this.add.rectangle ( 0,0, _gameW, _gameH ).setOrigin (0).setInteractive ();
 
             bgClick.on ('pointerdown', function () {
+                _this.playSound ('clickc');
                 _this.showSendEmojiScreen( false );
             });
 
@@ -2032,6 +2037,7 @@ window.onload = function () {
             var screenWindow = this.add.image (_gameW/2, _gameH/2, 'elim_field').setScale(_gameW/1280).setInteractive();
 
             screenWindow.on ('pointerdown', function () {
+                _this.playSound ('clickc');
                 _this.showElimPiecesScreen (false);
             });
 
@@ -2062,8 +2068,8 @@ window.onload = function () {
         },
         positionElimPieces : function ( ids ) {
 
-            var stxa = Math.floor ( 130 * _gameW/1280 ),
-                stxb = Math.floor ( 685 * _gameW/1280 ),
+            var stxa = Math.floor ( 115 * _gameW/1280 ),
+                stxb = Math.floor ( 665 * _gameW/1280 ),
 
                 spx = Math.floor ( 5 * _gameW/1280 ),
                 spy = spx,
@@ -2071,6 +2077,7 @@ window.onload = function () {
 
             var gp = this.gamePiece [ ids ];
 
+            
             var str = (gp.plyr == "self") ? stxa : stxb;
 
             var counter = ( gp.plyr == "self" ) ? this.elimCountera : this.elimCounterb;
@@ -2090,8 +2097,8 @@ window.onload = function () {
 
             setTimeout ( function () {
 
-                gp.x = str + (yp*( gp.width + spx )) + gp.width/2;
-                gp.y = sty + (xp*( gp.height + spy )) + gp.height/2;
+                gp.x = str + (yp*gp.width) + gp.width/2;
+                gp.y = sty + (xp*gp.height) + gp.height/2;
 
                 gp.setVisible (true).removeInteractive();
                 gp.reset();
@@ -2827,7 +2834,7 @@ window.onload = function () {
 
             }else {
 
-                this.showPrompt ('Waiting for other player..', '', false, 'sml' );
+                this.showNotif ('Waiting for other player..');
 
                 var toSend = this.getGamePieceData ('self');
 
@@ -2863,6 +2870,8 @@ window.onload = function () {
 
             if ( this.isPrompted ) this.removePrompt();
 
+            if ( this.isNotified ) this.removeNotif();
+
             this.plyrInd['self'].clearTimer();
             this.plyrInd['oppo'].clearTimer();
             
@@ -2873,7 +2882,7 @@ window.onload = function () {
             setTimeout ( function () {
 
                 _this.showCommenceScreen();
-
+                
             }, 500);
 
         },
@@ -3201,37 +3210,14 @@ window.onload = function () {
             }, 1000 );
 
         },
-        setPromptVisible : function ( show = true ) {
+        showNotif : function ( text, duration = 0 ) {
 
-            for ( var i in this.promptElements ) {
-                this.promptElements [i].setVisible ( show );
-            }
-            for ( var j in this.buttonPanel ) {
-                this.buttonPanel [j].setVisible ( show );
-            }
+            var _this = this;
 
-        },
-        showPrompt : function ( text, caption = '', withButtons = false, tSize = 'med' ) { 
+            this.isNotified = true;
 
-            this.isPrompted = true;
+            this.promptScreen = this.add.container (0, _gameH/2).setDepth(999);
 
-            this.promptScreen = this.add.container (0,0).setDepth(999);
-
-           /*  switch ( tSize ) {
-                case 'sml' :
-                    txtsize = Math.floor (24 * _gameH/720);
-                    break;
-                case 'med' :
-                    txtsize = Math.floor (32 * _gameH/720);
-                    break;
-                case 'lrg' :
-                    txtsize = Math.floor (52 * _gameH/720);
-                break;
-                default :   
-                    xtsize = Math.floor (15 * _gameH/720)
-                                
-            } */
-        
             var imgBg = this.add.image ( 0,0, 'prompt_small' ).setOrigin (0).setScale(_gameW/1280);
         
             var txtx = _gameW/2,
@@ -3240,12 +3226,40 @@ window.onload = function () {
              // main text...
             var txtConfig = {
                 color : '#ffffff',
-                fontSize : txtsize = Math.floor (24 * _gameH/720),
+                fontSize :  Math.floor (24 * _gameH/720),
                 fontFamily : "Impact"
             }; 
+
             var promptTxt = this.add.text ( txtx, txty, text, txtConfig).setOrigin(0.5);
 
             this.promptScreen.add ([ imgBg, promptTxt]);
+
+            this.tweens.add ({
+                targets : this.promptScreen,
+                y : 0,
+                duration : 300,
+                easeParams : [0, 1.5],
+                ease : 'Elastic'
+            });
+
+            if ( duration > 0 ) {
+                this.notifTimer = setTimeout ( function () {
+                    _this.removeNotif();
+                }, duration );
+            }
+
+           
+            
+        },
+        removeNotif : function () {
+
+            if ( !this.isNotified ) return;
+
+            clearTimeout ( this.notifTimer );
+
+            this.isNotified = false;
+
+            this.promptScreen.destroy();
 
         },
         showPromptBig : function ( text, caption = '', tSize = 'sm', dataArr = [] ) {
@@ -3296,7 +3310,7 @@ window.onload = function () {
             var btw = Math.floor ( 197 * _gameW/1280 ),
                 bth = Math.floor ( 62 * _gameH/720 ),
                 bts = btw * 0.1,
-                btx = (_gameW - (btw * 2))/2 + btw/2,
+                btx = (_gameW - ((btw * 2) + bts))/2 + btw/2,
                 bty = Math.floor ( 430 * _gameH/720 );
                 
             var _this = this;
@@ -3331,6 +3345,15 @@ window.onload = function () {
                 ease : 'Elastic'
             });
             //....
+        },
+        removePrompt: function () {
+
+            if (!this.isPrompted) return;
+
+            this.isPrompted = false;
+
+            this.promptScreen.destroy ();
+
         },
         showLeaveScreen : function () {
 
@@ -3404,67 +3427,19 @@ window.onload = function () {
             this.showPromptBig ( 'Opponent has offered a draw?', '', 'sm', btnsData );
 
         },
-        showNotification : function ( txt ) {
-
-            this.isNotified = true;
-
-            this.showPrompt ( '⚠ ' + txt, '', false, 'sml' );
-
-            var _this = this;
-
-            this.removeNotificationTimer = setTimeout ( function () {
-                _this.removeNotification ();
-            }, 1500 );
-
-        },
-        removeNotification : function () {
-
-            clearTimeout ( this.removeNotificationTimer );
-
-            this.isNotified = false;
-
-            if ( this.isPrompted ) this.removePrompt ();
-
-        },
-        proposedDrawAction : function () {
-
-            var _this = this;
-
-            this.removePrompt();
-
-            if ( this.timeIsTicking ) this.stopTimer ();
-
-            this.showPrompt ("Waiting for opponent's response..", '', false, 'sml' );
-
-            if ( this.isSinglePlayer ) {
-
-                setTimeout ( function () {
-                    _this.drawResponse ();
-                }, 2000 )
-                
-            }else {
-
-                socket.emit ( 'playerOfferedADraw' );
-            }
-
-        },
         drawResponse :  function () {
 
             var _this = this;
 
-            this.removePrompt ();
-
-            var decision = Math.floor ( Math.random() * 10 );
-
-            //var decision = 0;
-
             setTimeout ( function () {
 
-                if ( decision > 2 ) {
+                _this.removeNotif ();
+
+                if ( Math.random() > 0.25 ) {
 
                     _this.playSound ('message');
                     
-                    _this.showNotification ( 'Opponent declines. Game resumes.' );
+                    _this.showNotif ( 'Opponent declines. Game resumes.', 2000 );
 
                     if ( _this.isTimed) _this.startTimer ( _this.maxBlitzTime, _this.turn );
 
@@ -3476,13 +3451,16 @@ window.onload = function () {
                     _this.endGame ();
                 }
                 
-            }, 200 )
+            }, 2000 );
+
 
         },
         promptBtnsClick : function (id) {
 
             //console.log ('click', id );
             var _this = this;
+
+            this.playSound('clicka');
 
             switch ( id ) {
 
@@ -3499,11 +3477,21 @@ window.onload = function () {
 
                 case 'proposedraw' :
 
-                    this.playSound('clicka');
-
-                    //this.button[0].deactivate();
+                    
+                    this.removePrompt();
     
-                    this.proposedDrawAction ();
+                    if ( this.timeIsTicking ) this.stopTimer ();
+
+                    this.showNotif ("Waiting for opponent's response..");
+
+                    if ( this.isSinglePlayer ) {
+
+                        _this.drawResponse ();
+                        
+                    }else {
+
+                        socket.emit ( 'playerOfferedADraw' );
+                    }
 
                     break;
 
@@ -3511,8 +3499,6 @@ window.onload = function () {
 
                     this.removePrompt();
                                 
-                    //this.button[2].deactivate();
-
                     setTimeout ( function () {
                         _this.playSound('bleep', 0.4);
                         _this.plyrInd['self'].updateStatus();
@@ -3546,10 +3532,10 @@ window.onload = function () {
                         
                         socket.emit ('rematchRequest');
     
-                        if ( this.isPrompted ) this.removePrompt();
+                        this.removePrompt();
     
                         setTimeout ( function () {
-                            _this.showPrompt ('Waiting for other player..', '', false, 'sml' );
+                            _this.showNotif ('Waiting for other player..');
                         }, 200 );
                     
                     }
@@ -3637,10 +3623,6 @@ window.onload = function () {
 
             }, 500);
             
-        },
-        removePrompt: function () {
-            this.isPrompted = false;
-            this.promptScreen.destroy ();
         },
         removeGamePieces : function () {
             for ( var i in this.gamePiece ) {
@@ -3735,11 +3717,12 @@ window.onload = function () {
             
             if ( this.timeIsTicking ) this.stopTimer ();
 
-            if ( this.sendEmojisShown ) clearTimeout (this.emojiTimer);
+            if ( this.sendEmojisShown ) this.removeEmojis();
 
-            if ( this.isNotified ) this.removeNotification ();
+            if ( this.isNotified ) this.removeNotif ();
             
             socket.emit ('leaveGame');
+
             socket.removeAllListeners();
 
             this.bgmusic.stop();
@@ -3789,15 +3772,13 @@ window.onload = function () {
             //this.shape.fillRoundedRect ( -width/2, -height/2, width, height, height * 0.1);
             //this.shape.strokeRoundedRect ( -width/2, -height/2, width, height, height * 0.1);
 
-            this.imgBg = scene.add.image ( 0, 0, 'piece', type ).setScale(_gameW/1280).setRotation ( this.rot * Math.PI/180);
+            this.imgBg = scene.add.image ( 0, 0, 'piece', type ).setScale(_gameW/1280).setRotation ( this.rot * Math.PI/180 );
 
             var txtConfig = { 
-                
-                //color : 'gray',
-                color: type == 0 ? 'black' : 'white',
+                color: type == 0 ? '#1c1c1c' : '#dedede',
                 fontFamily: 'Poppins', 
                 fontSize: Math.floor(height * 0.2), 
-                //fontStyle : 'bold' 
+                fontStyle : 'bold' 
             };
 
             var top = -height/2,
@@ -3809,7 +3790,7 @@ window.onload = function () {
 
             this.image = scene.add.image ( 0, top + height*0.4, 'thumbs', indx ).setScale(_gameW/1280);
 
-            this.txt = scene.add.text ( 0, top + height * 0.8, '', txtConfig ).setOrigin(0.5);
+            this.txt = scene.add.text ( 0, top + height * 0.75, '', txtConfig ).setOrigin(0.5);
 
             this.add ([this.imgBg, this.image, this.txt]);
 
@@ -3922,67 +3903,6 @@ window.onload = function () {
         },
         
     });
-
-    //..Button...
-    var MyButton =  new Phaser.Class({
-
-        Extends: Phaser.GameObjects.Container,
-
-        initialize:
-
-        function MyButton ( scene, id, x, y, width, height, frame, btnType )
-        {
-
-            Phaser.GameObjects.Container.call(this, scene);
-
-            this.setPosition(x, y).setSize(width, height).setInteractive();
-
-            this.id = id;
-            this.x = x;
-            this.y = y;
-            this.width = width;
-            this.height = height;
-            this.isClicked = false;
-            this.frame = frame;
-            this.isDisabled = false;
-            
-            this.img = scene.add.image (0,0, btnType, frame ).setScale(_gameW/1280);
-           
-            //add to container...
-            this.add ([this.img]);
-
-            scene.children.add ( this );
-
-        },
-
-        isDown : function () {
-            this.img.setFrame ( this.frame + 2 );
-        },
-        isHovered : function () {
-            this.img.setFrame ( this.frame + 1 );
-        },
-        deactivate : function () {
-            
-            
-            
-            this.reset();
-
-            this.alpha = 0.5;
-            
-            this.disableInteractive();
-
-            this.isDisabled = true;
-
-        },
-        reset : function () {
-
-            this.img.setFrame ( this.frame );
-        },
-        
-    
-        
-    });
-
     //..PlayerIndicator...
     var PlayerIndicator = new Phaser.Class({
 
