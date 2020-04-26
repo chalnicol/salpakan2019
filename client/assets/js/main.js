@@ -107,6 +107,7 @@ window.onload = function () {
 
     }
 
+    //Scenes..
     var Intro = new Phaser.Class({
 
         Extends: Phaser.Scene,
@@ -208,6 +209,8 @@ window.onload = function () {
 
             this.loadtxt.destroy();
 
+            this.isSetGame = false;
+
             this.initSound ();
 
             this.initSocketIOListeners();
@@ -264,10 +267,12 @@ window.onload = function () {
             });
 
             socket.on ('initGame', function ( data ) {
+                _this.isSetGame = true;
                 setTimeout ( function () {
                     _this.initGame (data);
                 }, 300 );
             });
+
             socket.on ('playersOnline', function ( data ) {
             
                 _this.music.play ('message');
@@ -545,7 +550,7 @@ window.onload = function () {
                 }else if ( _this.gameData.game == 1 ) {
                     
                     socket.emit ('enterGame', toSendData );
-                    
+
                      _this.showPromptScreen ( 'connect' );
                     //_this.scene.add('Pair', Pair, true);
                 }else {
@@ -667,9 +672,10 @@ window.onload = function () {
             btn.on('pointerout', function () {
                 this.setFrame ( this.getData('frame')  );
             });
-        
             btn.on('pointerdown', function () {
                 
+                if ( _this.isSetGame ) return;
+
                 if ( this.getData('id') == 'cancel') socket.emit ('leaveGame');
 
                 _this.music.play ('clicka');
@@ -678,10 +684,8 @@ window.onload = function () {
 
             });
 
-
             this.promptScreen.add (btn);
 
-            
             this.tweens.add ({
                 targets : this.promptScreen,
                 y : 0,
@@ -689,8 +693,6 @@ window.onload = function () {
                 easeParams : [0, 1.5],
                 ease : 'Elastic'
             });
-
-
 
         },
         showInviteScreen : function ( data ) {
@@ -782,7 +784,6 @@ window.onload = function () {
             this.connectScreenShown = true;
 
             this.rectBg = this.add.rectangle ( 0, 0, _gameW, _gameH, 0x000000, 0.7 ).setOrigin(0).setInteractive();
-
 
             this.connectScreen = this.add.container (0,_gameH).setDepth (999);
 
@@ -3733,7 +3734,9 @@ window.onload = function () {
         
     });
 
-    //..GamePiece...
+
+
+    // Container Class..
     var GamePiece =  new Phaser.Class({
 
         Extends: Phaser.GameObjects.Container,
@@ -3842,7 +3845,7 @@ window.onload = function () {
         }
         
     });
-    //..GamePiece...
+  
     var Blinker =  new Phaser.Class({
 
         Extends: Phaser.GameObjects.Container,
