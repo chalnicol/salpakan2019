@@ -173,6 +173,9 @@ window.onload = function () {
 
 
             this.load.spritesheet('cntrls', 'client/assets/images/proper/cntrols.png', { frameWidth: 65, frameHeight: 75 });
+            this.load.spritesheet('cntrls2', 'client/assets/images/proper/cntrols2.png', { frameWidth: 60, frameHeight: 60 });
+
+
             this.load.spritesheet('piece', 'client/assets/images/proper/pieces.png', { frameWidth: 125, frameHeight: 74 });
             this.load.spritesheet('cont_btns', 'client/assets/images/proper/cont_btns.png', { frameWidth: 45, frameHeight: 45 });
             this.load.spritesheet('indicatorbg', 'client/assets/images/proper/indicator.png', { frameWidth: 557, frameHeight: 71 });
@@ -1527,6 +1530,8 @@ window.onload = function () {
             
             this.controlBtns = [];
 
+            var addtl = !proper ? 5 : 8;
+
             for ( var i = 0; i < buts.length; i++ ) {
 
                 var xs = btx,
@@ -1538,7 +1543,7 @@ window.onload = function () {
 
                 var txt = this.add.text ( btw * 0.55, bth *0.8, buts[i].id , txtConfigBtn ).setOrigin (0.5);
               
-                var img = this.add.image ( btw * 0.55, bth * 0.4, 'cont_btns', i ).setScale (_gameW/1280 * 0.9);
+                var img = this.add.image ( btw * 0.55, bth * 0.4, 'cont_btns', i + addtl ).setScale (_gameW/1280);
 
                 
                 but.on('pointerover', function () {
@@ -1704,42 +1709,41 @@ window.onload = function () {
         },
         createGameControls: function () {
 
-            var buts = ['elims', 'music', 'sound', 'emoji', 'close'];
+            var buts = ['close', 'music', 'sound', 'emoji', 'elims'];
             
-            var btz = Math.floor ( 50 * _gameW/1280 ),
-                btx = _gameW - btz,
-                bty = Math.floor ( 105 * _gameH/720 ),
-                bts = btz * 0.08;
+            var btw = Math.floor ( 60 * _gameW/1280 ),
+                btx = _gameW - btw,
+                bty = Math.floor ( 100 * _gameH/720 ),
+                bts = 0;
 
             var _this = this;
 
             for ( var i = 0; i < buts.length; i++ ) {
 
                 var xs = btx,
-                    ys =  bty + (i*(btz + bts));
+                    ys =  bty + (i*(btw + bts));
 
-                //var frame = !proper ? i*3 : (i*3)+6;
-                
-                //var but = new MyButton ( this, buts[i], xs, ys, btw, bth, i, 'cont_btns' ).setAlpha(0).setScale(0);
+                var mini = this.add.container ( xs, ys );
 
-                var but = this.add.rectangle ( xs + btz, ys, btz, btz, 0x0a0a0a, 0.5 ).setOrigin (0).setData('id', buts[i] ).setInteractive();
+                //var but = this.add.rectangle ( 0, 0, btw, btw, 0x0a0a0a, 0.5 ).setOrigin (0).setData({'id': buts[i], 'frame' : i }).setInteractive();
 
-                var img = this.add.image ( xs + (btz *1.5), ys + btz/2, 'cont_btns', i ).setScale (_gameW/1280);
+                var but = this.add.image ( 0, 0, 'cntrls2', 0 ).setScale (_gameW/1280).setOrigin (0).setData({'id': buts[i], 'frame' : i }).setInteractive();
+
+                var img = this.add.image ( btw * 0.6, btw/2, 'cont_btns', i ).setScale (_gameW/1280);
 
                 but.on('pointerover', function () {
-                    this.setFillStyle ( 0x0a0a0a, 1 );
+                    this.setFrame (1);
+                    
                 });
                 but.on('pointerout',  function () {
-                    this.setFillStyle ( 0x0a0a0a, 0.5 );
+                    this.setFrame (0);
+                    
                 });
                 but.on('pointerup',  function () {
-                    this.setFillStyle ( 0x0a0a0a, 0.5 );
+                    this.setFrame (0);
+
                 });
                 but.on('pointerdown', function () {
-
-                    this.setFillStyle ( 0x3a3a3a, 1 );
-                    
-                    _this.playSound('clicka');
 
                     switch (this.getData ('id')) {
 
@@ -1753,15 +1757,24 @@ window.onload = function () {
 
                             if ( !_this.bgmusic.isPaused ) {
                                 _this.bgmusic.pause();
+
                             }else {
                                 _this.bgmusic.resume();
                             }
                             
+                            var fr = !_this.bgmusic.isPaused ?  this.getData ('frame') : this.getData ('frame') + 10;
+
+                            _this.controls [ this.getData ('frame') ].getAt ( 1 ).setFrame (fr);
+
                             break;
                        
                         case 'sound' :
                           
                             _this.soundOff = !_this.soundOff;
+
+                            var fr = !_this.soundOff ?  this.getData ('frame') : this.getData ('frame') + 10;
+
+                            _this.controls [ this.getData ('frame') ].getAt ( 1 ).setFrame (fr);
 
                             break;
                         case 'emoji' :
@@ -1783,26 +1796,13 @@ window.onload = function () {
                         default :
                     }
 
+                    _this.playSound('clicka');
                 
                 });
                     
-                this.tweens.add ({
-                    targets : but,
-                    x : xs,
-                    duration : 200,
-                    ease : 'Power2',
-                    delay : (i * 100) + 1000,
-                });
+                mini.add ([ but, img]);
 
-                this.tweens.add ({
-                    targets : img,
-                    x : xs + btz/2,
-                    duration : 200,
-                    ease : 'Power2',
-                    delay : (i * 100) + 1000,
-                });
-
-                this.controls.push ( but );
+                this.controls.push ( mini );
 
             }
             //...
@@ -2763,7 +2763,7 @@ window.onload = function () {
         removeButtons: function () {
 
             if ( this.controlBtns.length == 0 ) return;
-            
+
             this.tweens.add ({
                 targets : this.controlBtns,
                 alpha : 0,
