@@ -19,8 +19,6 @@ serv.listen(process.env.PORT || 2000);
 
 console.log("Server started.");
 
-
-
 var socketList = {};
 var playerList = {};
 var roomList = {};

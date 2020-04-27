@@ -164,11 +164,15 @@ window.onload = function () {
             this.load.image('elim_field', 'client/assets/images/proper/elim_field.png');
             this.load.image('send_emoji', 'client/assets/images/proper/send_emoji.png');
             
+            
+
             this.load.image('prompt_big', 'client/assets/images/proper/prompt_big.png');
             this.load.image('prompt_small', 'client/assets/images/proper/prompt_small.png');
             this.load.image('commence', 'client/assets/images/proper/commence.png');
             this.load.image('commence_w', 'client/assets/images/proper/commence_w.png');
 
+
+            this.load.spritesheet('cntrls', 'client/assets/images/proper/cntrols.png', { frameWidth: 65, frameHeight: 75 });
             this.load.spritesheet('piece', 'client/assets/images/proper/pieces.png', { frameWidth: 125, frameHeight: 74 });
             this.load.spritesheet('cont_btns', 'client/assets/images/proper/cont_btns.png', { frameWidth: 45, frameHeight: 45 });
             this.load.spritesheet('indicatorbg', 'client/assets/images/proper/indicator.png', { frameWidth: 557, frameHeight: 71 });
@@ -603,30 +607,32 @@ window.onload = function () {
 
             var window = this.add.image ( 0, 0, 'prompt' ).setOrigin ( 0 ).setScale( _gameW/1280 );
 
-            var yp = Math.floor ( 326 * _gameH/720 );
+            var yp = Math.floor ( 320 * _gameH/720 );
 
            
-            var img0 = this.add.image ( _gameW/2, yp, 'circ0' ).setScale( _gameW/1280 ).setRotation ( Math.PI/180 * (Math.random() * 360) );
+            var img0 = this.add.image ( _gameW/2, yp, 'circ0' ).setScale( _gameW/1280 * 0.9 ).setRotation ( Math.PI/180 * (Math.random() * 360) );
 
-            var img1 = this.add.image ( _gameW/2, yp, 'circ1' ).setScale( _gameW/1280 ).setRotation ( Math.PI/180 * (Math.random() * 360 ));;
+            var img1 = this.add.image ( _gameW/2, yp, 'circ1' ).setScale( _gameW/1280 * 0.9 ).setRotation ( Math.PI/180 * (Math.random() * 360 ));;
 
-            var img2 = this.add.image ( _gameW/2, yp, 'circ2' ).setScale( _gameW/1280 ).setRotation ( Math.PI/180 * (Math.random() * 360) );;
+            var img2 = this.add.image ( _gameW/2, yp, 'circ2' ).setScale( _gameW/1280 * 0.9 ).setRotation ( Math.PI/180 * (Math.random() * 360) );;
 
             var txtConfig = { 
-                color:'#dedede', 
-                fontSize: Math.floor ( 30 * _gameH/720 ),
+                color:'#3a3a3a', 
+                fontSize: Math.floor ( 20 * _gameH/720 ),
                 fontFamily : 'Impact'
             };
 
             var rW = Math.floor ( 320 * _gameW/1280 ),
                 rH = Math.floor ( 45 * _gameH/720);
 
-            var rectF = this.add.rectangle ( _gameW/2, yp, rW, rH, 0x3a3a3a, 0.5 );
+            //var rectF = this.add.rectangle ( _gameW/2, yp, rW, rH, 0x3a3a3a, 0.2 );
 
-            var txt = this.add.text ( _gameW/2, yp, 'Connecting..', txtConfig ).setOrigin(0.5);
+            var txtp = Math.floor ( 400 * _gameH/720);
+
+            var txt = this.add.text ( _gameW/2, txtp, 'Please Wait..', txtConfig ).setOrigin(0.5);
 
 
-            this.promptScreen.add ([window, img0, img1, img2, rectF, txt ]);
+            this.promptScreen.add ([window, img0, img1, img2, txt ]);
 
            
             this.tweens.add ({
@@ -1485,6 +1491,7 @@ window.onload = function () {
             }); */
 
         },
+
         createButtons : function ( proper = false ) {
             
             var buts = [];
@@ -1503,44 +1510,47 @@ window.onload = function () {
                 ];
             }
 
-            var btz = Math.floor ( 60 * _gameW/1280 ),
-                bth = Math.floor ( 50 * _gameH/720 ),
-                btx = _gameW - btz,
-                bty = Math.floor ( 500 * _gameH/720 ),
-                bts = bth * 0.08
+            var btw = Math.floor ( 65 * _gameW/1280 ),
+                bth = Math.floor ( 75 * _gameH/720 ),
+                btx = _gameW - btw,
+                bty = Math.floor ( 458 * _gameH/720 ),
+                bts = bth * 0.05
 
             var _this = this;
+
+            var txtConfigBtn = {
+                color : '#ffc600',
+                fontSize : bth * 0.16,
+                fontFamily : 'Poppins'
+            }
+
+            
+            this.controlBtns = [];
 
             for ( var i = 0; i < buts.length; i++ ) {
 
                 var xs = btx,
-                    ys =  bty + (i*(bth + bts));
+                    ys = bty + (i*(bth + bts));
 
-                var frame = !proper ? i*3 : (i*3)+9;
-                
+                var miniContainer = this.add.container ( xs + btw , ys );
 
-                //var but = new MyButton ( this, buts[i], xs, ys, btw, bth, frame, 'main_btns' ).setAlpha(0).setScale(0.1);
+                var but = this.add.image ( 0, 0, 'cntrls',0 ).setData('id', buts[i].id ).setOrigin(0).setInteractive().setScale (_gameW/1280);
 
-                var but = this.add.rectangle ( xs + btz, ys, btz, bth, 0x0a0a0a, 0.5 ).setOrigin (0).setData('id', buts[i].id ).setInteractive();
-
-                var texta = this.add.text ( xs + (btz *1.5), ys + bth*0.7, buts[i].id , { color : '#ffc600', fontSize : bth * 0.22, fontFamily : 'Poppins' }).setOrigin (0.5);
+                var txt = this.add.text ( btw * 0.55, bth *0.8, buts[i].id , txtConfigBtn ).setOrigin (0.5);
               
-                var textb = this.add.text ( xs + (btz *1.5), ys + bth*0.35, buts[i].symbol , { color : '#ffc600', fontSize : bth * 0.4, fontFamily : 'Poppins' }).setOrigin (0.5);
+                var img = this.add.image ( btw * 0.55, bth * 0.4, 'cont_btns', i ).setScale (_gameW/1280 * 0.9);
 
+                
                 but.on('pointerover', function () {
-                    this.setFillStyle ( 0x0a0a0a, 1 );
+                    this.setFrame (1);
                 });
                 but.on('pointerout',  function () {
-                    this.setFillStyle ( 0x0a0a0a, 0.5 );
+                    this.setFrame (0);
                 });
                 but.on('pointerup',  function () {
-                    this.setFillStyle ( 0x0a0a0a, 0.5 );
+                    this.setFrame (0);
                 });
                 but.on('pointerdown', function () {
-
-                    if ( _this.isEmoji ) _this.toggleEmojis ();
-
-                    if ( _this.elimScreenShown ) _this.toggleElimPiecesScreen();
 
                     switch (this.getData('id')) {
 
@@ -1675,26 +1685,19 @@ window.onload = function () {
                     }
 
                 });
-                    
+
+                miniContainer.add ( [but, txt, img ]);
+                
                 this.tweens.add ({
-                    targets : but,
+                    targets : miniContainer,
                     x : xs,
-                    duration : 200,
+                    duration : 300,
                     ease : 'Power2',
-                    delay : (i * 100) + 1000,
+                    delay : i * 150
                 });
 
-                this.tweens.add ({
-                    targets : [texta, textb],
-                    x : xs + btz/2,
-                    duration : 200,
-                    ease : 'Power2',
-                    delay : (i * 100) + 1000,
-                });
 
-                this.buttonElements.push ( but );
-                this.buttonElements.push ( texta );
-                this.buttonElements.push ( textb );
+                this.controlBtns.push ( miniContainer );
 
             }
 
@@ -2759,23 +2762,20 @@ window.onload = function () {
         },
         removeButtons: function () {
 
-            var _this = this;
-
-            if ( _this.buttonElements.length > 0 ) {
-
-                this.tweens.add ({
-                    targets : this.buttonElements,
-                    alpha : 0,
-                    duration : 400,
-                    ease : 'Quad.easeOut',
-                    onComplete : function () {
-                        this.targets[0].destroy();
-                    }
-                });
-
-                this.buttonElements = [];
-            }
+            if ( this.controlBtns.length == 0 ) return;
             
+            this.tweens.add ({
+                targets : this.controlBtns,
+                alpha : 0,
+                duration : 400,
+                ease : 'Quad.easeOut',
+                onComplete : function () {
+                    this.targets[0].destroy();
+                }
+            });
+
+            this.controlBtns = [];
+           
         },   
         enabledPieces: function (plyr, enable=true ) {
 
@@ -3812,7 +3812,6 @@ window.onload = function () {
     });
 
 
-
     // Container Class..
     var GamePiece =  new Phaser.Class({
 
@@ -4205,5 +4204,6 @@ window.onload = function () {
 
     });
 
+    
 }
     
