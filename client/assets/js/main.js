@@ -133,49 +133,37 @@ window.onload = function () {
 
             this.load.audio('clocktick', ['client/assets/sfx/tick.ogg', 'client/assets/sfx/tick.mp3']);
 
+            //general..
+            this.load.spritesheet('thumbs', 'client/assets/images/thumbs.png', { frameWidth: 50, frameHeight: 50 });
+
+            //intro..
             this.load.image('bg', 'client/assets/images/intro/background.jpg');
             this.load.image('lines', 'client/assets/images/intro/lines.png');
             this.load.image('title', 'client/assets/images/intro/title.png');
             this.load.image('star', 'client/assets/images/intro/star.png');
             this.load.image('select', 'client/assets/images/intro/select.png');
-            this.load.image('avatar_placement', 'client/assets/images/intro/avatar_placement.png');
+            this.load.image('avatar', 'client/assets/images/intro/avatar_placement.png');
+            this.load.image('prompt', 'client/assets/images/intro/prompt.png');
+            this.load.image('invite', 'client/assets/images/intro/invite.png');
+            this.load.image('pairing_img', 'client/assets/images/intro/pairing_placement.png');
 
-           
+            this.load.spritesheet('keys', 'client/assets/images/intro/keyboardBtns.png', { frameWidth: 85, frameHeight: 85 });
+            this.load.spritesheet('circ0', 'client/assets/images/intro/waiting.png', { frameWidth: 100, frameHeight: 100 });
+            this.load.spritesheet('prompt_btns', 'client/assets/images/intro/prompt_btns.png', { frameWidth: 224, frameHeight: 58 });
             this.load.spritesheet('radio', 'client/assets/images/intro/radio_btns.png', { frameWidth: 45, frameHeight: 45 });
             this.load.spritesheet('start', 'client/assets/images/intro/start_btn.png', { frameWidth: 528, frameHeight: 93 });
 
-            this.load.spritesheet('thumbs', 'client/assets/images/thumbs.png', { frameWidth: 50, frameHeight: 50 });
 
-            //....
-            this.load.image('pairing_placement', 'client/assets/images/intro/pairing_placement.png');
-            this.load.spritesheet('keys', 'client/assets/images/intro/keyboardBtns.png', { frameWidth: 85, frameHeight: 85 });
-
-            //...
-            this.load.image('prompt', 'client/assets/images/intro/prompt.png');
-            this.load.image('invite', 'client/assets/images/intro/invite.png');
-            this.load.spritesheet('prompt_btns', 'client/assets/images/intro/prompt_btns.png', { frameWidth: 224, frameHeight: 58 });
-
-            this.load.image('circ0', 'client/assets/images/waiting/circ0.png');
-            this.load.image('circ1', 'client/assets/images/waiting/circ1.png');
-            this.load.image('circ2', 'client/assets/images/waiting/circ2.png');
-            //..
-
+            //sceneA...
             this.load.image('bg2', 'client/assets/images/proper/bg.png');
             this.load.image('elim_field', 'client/assets/images/proper/elim_field.png');
             this.load.image('send_emoji', 'client/assets/images/proper/send_emoji.png');
-            
-            
-
             this.load.image('prompt_big', 'client/assets/images/proper/prompt_big.png');
             this.load.image('prompt_small', 'client/assets/images/proper/prompt_small.png');
             this.load.image('commence', 'client/assets/images/proper/commence.png');
-            this.load.image('commence_w', 'client/assets/images/proper/commence_w.png');
-
-
+  
             this.load.spritesheet('cntrls', 'client/assets/images/proper/cntrols.png', { frameWidth: 65, frameHeight: 75 });
             this.load.spritesheet('cntrls2', 'client/assets/images/proper/cntrols2.png', { frameWidth: 60, frameHeight: 60 });
-
-
             this.load.spritesheet('piece', 'client/assets/images/proper/pieces.png', { frameWidth: 125, frameHeight: 74 });
             this.load.spritesheet('cont_btns', 'client/assets/images/proper/cont_btns.png', { frameWidth: 45, frameHeight: 45 });
             this.load.spritesheet('indicatorbg', 'client/assets/images/proper/indicator.png', { frameWidth: 557, frameHeight: 71 });
@@ -191,8 +179,14 @@ window.onload = function () {
                 fontFamily : 'Impact'
             }
 
-            this.loadtxt = this.add.text ( _gameW/2, _gameH/2, 'Loading Game Files...',  txtConfig ).setOrigin(0.5);
+            this.loadtxt = this.add.text ( _gameW/2, _gameH * 0.48, 'Loading Game Files...',  txtConfig ).setOrigin(0.5);
 
+            var rctW = _gameW * 0.3,
+                rctH = _gameH * 0.04,
+                rctX = (_gameW - rctW )/2,
+                rctY = _gameH *0.52;
+
+            this.loadrct = this.add.rectangle ( rctX, rctY, rctW * 0.02, rctH, 0x9e9e9e, 1 ).setOrigin(0);
 
             var _this = this;
 
@@ -201,11 +195,14 @@ window.onload = function () {
                 var perc = Math.floor ( value * 100 );
 
                 _this.loadtxt.text = 'Loading Game Files.. ' + perc + '%';
+
+                if ( value > 0.05 )_this.loadrct.width = value * rctW;
+
         
             });
         
             this.load.on('complete', function () {
-        
+
                 _this.loadtxt.destroy();
         
             });
@@ -227,6 +224,8 @@ window.onload = function () {
             this.initSocketIOListeners();
             
             this.initGameInterface ();
+
+            //this.showWaitScreen();
 
             setTimeout ( function () {
                 socket.emit ('getInitData');
@@ -319,7 +318,7 @@ window.onload = function () {
             });
 
             //avatar
-            var avatar_plt = this.add.image ( _gameW*0.029, _gameH*0.029, 'avatar_placement' ).setOrigin ( 0 ).setScale(_gameW/1280);
+            var avatar_plt = this.add.image ( _gameW*0.029, _gameH*0.029, 'avatar' ).setOrigin ( 0 ).setScale(_gameW/1280);
             
             var avatar_img = this.add.image ( _gameW*0.029, _gameH*0.045, 'thumbs', 18  ).setOrigin ( 0 ).setScale(_gameW/1280);
 
@@ -610,34 +609,27 @@ window.onload = function () {
 
             var window = this.add.image ( 0, 0, 'prompt' ).setOrigin ( 0 ).setScale( _gameW/1280 );
 
-            var yp = Math.floor ( 320 * _gameH/720 );
+            var yp = Math.floor ( 300 * _gameH/720 );
 
            
-            var img0 = this.add.image ( _gameW/2, yp, 'circ0' ).setScale( _gameW/1280 * 0.9 ).setRotation ( Math.PI/180 * (Math.random() * 360) );
+            var img0 = this.add.image ( _gameW/2, yp, 'circ0', 0 ).setScale( _gameW/1280 ).setRotation ( Math.PI/180 * (Math.random() * 360) );
 
-            var img1 = this.add.image ( _gameW/2, yp, 'circ1' ).setScale( _gameW/1280 * 0.9 ).setRotation ( Math.PI/180 * (Math.random() * 360 ));;
+            var img1 = this.add.image ( _gameW/2, yp, 'circ0', 1).setScale( _gameW/1280 ).setRotation ( Math.PI/180 * (Math.random() * 360 ));;
 
-            var img2 = this.add.image ( _gameW/2, yp, 'circ2' ).setScale( _gameW/1280 * 0.9 ).setRotation ( Math.PI/180 * (Math.random() * 360) );;
+            var img2 = this.add.image ( _gameW/2, yp, 'circ0', 2).setScale( _gameW/1280 ).setRotation ( Math.PI/180 * (Math.random() * 360) );;
 
             var txtConfig = { 
                 color:'#3a3a3a', 
-                fontSize: Math.floor ( 20 * _gameH/720 ),
+                fontSize: Math.floor ( 30 * _gameH/720 ),
                 fontFamily : 'Impact'
             };
 
-            var rW = Math.floor ( 320 * _gameW/1280 ),
-                rH = Math.floor ( 45 * _gameH/720);
-
-            //var rectF = this.add.rectangle ( _gameW/2, yp, rW, rH, 0x3a3a3a, 0.2 );
-
-            var txtp = Math.floor ( 400 * _gameH/720);
+            var txtp = Math.floor ( 380 * _gameH/720);
 
             var txt = this.add.text ( _gameW/2, txtp, 'Please Wait..', txtConfig ).setOrigin(0.5);
 
-
             this.promptScreen.add ([window, img0, img1, img2, txt ]);
 
-           
             this.tweens.add ({
                 targets : img0,
                 duration : 3000,
@@ -662,7 +654,6 @@ window.onload = function () {
                 yoyo : true,
                 ease : 'Quad.easeIn'
             });
-
             this.tweens.add ({
                 targets : this.promptScreen,
                 y : 0,
@@ -670,8 +661,6 @@ window.onload = function () {
                 easeParams : [0, 1.5],
                 ease : 'Elastic'
             });
-
-
 
         },
         showPromptScreen : function ( promptType, err='' ) {
@@ -887,7 +876,7 @@ window.onload = function () {
             });
 
 
-            var window = this.add.image (0, 0, 'pairing_placement' ).setOrigin ( 0 ).setScale(_gameW/1280);
+            var window = this.add.image (0, 0, 'pairing_img' ).setOrigin ( 0 ).setScale(_gameW/1280);
 
             var txtH = Math.floor ( 56 * _gameH/720 );
             var txtConfig = { 
@@ -1494,7 +1483,6 @@ window.onload = function () {
             }); */
 
         },
-
         createButtons : function ( proper = false ) {
             
             var buts = [];
@@ -1701,7 +1689,6 @@ window.onload = function () {
                     delay : i * 150
                 });
 
-
                 this.controlBtns.push ( miniContainer );
 
             }
@@ -1729,19 +1716,16 @@ window.onload = function () {
 
                 var but = this.add.image ( 0, 0, 'cntrls2', 0 ).setScale (_gameW/1280).setOrigin (0).setData({'id': buts[i], 'frame' : i }).setInteractive();
 
-                var img = this.add.image ( btw * 0.6, btw/2, 'cont_btns', i ).setScale (_gameW/1280);
+                var img = this.add.image ( btw * 0.55, btw/2, 'cont_btns', i ).setScale (_gameW/1280);
 
                 but.on('pointerover', function () {
                     this.setFrame (1);
-                    
                 });
                 but.on('pointerout',  function () {
                     this.setFrame (0);
-                    
                 });
                 but.on('pointerup',  function () {
                     this.setFrame (0);
-
                 });
                 but.on('pointerdown', function () {
 
@@ -3032,14 +3016,7 @@ window.onload = function () {
         },
         startGame : function () {
 
-            //remove commence screen..
-            this.commenceText.destroy();
-
-            for ( var i in this.commenceElements ) {
-                this.commenceElements [i].destroy();
-            }
-            this.commenceElements = [];
-
+            this.commenceContainer.destroy();
             //..
             this.gamePhase = 'proper';
 
@@ -3231,39 +3208,47 @@ window.onload = function () {
         },
         showCommenceScreen :  function () {
             
-            this.commenceElements = [];
+            //this.commenceElements = [];
 
+            this.commenceContainer = this.add.container (0, 0);
 
-            var comx = Math.floor ( 587 * _gameW/1280 ),
-                comy = Math.floor ( 388 * _gameH/720 );
+            var xp = _gameW/2, yp = _gameH * 0.55;
 
+            var img0 = this.add.image ( _gameW * 0.48, _gameH * 0.55, 'commence').setScale (_gameW/1280);
 
-            var commence_w = this.add.image (_gameW/2, _gameH * 0.55, 'commence_w').setScale( _gameW/1280 );
-
-            var commence_img = this.add.image (_gameW/2, _gameH * 0.55, 'commence').setScale( _gameW/1280 );
-
-            this.tweens.add ({
-                targets : commence_img,
-                rotation : '+=3',
-                ease : 'Quad.easeOut',
-                //yoyo : true,
-                duration : 1000,
-                repeat : 2
-            })
-
-            this.commenceElements = [ commence_img, commence_w ];
-
-            var txtsize = Math.floor ( 115 * _gameH/720 );
-
+            var img1 = this.add.image ( _gameW * 0.55, _gameH * 0.5, 'commence').setScale (_gameW/1280 * 0.5);
+            
+            var img2 = this.add.image ( _gameW * 0.53, _gameH * 0.57, 'commence').setScale (_gameW/1280 * 0.3);
+            
             var txtConfig = {
                 color : '#383333',
-                fontSize : txtsize,
+                fontSize : Math.floor ( 115 * _gameH/720),
                 fontFamily : 'Impact',
             };
-            this.commenceText = this.add.text ( _gameW/2, _gameH * 0.55, '3', txtConfig).setOrigin(0.5);
-            this.commenceText.setStroke('#d5d5d5', 3 );
+
+            var commenceText = this.add.text ( _gameW/2, _gameH * 0.55, '3', txtConfig).setOrigin(0.5);
+
+            commenceText.setStroke('#d5d5d5', 3 );
+
+            this.commenceContainer.add ([img0, img1, img2, commenceText]);
 
             //start commence timer..
+
+            this.tweens.add ({
+                targets : [img0, img2 ],
+                rotation : '+=0.5',
+                duration : 1000,
+                repeat : 3,
+                ease : 'Cubic.easeIn'
+            });
+            this.tweens.add ({
+                targets : img1,
+                rotation : '-=0.5',
+                duration : 1000,
+                repeat : 3,
+                ease : 'Cubic.easeIn'
+            });
+
 
             var _this = this;
             
@@ -3279,7 +3264,7 @@ window.onload = function () {
 
                 _this.counter += 1;
                 
-                _this.commenceText.setText ( max - _this.counter );
+                commenceText.setText ( max - _this.counter );
             
                 if ( _this.counter >= max ) {
                     
@@ -3665,6 +3650,7 @@ window.onload = function () {
             this.elimCountera = 0;
             this.elimCounterb = 0;
 
+            this.removeNotif();
             this.removePrompt();
             this.removeGamePieces();
             this.removeBlinkers();
