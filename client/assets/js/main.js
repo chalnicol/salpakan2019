@@ -1723,7 +1723,7 @@ window.onload = function () {
                 var xs = btx,
                     ys =  bty + (i*(btw + bts));
 
-                var mini = this.add.container ( xs, ys );
+                var mini = this.add.container ( xs + btw, ys );
 
                 //var but = this.add.rectangle ( 0, 0, btw, btw, 0x0a0a0a, 0.5 ).setOrigin (0).setData({'id': buts[i], 'frame' : i }).setInteractive();
 
@@ -1801,6 +1801,14 @@ window.onload = function () {
                 });
                     
                 mini.add ([ but, img]);
+
+                this.tweens.add ({
+                    targets : mini,
+                    x : xs,
+                    duration : 100,
+                    ease : 'Power2',
+                    delay : i * 50
+                });
 
                 this.controls.push ( mini );
 
