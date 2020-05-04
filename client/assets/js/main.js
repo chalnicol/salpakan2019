@@ -1734,7 +1734,9 @@ window.onload = function () {
                         case 'elims' :
 
                             _this.showElimPiecesScreen();
-                            
+
+                            _this.playSound('clicka');
+
                             break;
 
                         case 'music' :
@@ -1750,6 +1752,8 @@ window.onload = function () {
 
                             _this.controls [ this.getData ('frame') ].getAt ( 1 ).setFrame (fr);
 
+                            _this.playSound('clicka');
+
                             break;
                        
                         case 'sound' :
@@ -1760,27 +1764,42 @@ window.onload = function () {
 
                             _this.controls [ this.getData ('frame') ].getAt ( 1 ).setFrame (fr);
 
+                            _this.playSound('clicka');
+
                             break;
                         case 'emoji' :
                            
                             _this.showSendEmojiScreen ();
 
+                            _this.playSound('clicka');
+
                             break;
 
                         case 'close' :
                             
-                            if ( _this.gamePhase != 'end' ) {
-                                _this.showLeaveScreen();
-                            }else{
-                                _this.leaveGame ();
+                            if ( _this.leavePrompt ) {
+
+                                _this.playSound ('error', 0.3 );
+
+                            }else {
+
+                                if ( _this.gamePhase != 'end' ) {
+                                    _this.showLeaveScreen();
+                                }else{
+                                    _this.leaveGame ();
+                                }
+                                _this.playSound('clicka');
+
                             }
+
+                            
 
                             break;
                        
                         default :
                     }
 
-                    _this.playSound('clicka');
+                   
                 
                 });
                     
@@ -2030,18 +2049,19 @@ window.onload = function () {
             
             this.emojiSCreen.add ([ bgClick, emojiWindow ]);
 
-            var bts = Math.floor ( 70 * _gameW/1280 ),
-                btx = Math.floor ( 760 * _gameW/1280 ),
-                bty = Math.floor ( 164 * _gameH/720 );
+            var bts = Math.floor ( 95 * _gameW/1280 ),
+                btsp = bts * 0.05,
+                btx = Math.floor ( 770 * _gameW/1280 ),
+                bty = Math.floor ( 160 * _gameH/720 );
                 
-            var emojiCount = 24;
+            var emojiCount = 12;
 
             for ( var i = 0; i< emojiCount; i++ ) {
 
-                var xp = Math.floor ( i/6 ), yp = i%6;
+                var xp = Math.floor ( i/4 ), yp = i%4;
 
-                var xpos = btx + ( yp * bts ) + bts/2,
-                    ypos = bty + ( xp * bts ) + bts/2;
+                var xpos = btx + ( yp * (bts+btsp) ) + bts/2,
+                    ypos = bty + ( xp * (bts) ) + bts/2;
 
                 var clicks = this.add.rectangle ( xpos, ypos, bts, bts, 0x0a0a0a, 0 );
                 
@@ -2077,11 +2097,10 @@ window.onload = function () {
 
                 });
                 
-                var emoji = this.add.image ( xpos , ypos, 'emojis', i ).setScale(_gameW/1280 * 0.7 ).setDepth (9999);
+                var emoji = this.add.image ( xpos , ypos, 'emojis', i ).setScale(_gameW/1280 * 0.95 ).setDepth (9999);
 
-                this.emojiSCreen.add ( clicks );
-                this.emojiSCreen.add ( emoji );
-                
+                this.emojiSCreen.add ( [clicks, emoji] );
+               
             }
 
         },
@@ -3352,7 +3371,7 @@ window.onload = function () {
 
             this.promptScreen = this.add.container (0,_gameH).setDepth(999);
 
-            var imgBg = this.add.image ( 0,0, 'prompt_big' ).setOrigin (0).setScale(_gameW/1280).setInteractive();
+            var imgBg = this.add.image ( 0,0, 'prompt_big' ).setOrigin (0).setScale(_gameW/1280);
         
             var txtx = _gameW/2,
                 txtya = Math.floor (323 * _gameH/720), // main..
@@ -3421,12 +3440,16 @@ window.onload = function () {
 
             if (!this.isPrompted) return;
 
+            this.leavePrompt = false;
+
             this.isPrompted = false;
 
             this.promptScreen.destroy ();
 
         },
         showLeaveScreen : function () {
+
+            this.leavePrompt = true;
 
             var btnsData = [{ id : 'leave', frame : 0}, { id : 'cancel', frame : 2} ];
 
@@ -3674,6 +3697,7 @@ window.onload = function () {
             this.activePiece = '';
             this.playerResign = false;
             this.playerTimeRanOut = false;
+            this.leavePrompt = false;
             
             this.elimPieces = [];
 
