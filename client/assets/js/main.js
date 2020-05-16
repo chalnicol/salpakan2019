@@ -9,7 +9,7 @@ window.onload = function () {
 
     var _gameW = 0, _gameH = 0;
 
-
+    
     var username = document.getElementById('username');
 
     username.value = 'Player' + Math.floor( Math.random() * 99999 );
@@ -1091,7 +1091,8 @@ window.onload = function () {
             this.maxBlitzTime = data.blitzTime;
             
             this.soundOff = false;
-
+            this.leavePrompt = false;
+            
             this.music;
             this.timer;
             this.timeDissolve;
@@ -3890,6 +3891,10 @@ window.onload = function () {
             this.txt = scene.add.text ( 0, top + height * 0.75, '', txtConfig ).setOrigin(0.5);
 
             this.add ([this.imgBg, this.image, this.txt]);
+
+            this.on ('pointerdown', function () {
+                console.log ( this.id );
+            });
 
             scene.children.add ( this );
             
