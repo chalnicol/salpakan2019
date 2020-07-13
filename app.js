@@ -25,9 +25,9 @@ var roomList = {};
 
 //Player..
 Player = function ( id, username ){
-	
+
 	var plyr  = {
-		
+
 		id:id,
 		username:username,
 		pid : '',
@@ -48,7 +48,7 @@ Player = function ( id, username ){
 		plyr.winCount += 1;
 
 		//console.log ( '\n --> Game Winner : ', plyr.username, plyr.winCount );
-		
+
 	}
 	plyr.gameResetData = function () {
 
@@ -60,14 +60,14 @@ Player = function ( id, username ){
 	plyr.gameReset = function () {
 
 		plyr.gameResetData();
-		
+
 		plyr.type = plyr.type == 0 ? 1 : 0;
 
 	}
 	plyr.resetAll = function () {
-		
+
 		plyr.gameResetData();
-		
+
 		plyr.index = 0;
 		plyr.type = 0;
 		plyr.winCount = 0;
@@ -81,7 +81,7 @@ Player = function ( id, username ){
 
 //Rooms..
 GameRoom = function ( id, isTimed=false, prepTime = 30, blitzTime = 15 ) {
-	
+
 	var rm = {
 
 		id : id,
@@ -108,7 +108,7 @@ GameRoom = function ( id, isTimed=false, prepTime = 30, blitzTime = 15 ) {
 		//..
 	}
 	rm.getWinner = function () {
-		
+
 		var opp = rm.turn == 0 ? 1 : 0;
 
 		var plyr = playerList [ rm.playerIDs [opp] ];
@@ -117,7 +117,7 @@ GameRoom = function ( id, isTimed=false, prepTime = 30, blitzTime = 15 ) {
 
 	}
 	rm.stopTimer = function () {
-		
+
 		clearInterval( rm.timer );
 
 		rm.isTicking = false;
@@ -132,11 +132,11 @@ GameRoom = function ( id, isTimed=false, prepTime = 30, blitzTime = 15 ) {
 		rm.timer = setInterval ( function () {
 
 			rm.counter += 1;
-			
+
 			//console.log ( max - rm.counter );
-			
+
 			if ( rm.counter >= max) {
-				
+
 				rm.stopTimer ();
 
 				if ( rm.phase == 'prep' ) {
@@ -155,11 +155,11 @@ GameRoom = function ( id, isTimed=false, prepTime = 30, blitzTime = 15 ) {
 
 					timeRanOut ( rm.id );
 				}
-				
+
 			}
 
 		}, 1000 );
-		
+
 	}
 	rm.createGrid = function () {
 
@@ -184,7 +184,7 @@ GameRoom = function ( id, isTimed=false, prepTime = 30, blitzTime = 15 ) {
 		//console.log ('\n --> Game is initialized', rm.id );
 
 		rm.phase = 'prep';
-		
+
 		rm.isGameOn = true;
 
 		rm.isClosed = true;
@@ -192,7 +192,7 @@ GameRoom = function ( id, isTimed=false, prepTime = 30, blitzTime = 15 ) {
 		rm.createGrid ();
 
 		rm.turn = rm.initialTurn;
-		
+
 		rm.counter = 0;
 
 		if ( rm.isTimed ) rm.startTimer( rm.prepTime );
@@ -203,7 +203,7 @@ GameRoom = function ( id, isTimed=false, prepTime = 30, blitzTime = 15 ) {
 		//console.log ('\n --> Game is commencing', rm.id );
 
 		rm.phase = 'commence';
-		
+
 		if ( rm.isTicking ) rm.stopTimer ();
 
 		rm.counter = 0;
@@ -243,11 +243,11 @@ GameRoom = function ( id, isTimed=false, prepTime = 30, blitzTime = 15 ) {
 		rm.turn = rm.initialTurn;
 
 		rm.phase = 'prep';
-		
+
 		rm.isGameOn = true;
 
 		rm.counter = 0;
-		
+
 		rm.isWinning = '';
 
 		rm.isWinner = '';
@@ -272,7 +272,7 @@ GameRoom = function ( id, isTimed=false, prepTime = 30, blitzTime = 15 ) {
 			rm.endGame ();
 
 			rm.isWinner = playerid;
-			
+
 			playerList [ playerid ].score();
 
 		} else {
@@ -287,33 +287,33 @@ GameRoom = function ( id, isTimed=false, prepTime = 30, blitzTime = 15 ) {
 	}
 
 	return rm;
-	
+
 }
 
 io.on('connection', function(socket){
-	
+
 	socketList[socket.id] = socket;
-	
+
 	socket.on("initUser", function (data) {
-		
+
 		var newPlayer = Player ( socket.id, data );
 
 		newPlayer.pid = generatePlayersID ();
 
-		playerList [ socket.id ] = newPlayer;	
+		playerList [ socket.id ] = newPlayer;
 
 		sendPlayersOnline ();
 
 	});
 
 	socket.on ('getInitData', function () {
-		
+
 		var pcount = Object.keys(socketList).length;
 
 		var pid = playerList [ socket.id ].pid;
 
 		socket.emit ( 'sendInitData', { 'count' : pcount, 'pid' : pid } );
-		
+
 	});
 
 	socket.on("pair", function (data) {
@@ -325,9 +325,9 @@ io.on('connection', function(socket){
 		if ( opponentID != '' ) {
 
 			var newRoomID = player.username + '_' + Date.now();
-				
+
 			var newRoom = GameRoom ( newRoomID, data.isTimed );
-			
+
 			newRoom.playerIDs.push ( socket.id );
 
 			newRoom.playerCount += 1;
@@ -342,7 +342,7 @@ io.on('connection', function(socket){
 				'isTimed' : data.isTimed,
 				'invite' : player.username
 			}
-			
+
 			playerList [opponentID].tmpRoom = newRoomID;
 
 			socketList [opponentID].emit ('pairInvite', toReturn );
@@ -361,7 +361,7 @@ io.on('connection', function(socket){
 		if ( roomList.hasOwnProperty ( player.tmpRoom ) ) {
 
 			if ( !data ) {
-				
+
 				var room = roomList [ player.tmpRoom ];
 
 				var invitee = room.playerIDs [0];
@@ -393,25 +393,25 @@ io.on('connection', function(socket){
 		}else {
 
 			player.tmpRoom = '';
-			
+
 			if ( data ) socket.emit ('pairingError', { 'error' : 2 });
 
 		}
 
-		
+
 
 	});
 
 	socket.on("enterGame", function (data) {
-	
+
 		var player = playerList [ socket.id ];
 
-		if ( data.isSinglePlayer ) {
+		if ( data.game == 0 ) {
 
 			var newRoomID = player.username + '_' + Date.now();
 
-			var newRoom = GameRoom ( newRoomID, data.isTimed );
-				
+			var newRoom = GameRoom ( newRoomID, data.type == 0 ? false : true );
+
 			newRoom.playerIDs.push ( socket.id )
 
 			newRoom.isClosed = true;
@@ -421,7 +421,7 @@ io.on('connection', function(socket){
 			player.roomid = newRoomID;
 
 			var returnData = {
-			
+
 				'isSinglePlayer' : true,
 				'isTimed' : newRoom.isTimed,
 				'blitzTime' : newRoom.blitzTime,
@@ -434,21 +434,21 @@ io.on('connection', function(socket){
 				}
 			};
 
-			socket.emit ('initGame', returnData ); 
+			socket.emit ('initGame', returnData );
 
 			//console.log ( '\n --> Room Created :', newRoom.id );
 
 
 		}else {
 
-			var availableRoom = getAvailableRoom( data.isTimed );
+			var availableRoom = getAvailableRoom( data.type == 0 ? false : true );
 
 			if ( availableRoom == 'none' ) {
 
 				var newRoomID = player.username + '_' + Date.now();
-				
-				var newRoom = GameRoom ( newRoomID, data.isTimed );
-				
+
+				var newRoom = GameRoom ( newRoomID, data.type == 0 ? false : true  );
+
 				newRoom.playerIDs.push ( socket.id );
 
 				newRoom.playerCount += 1;
@@ -460,7 +460,7 @@ io.on('connection', function(socket){
 				//console.log ( '\n --> '+ player.username +' created a room :', newRoom.id );
 
 			}else  {
-				
+
 
 				player.roomid = availableRoom;
 
@@ -475,19 +475,19 @@ io.on('connection', function(socket){
 				gameRoom.playerCount += 1;
 
 				//console.log ( '\n --> '+ player.username +' join the room :', gameRoom.id );
-				
+
 				//initialize game..
 				initGame ( gameRoom.id );
-		
+
 			}
 
 		}
 
-			
+
 	});
 
 	socket.on("playerResign", function () {
-		
+
 		var plyr = playerList [ socket.id ];
 
 		//console.log ('\n --> ' + plyr.username + ' has resigned.');
@@ -503,7 +503,7 @@ io.on('connection', function(socket){
 		for ( var i in room.playerIDs ) {
 
 			var self = playerList [ room.playerIDs[i] ];
-			
+
 			var oppoID = getOpponentsId ( self.id );
 
 			var oppoPieces = getPlayerPieces ( oppoID );
@@ -535,28 +535,28 @@ io.on('connection', function(socket){
 	});
 
 	socket.on("playerReady", function (data) {
-		
+
 		var player = playerList [socket.id];
-		
+
 		initPlayerPieces ( socket.id, data );
 
 		var checker = checkPlayersAreReady ( player.roomid );
 
 		if ( checker ) {
-			
+
 			commenceGame ( player.roomid );
 
 		}else {
 
 			sendPlayerReady ( player.roomid );
 		}
-		
+
 	});
 
 	socket.on("playerOfferedADraw", function () {
-		
+
 		var player = playerList [socket.id];
-		
+
 		//console.log ('\n -- > ' + player.username + ' has offered a draw' );
 
 		var room = roomList [ player.roomid ];
@@ -566,11 +566,11 @@ io.on('connection', function(socket){
 		var oppoSocket = socketList [ getOpponentsId(socket.id) ];
 
 		oppoSocket.emit ('getDrawResponse');
-		
+
 	});
 
 	socket.on("playerDrawResponse", function ( data ) {
-		
+
 
 		var player = playerList [socket.id];
 
@@ -592,21 +592,21 @@ io.on('connection', function(socket){
 		}
 
 		for ( var i in room.playerIDs ) {
-			
+
 			var self = playerList [ room.playerIDs[i] ];
 
 			var oppoid = getOpponentsId ( self.id );
 
 			var oppoPieces = getPlayerPieces ( oppoid );
-			
+
 			var plyrWhoResponded = room.playerIDs[i] == player.id ? true : false;
 
 			var tmpSocket = socketList [ room.playerIDs[i] ];
 
-			var toReturn = { 
-				'accepted' : data, 
-				'plyrWhoResponded' : plyrWhoResponded, 
-				'oppoPieces' : oppoPieces 
+			var toReturn = {
+				'accepted' : data,
+				'plyrWhoResponded' : plyrWhoResponded,
+				'oppoPieces' : oppoPieces
 			};
 
 			tmpSocket.emit ( 'drawResponse', toReturn );
@@ -629,7 +629,7 @@ io.on('connection', function(socket){
 		}
 
 	});
-	
+
 	socket.on("pieceMove", function ( data ) {
 
 		//..
@@ -654,7 +654,7 @@ io.on('connection', function(socket){
 		for ( var i = 0; i < room.playerCount; i++ ) {
 
 			var plyr =  ( room.playerIDs [i] == player.id ) ? 'self' : 'oppo';
-			
+
 			socketList [ room.playerIDs[i] ].emit ( 'showEmoji',  { 'plyr' : plyr, 'frame' : data });
 
 		}
@@ -662,32 +662,32 @@ io.on('connection', function(socket){
 	});
 
 	socket.on("rematchRequest", function () {
-		
+
 		var plyr = playerList [ socket.id ]
-		
+
 		plyr.isReadyForRematch = true;
-		
+
 		if ( bothPlayersRequestsRematch ( plyr.roomid ) ) {
 
 			resetGame ( plyr.roomid );
 		}
 
 	});
-	
+
 	socket.on("leaveGame", function(data) {
-		
+
 		if ( playerList.hasOwnProperty(socket.id) ) {
 
 			var plyr = playerList[socket.id];
-			
+
 			if ( plyr.roomid != '' )  leaveRoom ( socket.id );
 
 		}
 
 	});
-	
+
 	socket.on("disconnect",function () {
-			
+
 		if ( playerList.hasOwnProperty(socket.id) ) {
 
 			var plyr = playerList[socket.id];
@@ -696,7 +696,7 @@ io.on('connection', function(socket){
 			if ( plyr.tmpRoom != '' ) cancelPairing ( socket.id );
 
 			if ( plyr.roomid != '' ) leaveRoom ( socket.id );
-		
+
 			delete playerList [socket.id];
 
 		}
@@ -718,7 +718,7 @@ function getPair ( pcode, myID ) {
 	for ( var i in playerList ) {
 
 		var player = playerList [i];
-		
+
 		if ( player.pid == pcode && player.roomid == '' && player.tmpRoom == '' && i !== myID  ) return i;
 
 	}
@@ -735,19 +735,19 @@ function timeRanOut ( roomid ) {
 		for ( var i=0; i<room.playerCount; i++ ) {
 
 			var self = playerList [ room.playerIDs[i] ];
-			
+
 			var turn = room.turn == i ? 'self' : 'oppo';
-			
+
 			var winner = turn == 'self' ? 'oppo' : 'self';
 
 			var oppoID = getOpponentsId ( self.id );
-	
+
 			var oppoPieces = getPlayerPieces ( oppoID );
-	
+
 			var tmpSocket = socketList [ self.id ];
-	
+
 			tmpSocket.emit ('timeRanOut', { 'turn' : turn, 'winner' : winner, 'oppoPieces' : oppoPieces });
-	
+
 		}
 
 	}
@@ -797,7 +797,7 @@ function initGame ( roomid ) {
 		var oppo =  playerList [ room.playerIDs[ i == 0 ? 1 : 0 ] ];
 
 		var data = {
-			
+
 			'isSinglePlayer' : false,
 			'isTimed' : room.isTimed,
 			'blitzTime' : room.blitzTime,
@@ -874,12 +874,12 @@ function sendPlayerReady ( roomID ) {
 
 }
 function sendPlayersOnline () {
-	
+
 	var pcount = Object.keys(socketList).length;
 
 	for ( var i in socketList ) {
 
-		var socketa = socketList [i]; 
+		var socketa = socketList [i];
 
 		socketa.emit ( 'playersOnline', pcount );
 
@@ -896,7 +896,7 @@ function generatePlayersID () {
 
 		var randID = Math.floor ( Math.random() * 99999 ) + 1000;
 
-		isUnique = checkIsUnique ( randID ); 
+		isUnique = checkIsUnique ( randID );
 
 	}
 
@@ -911,7 +911,7 @@ function checkIsUnique ( id ) {
 }
 function commenceGame ( roomID ) {
 
-	var gameRoom = roomList[roomID];	
+	var gameRoom = roomList[roomID];
 
 	gameRoom.commence();
 
@@ -947,9 +947,9 @@ function commenceGame ( roomID ) {
 
 	}
 
-	
 
-} 
+
+}
 function resetGame ( roomID ) {
 
 	var gameRoom = roomList[roomID];
@@ -959,7 +959,7 @@ function resetGame ( roomID ) {
 		var player = playerList [ gameRoom.playerIDs[i] ];
 
 		player.gameReset ();
-		
+
 		var socket = socketList [ gameRoom.playerIDs[i] ];
 
 		socket.emit ('resetGame');
@@ -967,13 +967,13 @@ function resetGame ( roomID ) {
 
 	gameRoom.resetGame();
 
-} 
+}
 function leaveRoom ( playerid ) {
-	
+
 	var player = playerList [playerid];
 
 	var gameRoom = roomList [ player.roomid ];
-		
+
 	var oppoID = getOpponentsId ( playerid );
 
 	if ( gameRoom.playerCount >= 2 ) {
@@ -985,9 +985,9 @@ function leaveRoom ( playerid ) {
 		gameRoom.playerCount = 1;
 
 		var oppSocket = socketList [ oppoID ];
-		
+
 		oppSocket.emit ('opponentLeft', [] );
-		
+
 	} else {
 		//...
 		delete roomList [ player.roomid ];
@@ -995,15 +995,15 @@ function leaveRoom ( playerid ) {
 		//console.log ( '\n <-- Room deleted :', gameRoom.id  );
 
 	}
-	
+
 
 	player.resetAll ();
-	
+
 }
 function initPlayerPieces ( playerid, piecesData ) {
 
 	var player = playerList [ playerid ];
-		
+
 	player.isReady = true;
 
 	var room = roomList [ player.roomid ];
@@ -1028,39 +1028,39 @@ function initPlayerPieces ( playerid, piecesData ) {
 
 		room.gridData[post].residentPlayer = playerid;
 
-		room.gridData[post].resident = pieceid; 
+		room.gridData[post].resident = pieceid;
 
-	}	
+	}
 
 }
 function getWinner ( rankA, rankB ) {
 
 	if ( rankA == 14 && rankB != 14 ) {  // A = Flag, B = Any except flag
-		return 2; 
+		return 2;
 	}
 	if ( rankB == 14 && rankA != 14 ) {  // B = Flag, A = Any except flag
-		return 1; 
+		return 1;
 	}
 	if ( rankA == 14 && rankB == 14 ) {  // A = Flag attacks B = Flag  -> winner : A
-		return 1; 
+		return 1;
 	}
 	if ( rankB == 14 && rankA == 14 ) {  // B = Flag attacks A = Flag  -> winner : B
-		return 2; 
+		return 2;
 	}
 	if ( rankA == 15 && rankB == 15 ) { // A = Spy, B = Spy -> no winner
 		return 0;
 	}
 	if ( rankA == 15 && rankB != 13 ) { // A = Spy, B != Private -> winner : A
-		return 1; 
+		return 1;
 	}
 	if ( rankB == 15 && rankA != 13 ) { // B = Spy, A != Private -> winner : B
-		return 2; 
+		return 2;
 	}
 	if ( rankA == 15 && rankB == 13 ) { // A = Spy, B == Private -> winner : B
-		return 2; 
+		return 2;
 	}
 	if ( rankB == 15 && rankA == 13 ) { // B = Spy, A == Private -> winner : A
-		return 1; 
+		return 1;
 	}
 	if ( rankA < rankB ) {
 		return 1;
@@ -1074,7 +1074,7 @@ function getWinner ( rankA, rankB ) {
 
 }
 function analyzeSentMove ( playerid, data ) {
-	
+
 	var plyr = playerList[playerid];
 
 	var plyrPiece = plyr.pieces [ 'piece' + data.piece ];
@@ -1085,19 +1085,19 @@ function analyzeSentMove ( playerid, data ) {
 
 	//get real position based on player's index or position..
 	var post = plyr.index == 0 ? data.post : Math.abs ( data.post - 71 );
-	
+
 	//destination of the moving piece..
 	var destPost = room.gridData [post];
 
 	//origin position of the moving piece..
 	var origPost = room.gridData [ plyrPiece.post ];
-	
+
 	origPost.resident = '';
 
 	origPost.residentPlayer = '';
 
 	//initialize variables needed for checking..
-	var win = false, 
+	var win = false,
 		base = false;
 
 	var clashResult = -1;
@@ -1117,7 +1117,7 @@ function analyzeSentMove ( playerid, data ) {
 
 				destPost.resident = '';
 				destPost.residentPlayer = '';
-			
+
 			break;
 
 			case 1 :
@@ -1130,9 +1130,9 @@ function analyzeSentMove ( playerid, data ) {
 				oppoPiece.isDestroyed = true;
 
 				if ( oppoPiece.rank == 14 ) {
-					
+
 					win = true;
-		
+
 					room.endGame ();
 
 					room.isWinner = plyr.id;
@@ -1147,7 +1147,7 @@ function analyzeSentMove ( playerid, data ) {
 				plyrPiece.isDestroyed = true;
 
 				if ( plyrPiece.rank == 14 ) {
-					
+
 					win = true;
 
 					room.endGame ();
@@ -1159,9 +1159,9 @@ function analyzeSentMove ( playerid, data ) {
 				}
 
 			break;
-			default : 
+			default :
 				//..
-			
+
 		}
 
 	}else {
@@ -1172,7 +1172,7 @@ function analyzeSentMove ( playerid, data ) {
 		destPost.residentPlayer = plyr.id;
 
 		if (( plyrPiece.rank == 14 && plyrPiece.origin == 0 && destPost.row == 0 ) || ( plyrPiece.rank == 14 && plyrPiece.origin == 1 && destPost.row == 7 ) ) {
-			
+
 			var sorrounded = oppoNearby ( plyrPiece.post, plyr.id, room.id );
 
 			if ( sorrounded ) {
@@ -1180,7 +1180,7 @@ function analyzeSentMove ( playerid, data ) {
 				room.isWinning = plyr.id;
 
 			}else {
-				
+
 				room.endGame ();
 
 				room.isWinner = plyr.id;
@@ -1200,9 +1200,9 @@ function analyzeSentMove ( playerid, data ) {
 
 	if ( !win ) room.switchTurn ();
 
-	
+
 	for ( var i = 0; i < room.playerCount; i++) {
-		
+
 		var self = playerList [ room.playerIDs[i] ];
 
 		var oppo = playerList [ room.playerIDs[ i == 0 ? 1 : 0 ] ];
@@ -1234,24 +1234,24 @@ function analyzeSentMove ( playerid, data ) {
 		}
 
 		////console.log ( ' --> Data sent to ', self.username );
-		
+
 		var socket = socketList [ self.id ];
 
-		socket.emit ( 'moveResult',  returnData ); 
-		
-	}
-	
+		socket.emit ( 'moveResult',  returnData );
 
-	
+	}
+
+
+
 }
 function getOpponentsId ( playerid ) {
-	
+
 	var plyr = playerList[playerid];
-	
+
 	if ( plyr.roomid != '' ) {
-		
+
 		var oppIndex = ( plyr.index == 0 ) ? 1 : 0;
-		
+
 		return roomList[ plyr.roomid ].playerIDs[ oppIndex ];
 	}
 
@@ -1285,4 +1285,3 @@ function oppoNearby ( post, playerid, roomid ) {
 
 }
 //............
-
