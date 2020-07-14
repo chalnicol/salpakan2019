@@ -106,11 +106,11 @@ window.onload = function () {
                 var conR = this.add.container ( _gW/2, _gH *0.63 ).setSize(rctW + 10, 55).setAlpha ( 0 );
 
 
-                var rect = this.add.rectangle ( 0,0 , rctW + 10, 55 ).setStrokeStyle ( 2, 0x3a3a3a );
+                var rect = this.add.rectangle ( 0,0 , rctW + 10, 50 ).setStrokeStyle ( 2, 0x3a3a3a );
 
-                var rect2 = this.add.rectangle ( 0,0 , rctW, 45, 0x3a3a3a, 1 );
+                var rect2 = this.add.rectangle ( 0,0 , rctW, 40, 0xa3a3a3, 1 );
 
-                var txt = this.add.text (  0,0 , 'Continue', { fontSize: 22, fontFamily : _fonta }).setOrigin(0.5);
+                var txt = this.add.text (  0,0 , 'Continue', { fontSize: 22, fontFamily : _fonta, color : '#333'}).setOrigin(0.5);
 
                 conR.add ([ rect, rect2, txt ]);
 
