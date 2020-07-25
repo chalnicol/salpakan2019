@@ -1621,14 +1621,14 @@ window.onload = function () {
 
                         case 'gameSound' :
 
-                            if ( !_this.bggameSound.isPaused ) {
-                                _this.bggameSound.pause();
+                            if ( !_this.gameMusic.isPaused ) {
+                                _this.gameMusic.pause();
 
                             }else {
-                                _this.bggameSound.resume();
+                                _this.gameMusic.resume();
                             }
 
-                            var fr = !_this.bggameSound.isPaused ?  this.getData ('frame') : this.getData ('frame') + 10;
+                            var fr = !_this.gameMusic.isPaused ?  this.getData ('frame') : this.getData ('frame') + 10;
 
                             _this.controls [ this.getData ('frame') ].getAt ( 1 ).setFrame (fr);
 
